@@ -33,7 +33,7 @@ public sealed class ReportService
         var status = await _stateStore.GetStatusAsync(cancellationToken).ConfigureAwait(false);
 
         var text = new StringBuilder();
-        text.AppendLine("# 自愈中心 系统健康报告");
+        text.AppendLine("# 奥创修复中心 系统健康报告");
         text.AppendLine();
         text.AppendLine($"- 时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
         text.AppendLine($"- 总分：**{health.Score}/100**（{health.Summary}）");

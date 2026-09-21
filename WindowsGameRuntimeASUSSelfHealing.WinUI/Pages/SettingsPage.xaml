@@ -4,60 +4,89 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
     <ScrollViewer>
-        <StackPanel Margin="28" MaxWidth="1120" HorizontalAlignment="Stretch">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel>
-                <TextBlock Text="高级设置" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="本地状态缓存、性能预算与安全边界。修复权限仍只由 Elevated Broker 获取。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
-            </StackPanel><Button Grid.Column="1" Content="返回报告中心" Click="BackToReports_Click" VerticalAlignment="Top"/></Grid>
+        <StackPanel Margin="28,24,28,24" MaxWidth="1120" HorizontalAlignment="Stretch">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="系统工具" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="缓存清理和内存清理可以直接跑。不会结束正在运行的程序，也不会动奥创修复、驱动和主板。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="返回报告中心" Click="BackToReports_Click" VerticalAlignment="Top"/>
+            </Grid>
 
-            <ctrl:StatusBanner x:Name="Info" IsOpen="True" Severity="Informational" Title="本地状态数据库" Message="正在读取 SQLite 状态。"/>
+            <ctrl:StatusBanner x:Name="Info" IsOpen="True" Severity="Informational" Title="系统工具" Message="先看下面两张卡片，点一下就能用。"/>
 
-            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                 <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="数据库" FontWeight="SemiBold"/><TextBlock x:Name="DbPathText" Grid.Column="1" TextWrapping="Wrap"/>
-                    <TextBlock Grid.Row="1" Text="SQLite 模式"/><TextBlock x:Name="DbModeText" Grid.Row="1" Grid.Column="1"/>
-                    <TextBlock Grid.Row="2" Text="缓存统计"/><TextBlock x:Name="DbCountText" Grid.Row="2" Grid.Column="1" TextWrapping="Wrap"/>
-                    <TextBlock Grid.Row="3" Text="数据库占用"/><TextBlock x:Name="DbSizeText" Grid.Row="3" Grid.Column="1"/>
-                    <TextBlock Grid.Row="4" Text="事件增量同步"/><TextBlock x:Name="EventSyncText" Grid.Row="4" Grid.Column="1" TextWrapping="Wrap"/>
-                    <TextBlock Grid.Row="5" Text="修复流程"/><TextBlock x:Name="WorkflowText" Grid.Row="5" Grid.Column="1"/>
-                    <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,6,0,0">
-                        <Button x:Name="RefreshButton" Content="刷新状态" Click="RefreshButton_Click"/>
-                        <Button Content="清理易失缓存" Click="ClearCacheButton_Click"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="系统缓存清理" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="清临时文件、缩略图、错误报告队列和回收站。正在使用的文件会跳过。不清理显卡着色器缓存，避免和显卡修复冲突。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="CacheText" Text="正在扫描…" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                        <Button x:Name="ScanCacheButton" Content="重新扫描" Click="ScanCache_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="CleanCacheButton" Content="立即清理" Click="CleanCache_Click" Background="#0F172A" Foreground="White" Margin="0" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,14,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="内存清理" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="把闲置内存还给系统，效果和常见内存清理软件一样。不会关闭游戏、浏览器或任何正在运行的程序。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="MemoryText" Text="正在读取内存…" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <Button x:Name="CleanMemoryButton" Grid.Column="1" Content="立即清理" Click="CleanMemory_Click" Background="#0F172A" Foreground="White" VerticalAlignment="Top"/>
+                </Grid>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Margin="0,14,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="本软件检测缓存" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="只清奥创修复中心自己的事件缓存。修复记录和历史不会删。这和上面的系统缓存不是一回事。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="AppCacheText" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="清理本软件缓存" Click="ClearCacheButton_Click" VerticalAlignment="Top"/>
+                </Grid>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Margin="0,14,0,0">
                 <StackPanel>
-                    <TextBlock Text="性能预算" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock Text="启动到主框架：目标 &lt; 1.5 s；主页面切换优先复用缓存；SQLite 缓存读取目标 &lt; 150 ms；Event Log 只做增量；空闲 CPU 目标 &lt; 0.5%；后台并发会依据 CPU/内存自动限制。" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="PerfText" FontFamily="Consolas" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/>
+                    <TextBlock Text="安全边界" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="• 不结束正在运行的程序，不强制解锁正在占用的文件。" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    <TextBlock Text="• 不清理显卡着色器缓存，避免和游戏崩溃页的显卡修复冲突。"/>
+                    <TextBlock Text="• 不自动运行 DDU，不卸载 GPU/芯片组驱动，不改 BIOS / ReBAR。"/>
+                    <TextBlock Text="• 未知 ASUS 新版本只诊断，不套用旧 4151/4152 方案。" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 本软件检测缓存只删除事件游标和组件快照，不删除修复事务。" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
 
-            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Margin="0,14,0,0">
                 <StackPanel>
-                    <TextBlock Text="高级诊断工具" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock Text="这些页面保留完整诊断能力，但不占用日常主导航。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap"/>
+                    <TextBlock Text="开发诊断" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="日常不用打开。深度检查、组件身份和架构信息仍保留，但不占用上面五个主入口。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,10"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="系统深度检查" Click="OpenDeepTest_Click"/>
                         <Button Content="组件身份诊断" Click="OpenIdentity_Click"/>
-                        <Button Content="安全 / 架构信息" Click="OpenArchitecture_Click"/>
+                        <Button Content="安全 / 架构信息" Click="OpenArchitecture_Click" Margin="0"/>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
-                <StackPanel>
-                    <TextBlock Text="安全边界" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock Text="• 不自动运行 DDU，不盲目卸载 GPU/芯片组驱动。"/>
-                    <TextBlock Text="• 未知 ASUS 新版本只诊断，不套用旧 4151/4152 Recipe。"/>
-                    <TextBlock Text="• Legacy ASUS Adapter 继续由固定 SHA256 + Eligibility + Broker 二次校验保护。" TextWrapping="Wrap"/>
-                    <TextBlock Text="• 清理易失缓存只删除事件游标/事件缓存/组件快照，不删除修复事务与 Incident 历史。" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
         </StackPanel>

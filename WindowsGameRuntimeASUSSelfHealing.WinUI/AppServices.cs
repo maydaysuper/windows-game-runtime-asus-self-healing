@@ -17,6 +17,7 @@ public sealed class AppServices : IDisposable
     public GpuMemoryTelemetryService GpuMemoryTelemetry { get; }
     public GpuDiagnosticsService GpuDiagnostics { get; }
     public ReportService Reports { get; }
+    public SystemMaintenanceService Maintenance { get; }
 
     public AppServices()
     {
@@ -33,6 +34,7 @@ public sealed class AppServices : IDisposable
         GpuMemoryTelemetry = new GpuMemoryTelemetryService(Resources);
         GpuDiagnostics = new GpuDiagnosticsService(Backend, StateStore, GpuMemoryTelemetry, DumpAnalysis);
         Reports = new ReportService(Backend, StateStore, HealthScore);
+        Maintenance = new SystemMaintenanceService();
     }
 
     public void Dispose()
