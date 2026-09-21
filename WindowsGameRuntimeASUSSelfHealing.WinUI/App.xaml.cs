@@ -6,25 +6,44 @@ public partial class App : Application
 {
     private Window? _window;
     public Window? MainWindow => _window;
-    public static AppServices Services { get; } = new();
+    public static AppServices Services { get; } = CreateServices();
 
     public App()
     {
+        StartupGuard.Install();
         InitializeComponent();
         UnhandledException += (_, args) =>
         {
-            // Log unexpected UI exceptions without marking them handled. Backend repair safety does not
-            // depend on the GUI process and remains protected by Broker + Eligibility gates.
+            StartupGuard.Write("XamlUnhandledException", args.Exception);
             System.Diagnostics.Debug.WriteLine(args.Exception);
         };
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Closed += (_, _) => Services.Dispose();
-        _window.Activate();
-        _ = WarmStateStoreAsync();
+        try
+        {
+            _window = new MainWindow();
+            _window.Closed += (_, _) => Services.Dispose();
+            _window.Activate();
+            _ = WarmStateStoreAsync();
+        }
+        catch (Exception ex)
+        {
+            StartupGuard.Write("OnLaunched", ex);
+            StartupGuard.Notify(ex);
+            throw;
+        }
+    }
+
+    private static AppServices CreateServices()
+    {
+        try { return new AppServices(); }
+        catch (Exception ex)
+        {
+            StartupGuard.Write("AppServices", ex);
+            throw;
+        }
     }
 
     private static async Task WarmStateStoreAsync()
@@ -33,6 +52,6 @@ public partial class App : Application
             await Services.StateStore.InitializeAsync().ConfigureAwait(false);
             await Services.Workflow.InitializeAsync().ConfigureAwait(false);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+        catch (Exception ex) { StartupGuard.Write("WarmStateStore", ex); }
     }
 }
