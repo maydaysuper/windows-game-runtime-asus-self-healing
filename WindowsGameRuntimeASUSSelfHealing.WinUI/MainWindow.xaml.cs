@@ -62,11 +62,11 @@ public sealed partial class MainWindow : Window
         titlePanel.Children.Add(new TextBlock
         {
             Text = "Windows 游戏运行环境自愈中心",
-            FontWeight = FontWeights.SemiBold,
+            FontWeight = new FontWeight { Weight = 600 },
             FontSize = 15,
             VerticalAlignment = VerticalAlignment.Center
         });
-        VersionText = new TextBlock { FontSize = 11, FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 2, 8, 2) };
+        VersionText = new TextBlock { FontSize = 11, FontWeight = new FontWeight { Weight = 600 }, Padding = new Thickness(8, 2, 8, 2) };
         var versionBorder = new Border
         {
             CornerRadius = new CornerRadius(10),
@@ -79,7 +79,7 @@ public sealed partial class MainWindow : Window
 
         ContentFrame = new Frame { CacheSize = 7 };
         OverviewItem = NavItem("系统健康", "overview", "\uE9D9");
-        UIElement navHost;
+        FrameworkElement navHost;
         try
         {
             NavView = new NavigationView
@@ -136,7 +136,7 @@ public sealed partial class MainWindow : Window
         Content = root;
     }
 
-    private UIElement BuildButtonNav()
+    private FrameworkElement BuildButtonNav()
     {
         var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Padding = new Thickness(16, 8, 16, 8) };
         foreach (var (label, tag) in new[]
