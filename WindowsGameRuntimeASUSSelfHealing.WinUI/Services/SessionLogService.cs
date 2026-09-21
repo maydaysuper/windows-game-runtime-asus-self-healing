@@ -71,7 +71,7 @@ public sealed class SessionLogService : IDisposable
 
     private void Enqueue(string level, string source, string message)
     {
-        var compact = (message ?? "").Replace("\r\n", " | ").Replace('\n', ' | ');
+        var compact = (message ?? "").Replace("\r\n", " | ", StringComparison.Ordinal).Replace("\n", " | ", StringComparison.Ordinal);
         var line = DateTimeOffset.Now.ToString("o") + "\t" + level + "\t" + source + "\t" + compact;
         _lines.Enqueue(line);
         try { File.AppendAllText(_sessionPath, line + Environment.NewLine, Encoding.UTF8); }
