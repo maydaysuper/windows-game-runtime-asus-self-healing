@@ -1,4 +1,8 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.8
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.10
+
+## v3.4.10 紧急修复：v3.4.9 安装后打不开
+
+v3.4.9 的 Setup / Portable 把 WinUI 打成了单文件 EXE，安装目录里没有 `Microsoft.ui.xaml.dll`。双击后进程立刻退出，没有窗口。请改用 v3.4.10。ASUS 修复链、Recipe、PV/HOLTEK/ENE hash-lock 未改。
 
 ## v3.4.8 紧急修复：v3.4.7 无法在 Windows 上发布
 

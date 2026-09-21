@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-    Version = '3.4.9'
-    BuildId = '20260922.winui3.15'
+    Version = '3.4.10'
+    BuildId = '20260922.winui3.16'
     Channel = 'Stable'
     Frontend = 'WinUI 3 / Windows App SDK 2.5.1'
     ReportSchemaVersion = 4

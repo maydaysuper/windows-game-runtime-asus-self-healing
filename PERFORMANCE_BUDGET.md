@@ -35,7 +35,7 @@ Elevated MSI/DISM/ASUS repair transactions are not forcibly paused or killed for
 
 ## Build/publish trade-offs
 
-- `self-contained + single-file` remains for simple end-user deployment.
+- `self-contained folder deploy` (not PublishSingleFile). WinUI native DLLs must sit next to the EXE; Inno Setup already wraps the folder.
 - `PublishTrimmed=false`: WinUI/Windows Runtime compatibility is preferred over risky trimming.
 - `PublishReadyToRun=false`: avoids inflating package size until Windows A/B startup measurements demonstrate a worthwhile gain.
 - Stable dependency versions stay centralized in `Directory.Packages.props`; NuGet direct/transitive audit remains enabled.

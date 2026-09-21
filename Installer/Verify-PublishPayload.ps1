@@ -49,6 +49,24 @@ if(-not (Test-Path -LiteralPath $exe)) { throw "Published EXE missing: $exe" }
 Assert-PeX64 $exe
 if(-not (Test-Path -LiteralPath $backend)) { throw "Published Backend directory missing: $backend" }
 
+$runtimeFiles=@(
+    'Microsoft.ui.xaml.dll',
+    'Microsoft.WindowsAppRuntime.dll',
+    'e_sqlite3.dll'
+)
+foreach($name in $runtimeFiles) {
+    $runtimePath=Join-Path $root $name
+    if(-not (Test-Path -LiteralPath $runtimePath)) {
+        throw "Unpackaged WinUI runtime file missing (PublishSingleFile is forbidden): $runtimePath"
+    }
+    Assert-PeX64 $runtimePath
+}
+$dllCount=@(Get-ChildItem -LiteralPath $root -Filter '*.dll' -File).Count
+if($dllCount -lt 8) {
+    throw "Published payload looks like PublishSingleFile (dllCount=$dllCount). WinUI native DLLs must sit next to the EXE or Setup will not launch."
+}
+Write-Host "[PASS] Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"
+
 $build=Read-Utf8Json $buildInfoPath
 $required=@{
     'RepairCenter.ps1'=[string]$build.EngineSHA256

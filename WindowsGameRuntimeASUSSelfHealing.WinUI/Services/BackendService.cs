@@ -33,7 +33,7 @@ public sealed class BackendService : IBackendClient, IDisposable
     public BackendService(AdaptiveResourceGovernor resources)
     {
         _resources = resources;
-        _backendRoot = Path.Combine(AppContext.BaseDirectory, "Backend");
+        _backendRoot = Path.Combine(ResolveHostDirectory(), "Backend");
         _bridgePath = Path.Combine(_backendRoot, "UiBridge.ps1");
         _enginePath = Path.Combine(_backendRoot, "RepairCenter.ps1");
         _brokerPath = Path.Combine(_backendRoot, "ElevatedBroker.ps1");
@@ -52,7 +52,7 @@ public sealed class BackendService : IBackendClient, IDisposable
             using var doc = JsonDocument.Parse(File.ReadAllText(_buildInfoJsonPath, Encoding.UTF8));
             var root = doc.RootElement;
             return new BuildIdentity(
-                root.GetProperty("Version").GetString() ?? "3.4.9",
+                root.GetProperty("Version").GetString() ?? "3.4.10",
                 root.GetProperty("BuildId").GetString() ?? "unknown",
                 root.TryGetProperty("WindowsAppSDK", out var was) ? was.GetString() ?? "" : "",
                 root.TryGetProperty("DotNet", out var dotnet) ? dotnet.GetString() ?? "" : "",
@@ -70,7 +70,7 @@ public sealed class BackendService : IBackendClient, IDisposable
         }
         catch
         {
-            return new BuildIdentity("3.4.9", "unknown", "", "", "", "", "", "", "", "", "", "", "", "", "");
+            return new BuildIdentity("3.4.10", "unknown", "", "", "", "", "", "", "", "", "", "", "", "", "");
         }
     }
 
@@ -212,6 +212,19 @@ public sealed class BackendService : IBackendClient, IDisposable
 
     private static string PowerShellExe()
         => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+
+    private static string ResolveHostDirectory()
+    {
+        if (!string.IsNullOrWhiteSpace(StartupGuard.HostDirectory) && Directory.Exists(StartupGuard.HostDirectory))
+            return StartupGuard.HostDirectory;
+        var process = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(process))
+        {
+            var dir = Path.GetDirectoryName(process);
+            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir)) return dir;
+        }
+        return AppContext.BaseDirectory;
+    }
 
     private static string SanitizeAction(string action)
         => new(action.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').Take(48).ToArray());
