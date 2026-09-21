@@ -1,8 +1,8 @@
 {
   "SchemaVersion": 8,
   "Product": "Windows Game Runtime / ASUS Armoury Self-Healing Center",
-  "Version": "4.0.0",
-  "BuildId": "20260922.wpf.1",
+  "Version": "4.1.0",
+  "BuildId": "20260922.wpf.2",
   "Channel": "Stable",
   "Frontend": "WPF / .NET 10",
   "WindowsAppSDK": "WPF",
@@ -18,7 +18,7 @@
   "GpuSafeRepairSHA256": "fdc608d9b530a60eb3c6c4653c258473efd4d839b40c54d09c7ba9053cd2f199",
   "AtomicPolicyExecutorSHA256": "0863b4f51edd020ce7c978af453bca550d669eb1eda4db237fa24be59bb079e3",
   "RecipeCatalogSHA256": "7134db5455f9437b75277a20c312f96448b5ba8dc08f498333c15eec54bdc996",
-  "BuildInfoSHA256": "601610894fdb4abe1f23c1c3220216352b2e7240ec3bd2d481cab6188b33665b",
+  "BuildInfoSHA256": "8b7680de831ec29741ef6e1c1180d215012c610209b032ce9d855db4e843953b",
   "LegacyAdapterPolicy": "IMMUTABLE_HASH_LOCK",
   "LegacyAdapterHashes": {
     "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",

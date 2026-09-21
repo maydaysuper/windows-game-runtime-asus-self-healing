@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '4.0.0'
+$Version = '4.1.0'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -238,12 +238,12 @@ try {
 
     Write-Host ''
     Write-Host '================================================================' -ForegroundColor DarkCyan
-    Write-Host " $Product - WinUI 3 v$Version" -ForegroundColor White
+    Write-Host " $Product - WPF v$Version" -ForegroundColor White
     Write-Host ' Windows 11 x64 一键构建 / 发布 / 启动' -ForegroundColor White
     Write-Host '================================================================' -ForegroundColor DarkCyan
 
     Write-Step '检查 Windows 11 与 CPU 架构'
-    if($env:OS -ne 'Windows_NT') { Fail 'WinUI 3 只能在 Windows 上构建。' }
+    if($env:OS -ne 'Windows_NT') { Fail 'This WPF app can only be built on Windows.' }
 
     $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
     $buildNumber = 0

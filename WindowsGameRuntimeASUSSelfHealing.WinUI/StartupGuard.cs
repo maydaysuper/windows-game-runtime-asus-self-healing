@@ -36,7 +36,6 @@ internal static class StartupGuard
 
         try { Directory.SetCurrentDirectory(HostDirectory); }
         catch { }
-        Environment.SetEnvironmentVariable("MICROSOFT_WINDOWSAPPRUNTIME_BASE_DIRECTORY", HostDirectory);
         Environment.SetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR", HostDirectory);
     }
 
@@ -68,26 +67,17 @@ internal static class StartupGuard
         try { dllCount = Directory.GetFiles(HostDirectory, "*.dll").Length; }
         catch { }
 
-        var ex = new FileNotFoundException(
-            "安装目录缺少 WinUI 运行库（" + string.Join("、", missing) +
+        throw new FileNotFoundException(
+            "安装目录缺少 WPF 运行库（" + string.Join("、", missing) +
             "）。dllCount=" + dllCount +
-            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v4.0.0 Setup，从开始菜单打开。" +
+            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载全部 3.4.x 后改装 v4.1.0 Setup，从开始菜单打开。" +
             "目录: " + HostDirectory);
-        Write("NativeRuntime", ex);
-        Notify(ex);
-        throw ex;
     }
 
     public static string RuntimeSnapshot()
     {
         var ver = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "?";
-        var pris = "";
-        try
-        {
-            pris = string.Join(", ", Directory.GetFiles(HostDirectory, "*.pri").Select(Path.GetFileName));
-        }
-        catch { }
-        return $"version={ver}\nhost={HostDirectory}\nbase={AppContext.BaseDirectory}\nprocess={Environment.ProcessPath}\npri={pris}";
+        return $"version={ver}\nhost={HostDirectory}\nbase={AppContext.BaseDirectory}\nprocess={Environment.ProcessPath}";
     }
 
     public static void Write(string source, Exception ex)

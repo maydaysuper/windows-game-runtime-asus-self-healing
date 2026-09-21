@@ -11,7 +11,7 @@
             <StackPanel><TextBlock Text="深度检查" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="VC++ LoadLibrary、DXGI/D3D11/D3D12、GPU/PnP、.NET、WebView2、Vulkan、OpenAL、XNA、崩溃证据" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/></StackPanel>
             <Button x:Name="RunButton" Grid.Column="1" Content="开始后台深度测试" Click="RunButton_Click"/>
         </Grid>
-        <ctrl:StatusBanner x:Name="DeepInfo" Grid.Row="1" Margin="0,18,0,0" IsOpen="True" Title="按需测试" Message="耗时 API/事件日志/PnP 查询在独立 PowerShell 进程执行，WinUI 主线程不会等待。"/>
+        <ctrl:StatusBanner x:Name="DeepInfo" Grid.Row="1" Margin="0,18,0,0" IsOpen="True" Title="按需测试" Message="耗时 API/事件日志/PnP 查询在独立 PowerShell 进程执行，界面主线程不会等待。"/>
         <ListView x:Name="DeepList" Grid.Row="2" Margin="0,18,0,0" SelectionMode="Single">
             <ListView.ItemTemplate>
                 <DataTemplate DataType="{x:Type models:DeepTestItem}">

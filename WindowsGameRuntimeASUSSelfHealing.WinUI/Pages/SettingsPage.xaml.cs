@@ -65,15 +65,16 @@ public sealed partial class SettingsPage : Page
         finally { RefreshButton.IsEnabled = true; }
     }
     private void OpenDeepTest_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(new DeepTestPage());
+        => NavigationService?.Navigate(new DeepTestPage());
 
     private void OpenIdentity_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(new IdentityPage());
+        => NavigationService?.Navigate(new IdentityPage());
 
     private void OpenArchitecture_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(new ArchitecturePage());
+        => NavigationService?.Navigate(new ArchitecturePage());
 
     private void BackToReports_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(new ReportsPage());
+        => NavigationService?.Navigate(new ReportsPage());
+
 
 }

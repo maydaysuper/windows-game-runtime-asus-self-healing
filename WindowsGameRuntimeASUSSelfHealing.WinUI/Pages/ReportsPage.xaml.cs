@@ -179,7 +179,7 @@ public sealed partial class ReportsPage : Page
     }
 
     private void OpenFolder_Click(object sender, RoutedEventArgs e) => App.Services.Reports.OpenReportFolder();
-    private void OpenSettings_Click(object sender, RoutedEventArgs e) => Frame.Navigate(new SettingsPage());
+    private void OpenSettings_Click(object sender, RoutedEventArgs e) => NavigationService?.Navigate(new SettingsPage());
 
     private async void ContinueButton_Click(object sender, RoutedEventArgs e)
     {

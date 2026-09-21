@@ -1,4 +1,14 @@
-# v3.4 architecture
+# v4.1 architecture
+
+Frontend is **WPF / .NET 10 self-contained win-x64**. Windows App SDK is not loaded.
+
+The shell keeps five primary entries and caches page instances so switching tabs does not re-run PowerShell. If `MainWindow` XAML fails to load, the same chrome is built in C#.
+
+PowerShell Backend, ASUS RepairCenter, Elevated Broker, RecipeCatalog and PV/HOLTEK/ENE hash-locks are unchanged from v3.4.8.
+
+# v4.0 / v3.4 architecture
+
+
 
 ## User-facing shell
 
