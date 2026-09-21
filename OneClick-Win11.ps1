@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '3.4.9'
+$Version = '3.4.10'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -325,9 +325,7 @@ try {
         '-p:WindowsPackageType=None',
         '-p:WindowsAppSDKSelfContained=true',
         '-p:SelfContained=true',
-        '-p:PublishSingleFile=true',
-        '-p:IncludeAllContentForSelfExtract=true',
-        '-p:IncludeNativeLibrariesForSelfExtract=true',
+        '-p:PublishSingleFile=false',
         '-p:EnableMsixTooling=true',
         '-p:PublishTrimmed=false',
         '-p:PublishReadyToRun=false',
@@ -354,9 +352,16 @@ try {
         Select-Object -First 1
     if(-not $exe) { Fail 'dotnet publish 已结束，但 publish 目录没有找到主程序 EXE。' }
 
-    if($exe.Length -lt 10MB) {
-        Write-Warn ("最终 EXE 只有 {0:N1} MB。WinUI 3 self-contained single-file 通常更大，请查看日志确认。" -f ($exe.Length/1MB))
+    $dlls = @(Get-ChildItem -LiteralPath $PublishRoot -Filter '*.dll' -File)
+    if($dlls.Count -lt 8) {
+        Fail ("publish 目录 DLL 过少（{0}），疑似又打成了 Single-file。WinUI 原生运行库必须和 EXE 在同一目录，否则安装后无法打开。" -f $dlls.Count)
     }
+    foreach($requiredDll in @('Microsoft.ui.xaml.dll','Microsoft.WindowsAppRuntime.dll','e_sqlite3.dll')) {
+        if(-not (Test-Path -LiteralPath (Join-Path $PublishRoot $requiredDll))) {
+            Fail ("publish 目录缺少 {0}。这是 v3.4.9 安装后打不开的根因，禁止继续打包。" -f $requiredDll)
+        }
+    }
+    Write-Ok ("WinUI 原生 DLL 已与 EXE 同目录（{0} 个 DLL）。" -f $dlls.Count)
 
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe.FullName).Hash.ToLowerInvariant()
     Write-Ok ("EXE：{0}" -f $exe.FullName)
