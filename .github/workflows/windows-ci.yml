@@ -117,19 +117,27 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $winget=Get-Command winget.exe -ErrorAction SilentlyContinue
-          if($winget -and $winget.Source -and (Test-Path -LiteralPath $winget.Source)) {
-            & $winget.Source install --id JRSoftware.InnoSetup.7 --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+          function Find-Iscc {
+            @(
+              "$env:ProgramFiles\Inno Setup 7\ISCC.exe",
+              "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+              "$env:LOCALAPPDATA\Programs\Inno Setup 7\ISCC.exe",
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+              "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+            ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
           }
-          $iscc7="$env:ProgramFiles\Inno Setup 7\ISCC.exe"
-          if(-not (Test-Path -LiteralPath $iscc7)) {
+          $found = Find-Iscc
+          if(-not $found) {
+            $winget=Get-Command winget.exe -ErrorAction SilentlyContinue
+            if($winget -and $winget.Source -and (Test-Path -LiteralPath $winget.Source)) {
+              & $winget.Source install --id JRSoftware.InnoSetup.7 --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+            }
+            $found = Find-Iscc
+          }
+          if(-not $found) {
             choco install innosetup --no-progress -y
+            $found = Find-Iscc
           }
-          $found=@(
-            "$env:ProgramFiles\Inno Setup 7\ISCC.exe",
-            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
-            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
           if(-not $found) { throw 'ISCC not found after Inno Setup install.' }
           Write-Host "ISCC: $found"
 

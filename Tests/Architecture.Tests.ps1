@@ -62,6 +62,8 @@ if(Test-Path -LiteralPath $installerPath){
         Pass 'Installer contract: per-user Setup packages complete published runtime'
     }else{Fail 'Installer contract drift'}
 }else{Fail 'Installer definition missing'}
+$buildInstallerRaw=Read-Utf8Text (Join-Path $Root 'Installer\Build-Installer.ps1')
+if($buildInstallerRaw -match 'Select-Object -First 1' -and $buildInstallerRaw -notmatch '\$isccCandidates\[0\]'){Pass 'ISCC path is not indexed as a character'}else{Fail 'Build-Installer ISCC path indexing is PowerShell-unsafe'}
 
 # 3) BuildInfo integrity chain.
 $buildJson=Read-Utf8Json (Join-Path $Backend 'BuildInfo.json')

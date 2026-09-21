@@ -18,18 +18,26 @@ if(-not (Test-Path -LiteralPath $PublishRoot)){ throw "Publish root not found: $
 & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $verify -PublishRoot $PublishRoot
 if($LASTEXITCODE -ne 0){ throw "Publish payload verification failed: ExitCode=$LASTEXITCODE" }
 
-$isccCandidates=@(
+$iscc = @(
     (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 7\ISCC.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
     (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')
-) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
-if(-not $isccCandidates){ throw 'Inno Setup 7/6 (ISCC.exe) not found.' }
-$iscc=$isccCandidates[0]
+) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+if(-not $iscc){ throw 'Inno Setup 7/6 (ISCC.exe) not found.' }
+Write-Host "ISCC: $iscc"
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 $source=(Resolve-Path -LiteralPath $PublishRoot).Path
 $out=(Resolve-Path -LiteralPath $OutputDir).Path
-& $iscc "/DMyAppVersion=$($build.Version)" "/DSourceRoot=$source" "/DOutputDir=$out" (Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.iss')
+$iss=Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.iss'
+$isccArgs=@(
+    "/DMyAppVersion=$($build.Version)",
+    "/DSourceRoot=$source",
+    "/DOutputDir=$out",
+    $iss
+)
+& $iscc @isccArgs
 if($LASTEXITCODE -ne 0){ throw "Inno Setup failed, ExitCode=$LASTEXITCODE" }
 $setup=Get-ChildItem -LiteralPath $OutputDir -Filter '*.exe' -File | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
 if(-not $setup){ throw 'Setup EXE was not created.' }

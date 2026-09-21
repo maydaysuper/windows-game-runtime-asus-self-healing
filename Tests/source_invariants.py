@@ -164,7 +164,7 @@ build_installer=(ROOT/'Installer'/'Build-Installer.ps1').read_text(encoding='utf
 build_release=(ROOT/'Build-Release.ps1').read_text(encoding='utf-8-sig')
 if all(x in verify_payload for x in ['Assert-PeX64','LegacyAdapterHashes','CapabilityBaselineSHA256','PAYLOAD_SHA256.txt']): ok('published payload verifier covers x64 + backend + legacy hash chain')
 else: fail('published payload verifier incomplete')
-if all(x in build_installer for x in ['Verify-PublishPayload.ps1','Inno Setup 7','Inno Setup 6','.sha256.txt']): ok('installer builder verifies payload and supports Inno 7/6')
+if all(x in build_installer for x in ['Verify-PublishPayload.ps1','Inno Setup 7','Inno Setup 6','.sha256.txt','Select-Object -First 1']) and '$isccCandidates[0]' not in build_installer: ok('installer builder verifies payload and supports Inno 7/6')
 else: fail('installer builder contract incomplete')
 if all(x in build_release for x in ['Windows_Game_Runtime_ASUS_SelfHealing_Portable_v','Build-Installer.ps1','RELEASE_SHA256.txt','RELEASE_MANIFEST.json']): ok('release builder emits portable + setup + manifests')
 else: fail('release builder contract incomplete')
