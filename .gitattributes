@@ -1,7 +1,12 @@
 * text=auto
+
+# Hash-locked repair chain must checkout byte-identical on Windows.
+# text=auto would rewrite LF -> CRLF and break SHA256 locks.
+WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/** -text
+LEGACY_ADAPTER_LOCK.json -text
+
 *.cmd text eol=crlf
 *.bat text eol=crlf
-*.ps1 text eol=crlf
 *.iss text eol=crlf
 *.sln text eol=crlf
 *.png binary
