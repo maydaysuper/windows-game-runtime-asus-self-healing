@@ -235,7 +235,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.1.3': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.1.4': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -272,6 +272,18 @@ if "Status -in @('N/A','INFO')" in engine_text or 'Status -in @(\'N/A\',\'INFO\'
 else: fail('final verification still maps INFO to WARN')
 if '$eligible=$false' in engine_text.replace(' ', '') or '$eligible = $false' in engine_text: ok('runtime auto-repair via official installer is disabled')
 else: fail('runtime repair eligibility still allows official-installer repair')
+online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-RuntimeDiagnosticRows',1)[0]
+if 'Get-VCRedistOnlinePackage' in online_fn or 'Get-DirectXWebInstaller' in online_fn or 'Invoke-OfficialMicrosoftDownload' in online_fn: fail('Update-RuntimeOnlineInfo still downloads Microsoft installers')
+else: ok('Update-RuntimeOnlineInfo is a retired no-download stub')
+diag_fn=engine_text.split('function Get-RuntimeDiagnosticRows',1)[1].split('function Write-RuntimeOnlineWorker',1)[0]
+if 'RuntimeOnlineInfo' in diag_fn or '建议执行修复安装' in diag_fn: fail('runtime diagnostics still compare official packages or WARN on SideBySide')
+else: ok('runtime diagnostics are local-only and do not WARN for official compare')
+headless_fn=engine_text.split('function Invoke-RuntimeRepairHeadless',1)[1].split('function Invoke-ContinuePendingRepairHeadless',1)[0]
+if 'Update-RuntimeOnlineInfo' in headless_fn or 'Invoke-RuntimeAutoRepair' in headless_fn: fail('runtime repair headless still tries Microsoft installer repair')
+else: ok('runtime repair headless refuses without downloading')
+bridge_text=(BACK/'UiBridge.ps1').read_text(encoding='utf-8')
+if "[void](Update-RuntimeOnlineInfo" in bridge_text: fail('UiBridge still runs Microsoft online compare')
+else: ok('UiBridge RUNTIME_ONLINE/PLAN_RUNTIME no longer download Microsoft installers')
 if 'ApplicationIcon' in csproj and r'Assets\app.ico' in csproj: ok('application icon is embedded')
 else: fail('csproj missing ApplicationIcon')
 if not (PROJ/'Assets'/'app.ico').exists(): fail('app.ico missing')

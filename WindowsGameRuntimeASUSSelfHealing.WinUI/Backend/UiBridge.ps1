@@ -154,22 +154,12 @@ try {
             Write-BridgeResult $true ([PSCustomObject]@{Transactions=@($list|Select-Object TransactionId,Type,Group,Label,State,StartedAt,UpdatedAt,LastDetail);Open=(Get-LatestOpenTransaction)})
         }
         'RUNTIME_ONLINE' {
-            [void](Update-RuntimeOnlineInfo -Force:$Force)
-            $script:SnapshotCacheTime=[datetime]::MinValue
+            $script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
             $snap=Get-SystemSnapshot -Force
             $elig=Get-RuntimeRepairEligibility $snap
-            $packages=@()
-            if($script:RuntimeOnlineInfo){
-                foreach($k in @($script:RuntimeOnlineInfo.Keys)){
-                    $v=$script:RuntimeOnlineInfo[$k]
-                    $packages += [PSCustomObject]@{Key=$k;Success=$v.Success;TrustComplete=$v.TrustComplete;Version=$v.Version;SHA256=$v.SHA256;Signer=$v.Signer;Thumbprint=$v.Thumbprint;OriginalUri=$v.OriginalUri;FinalUri=$v.FinalUri;FinalHost=$v.FinalHost;Source=$v.Source;Error=$v.Error}
-                }
-            }
-            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;Packages=$packages})
+            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;Packages=@();Retired=$true;Message='已停用 Microsoft 官方安装器下载、版本对比和自动修复。本机 DLL 正常即为通过。'})
         }
         'PLAN_RUNTIME' {
-            [void](Update-RuntimeOnlineInfo -Force:$Force)
-            $script:SnapshotCacheTime=[datetime]::MinValue
             $snap=Get-SystemSnapshot -Force
             $plan=New-RepairPlan 'RUNTIME' '' $snap
             Write-BridgeResult $true ([PSCustomObject]@{Plan=$plan;Text=(Format-RepairPlan $plan)})

@@ -1,14 +1,14 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.3
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.4
 
-## v4.1.3
+## v4.1.4
 
-WinUI 3 unpackaged 从 3.4.9 到 3.4.14 都无法在本机打开窗口。v4.1.0 换成 WPF 后窗口已能开。v4.1.3：
+WinUI 3 unpackaged 从 3.4.9 到 3.4.14 都无法在本机打开窗口。v4.1.0 换成 WPF 后窗口已能开。v4.1.4：
 
 - 运行库只检测本机 VC++ / DirectX
-- 停用 Microsoft 官方安装器对比和自动修复
+- 彻底停用 Microsoft 官方安装器下载、版本对比和自动修复
 - 最终验收不再把「官方包拿不到」写成 WARN
 
-请卸载全部 3.4.x 后安装 4.1.3。已装 4.1.x 可直接覆盖。
+请卸载全部 3.4.x 后安装 4.1.4。已装 4.1.x 可直接覆盖。
 
 ## 主界面
 
