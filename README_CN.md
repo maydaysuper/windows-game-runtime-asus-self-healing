@@ -1,4 +1,8 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.10
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.11
+
+## v3.4.11 紧急修复：v3.4.10 弹「快速异常检测失败」
+
+v3.4.10 把 WinUI 改成了文件夹自包含，但还开着 `WindowsAppSdkBootstrapInitialize`。这个自动初始化在 `Main` 之前去找本机 Windows App Runtime 共享包；自包含应用不走那条路径，找不到就 Fail Fast，进程立刻退出。请改用 v3.4.11。ASUS 修复链、Recipe、PV/HOLTEK/ENE hash-lock 未改。
 
 ## v3.4.10 紧急修复：v3.4.9 安装后打不开
 

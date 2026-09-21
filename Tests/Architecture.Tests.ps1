@@ -173,6 +173,8 @@ foreach($required in @(
     '<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>',
     '<SelfContained>true</SelfContained>',
     '<PublishSingleFile>false</PublishSingleFile>',
+    '<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>',
+    '<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>',
     '<ExcludeFromSingleFile>true</ExcludeFromSingleFile>'
 )){
     if($csprojRaw.Contains($required)){Pass ("Publish invariant: "+$required)}else{Fail ("Missing publish invariant: "+$required)}
@@ -194,7 +196,7 @@ if([string]$buildJson.WindowsAppSDK -eq '2.5.1' -and [string]$buildJson.DotNet -
 $oneClickRaw=Read-Utf8Text (Join-Path $Root 'OneClick-Win11.ps1')
 if($oneClickRaw -match 'publish 目录缺少 Backend' -and $oneClickRaw -match '孤立 EXE' -and $oneClickRaw -notmatch '\$DesktopExe'){Pass 'OneClick never ships bare EXE without Backend'}else{Fail 'OneClick bare-EXE delivery regression'}
 if($oneClickRaw -match 'Materialize hash-locked Backend' -and $oneClickRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI\\Backend'){Pass 'OneClick materializes hash-locked Backend beside published EXE'}else{Fail 'OneClick no longer copies Backend beside published EXE'}
-if($oneClickRaw -match "-p:PublishSingleFile=false" -and $oneClickRaw -match 'Microsoft\.ui\.xaml\.dll' -and $oneClickRaw -match '安装后无法打开'){Pass 'OneClick forbids WinUI PublishSingleFile payload'}else{Fail 'OneClick must refuse PublishSingleFile WinUI payloads'}
+if($oneClickRaw -match "-p:PublishSingleFile=false" -and $oneClickRaw -match 'Microsoft\.ui\.xaml\.dll' -and $oneClickRaw -match '安装后无法打开' -and $oneClickRaw -match 'WindowsAppSdkBootstrapInitialize=false'){Pass 'OneClick forbids WinUI PublishSingleFile payload'}else{Fail 'OneClick must refuse PublishSingleFile WinUI payloads'}
 $versionPattern=("(?m)^\s*"+[regex]::Escape('$Version')+"\s*=\s*'"+[regex]::Escape([string]$buildJson.Version)+"'\s*$")
 if($oneClickRaw -match $versionPattern){Pass 'OneClick version matches BuildInfo'}else{Fail 'OneClick version does not match BuildInfo'}
 if($oneClickRaw -match 'Architecture\.Tests\.ps1'){Pass 'OneClick runs architecture static tests before publish'}else{Fail 'OneClick no longer runs architecture static tests'}
@@ -203,7 +205,7 @@ if($oneClickRaw -match 'source update --name winget' -and $oneClickRaw -match '0
 if($oneClickRaw -notmatch 'source reset'){Pass 'OneClick does not destructively reset WinGet sources'}else{Fail 'OneClick must not automatically reset WinGet sources'}
 if($oneClickRaw -match "'-p:Platform=x64'" -and $oneClickRaw -match 'Publish_\{0\}\.log' -and $oneClickRaw -match '-bl:'){Pass 'OneClick pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'OneClick x64 publish/logging contract missing'}
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
-if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'Microsoft\.ui\.xaml\.dll' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
+if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'Microsoft\.ui\.xaml\.dll' -and $workflowRaw -match 'WindowsAppSdkBootstrapInitialize=false' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
 $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}

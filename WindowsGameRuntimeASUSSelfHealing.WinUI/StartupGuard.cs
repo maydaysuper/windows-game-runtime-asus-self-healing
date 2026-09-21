@@ -63,9 +63,15 @@ internal static class StartupGuard
             .ToArray();
         if (missing.Length == 0) return;
 
+        var dllCount = 0;
+        try { dllCount = Directory.GetFiles(HostDirectory, "*.dll").Length; }
+        catch { }
+
         var ex = new FileNotFoundException(
             "安装目录缺少 WinUI 运行库（" + string.Join("、", missing) +
-            "）。这是 v3.4.9 那种单文件坏包。请卸载后改装 v3.4.10。目录: " + HostDirectory);
+            "）。dllCount=" + dllCount +
+            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v3.4.11 Setup，从开始菜单打开。" +
+            "目录: " + HostDirectory);
         Write("NativeRuntime", ex);
         Notify(ex);
         throw ex;

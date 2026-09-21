@@ -12,9 +12,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
-    <Version>3.4.10</Version>
-    <AssemblyVersion>3.4.10.0</AssemblyVersion>
-    <FileVersion>3.4.10.0</FileVersion>
+    <Version>3.4.11</Version>
+    <AssemblyVersion>3.4.11.0</AssemblyVersion>
+    <FileVersion>3.4.11.0</FileVersion>
     <Product>Windows Game Runtime - ASUS Armoury Self-Healing Center</Product>
     <Description>Windows game runtime diagnostics, ASUS Armoury self-healing, GPU/ReBAR crash diagnosis and reports.</Description>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -24,12 +24,17 @@
          probes the EXE directory, so v3.4.9 Setup/Portable launched then exited. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
     <SelfContained>true</SelfContained>
     <EnableMsixTooling>true</EnableMsixTooling>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>false</PublishReadyToRun>
+    <!-- v3.4.10 Fail Fast: bootstrap auto-init runs before Main and looks for the
+         shared Windows App Runtime MSIX. Self-contained apps do not use that
+         framework; a miss calls Environment.FailFast ("快速异常检测失败"). -->
+    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+    <WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>false</WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>
   </PropertyGroup>
 
   <ItemGroup>

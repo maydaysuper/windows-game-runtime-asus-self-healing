@@ -70,6 +70,8 @@ jobs:
             -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
             -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true `
             -p:SelfContained=true -p:PublishSingleFile=false `
+            -p:WindowsAppSdkBootstrapInitialize=false `
+            -p:WindowsAppSdkDeploymentManagerInitialize=false `
             -p:EnableMsixTooling=true -p:PublishTrimmed=false -p:PublishReadyToRun=false `
             "-flp:logfile=BuildLogs/Publish_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Publish_${{ github.run_id }}.binlog
