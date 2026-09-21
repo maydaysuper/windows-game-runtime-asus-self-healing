@@ -11,7 +11,7 @@ Setup installs per-user under LocalAppData. UAC appears only when an elevated AS
 
 ## Current version
 
-v3.4.9 · .NET 10 · C# 14 · Windows App SDK 2.5.1 · self-contained win-x64
+v3.4.10 · .NET 10 · C# 14 · Windows App SDK 2.5.1 · self-contained win-x64 folder deploy
 
 ## What it does
 
