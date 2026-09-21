@@ -12,9 +12,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
-    <Version>3.4.12</Version>
-    <AssemblyVersion>3.4.12.0</AssemblyVersion>
-    <FileVersion>3.4.12.0</FileVersion>
+    <Version>3.4.13</Version>
+    <AssemblyVersion>3.4.13.0</AssemblyVersion>
+    <FileVersion>3.4.13.0</FileVersion>
     <Product>Windows Game Runtime - ASUS Armoury Self-Healing Center</Product>
     <Description>Windows game runtime diagnostics, ASUS Armoury self-healing, GPU/ReBAR crash diagnosis and reports.</Description>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -37,6 +37,14 @@
     <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
     <WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>false</WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>
   </PropertyGroup>
+
+  <!-- WASDK 2.x unpackaged emits AssemblyName.pri. WinUI/MRT still looks for resources.pri. -->
+  <Target Name="CopyAppPriToResourcesPri" AfterTargets="Build">
+    <Copy SourceFiles="$(OutDir)$(AssemblyName).pri" DestinationFiles="$(OutDir)resources.pri" Condition="Exists('$(OutDir)$(AssemblyName).pri')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyAppPriToResourcesPriOnPublish" AfterTargets="Publish">
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName).pri" DestinationFiles="$(PublishDir)resources.pri" Condition="Exists('$(PublishDir)$(AssemblyName).pri')" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" />

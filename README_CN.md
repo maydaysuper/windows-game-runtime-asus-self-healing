@@ -1,4 +1,8 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.12
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.13
+
+## v3.4.13 紧急修复：v3.4.12 仍弹 XamlParseException
+
+主窗口 XAML 在 unpackaged WASDK 2.x 上解析 NavigationView 失败。v3.4.13 改成代码构建主壳，并补 `resources.pri`。ASUS hash-lock 未改。请卸载 3.4.12 后改装。
 
 ## v3.4.12 紧急修复：v3.4.11 弹 XamlParseException
 

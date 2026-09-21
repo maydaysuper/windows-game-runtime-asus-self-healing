@@ -211,7 +211,8 @@ if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Pat
 $appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
 if($appXamlRaw -match 'XamlControlsResources' -and $appXamlRaw -match 'Microsoft\.UI\.Xaml\.Controls'){Pass 'App.xaml merges WinUI XamlControlsResources'}else{Fail 'App.xaml missing XamlControlsResources'}
 $mainXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')
-if($mainXamlRaw -match 'Background="\{ThemeResource SystemAccentColorLight2\}"'){Fail 'MainWindow must not use Color theme resource as Brush'}else{Pass 'MainWindow accent color is a SolidColorBrush'}
+if($mainXamlRaw -match '<NavigationView' -or $mainXamlRaw -match 'ThemeResource'){Fail 'MainWindow.xaml must not parse NavigationView/ThemeResource at LoadComponent'}else{Pass 'MainWindow shell is code-built (no NavigationView XAML)'}
+if($csprojRaw -match 'CopyAppPriToResourcesPri'){Pass 'csproj copies AssemblyName.pri to resources.pri'}else{Fail 'csproj missing resources.pri copy target'}
 $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}
 
@@ -233,11 +234,11 @@ foreach($launcherName in @('一键构建并启动_Win11.cmd','Launch-Win11.cmd',
 }
 
 # 12) v3.4 simplified information architecture, Dump and GPU/ReBAR analysis.
-$mainWindowRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')
+$mainWindowRaw=(Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')) + "`n" + (Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml.cs'))
 foreach($tag in @('overview','asus','runtime','crash','reports')){
-    if($mainWindowRaw -match ('Tag="'+$tag+'"')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
+    if($mainWindowRaw -match ('NavItem\("[^"]+",\s*"'+$tag+'"')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
 }
-if($mainWindowRaw -notmatch 'Tag="transactions"' -and $mainWindowRaw -notmatch 'Tag="settings"'){Pass 'Developer/history pages removed from primary navigation'}else{Fail 'Primary navigation regressed to developer-oriented pages'}
+if($mainWindowRaw -notmatch 'Tag\s*=\s*"transactions"' -and $mainWindowRaw -notmatch 'Tag\s*=\s*"settings"'){Pass 'Developer/history pages removed from primary navigation'}else{Fail 'Primary navigation regressed to developer-oriented pages'}
 $dumpRaw=Read-Utf8Text (Join-Path $ProjectRoot 'Services\DumpAnalysisService.cs')
 if($dumpRaw -match 'MiniDumpReadDumpStream' -and $dumpRaw -match 'MemoryMappedFile'){Pass 'Dump analyzer uses bounded local memory mapping + DbgHelp'}else{Fail 'Local Dump analyzer core missing'}
 $reportRaw=Read-Utf8Text (Join-Path $ProjectRoot 'Services\ReportService.cs')

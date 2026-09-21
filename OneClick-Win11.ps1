@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '3.4.12'
+$Version = '3.4.13'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -363,6 +363,14 @@ try {
         if(-not (Test-Path -LiteralPath (Join-Path $PublishRoot $requiredDll))) {
             Fail ("publish 目录缺少 {0}。这是 v3.4.9 安装后打不开的根因，禁止继续打包。" -f $requiredDll)
         }
+    }
+    $appPri = Join-Path $PublishRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
+    $resPri = Join-Path $PublishRoot 'resources.pri'
+    if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
+        Copy-Item -LiteralPath $appPri -Destination $resPri -Force
+    }
+    if(-not (Test-Path -LiteralPath $resPri)) {
+        Fail 'publish 目录缺少 resources.pri。WASDK 2.x unpackaged 的 WinUI 主题资源需要这个文件。'
     }
     Write-Ok ("WinUI 原生 DLL 已与 EXE 同目录（{0} 个 DLL）。" -f $dlls.Count)
 

@@ -113,6 +113,12 @@ jobs:
           )) {
             if(-not (Test-Path -LiteralPath $required)) { throw "Published runtime file missing: $required" }
           }
+          $appPri='artifacts/publish/WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
+          $resPri='artifacts/publish/resources.pri'
+          if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
+            Copy-Item -LiteralPath $appPri -Destination $resPri -Force
+          }
+          if(-not (Test-Path -LiteralPath $resPri)) { throw "Published resources.pri missing (WASDK 2.x unpackaged WinUI needs it)" }
           $dllCount=@(Get-ChildItem -LiteralPath 'artifacts/publish' -Filter '*.dll' -File).Count
           if($dllCount -lt 8) { throw "Published payload looks like PublishSingleFile (dllCount=$dllCount)" }
           Write-Host "Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"

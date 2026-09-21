@@ -67,6 +67,16 @@ if($dllCount -lt 8) {
 }
 Write-Host "[PASS] Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"
 
+$appPri=Join-Path $root 'WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
+$resPri=Join-Path $root 'resources.pri'
+if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
+    Copy-Item -LiteralPath $appPri -Destination $resPri -Force
+}
+if(-not (Test-Path -LiteralPath $resPri)) {
+    throw "Unpackaged WASDK 2.x payload missing resources.pri (WinUI ThemeResource/MRT). appPri exists=$([bool](Test-Path -LiteralPath $appPri))"
+}
+Write-Host "[PASS] resources.pri present for unpackaged WinUI"
+
 $build=Read-Utf8Json $buildInfoPath
 $required=@{
     'RepairCenter.ps1'=[string]$build.EngineSHA256
