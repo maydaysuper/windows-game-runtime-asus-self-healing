@@ -69,8 +69,7 @@ jobs:
             -o artifacts/publish --self-contained true --no-restore --nologo `
             -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
             -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true `
-            -p:SelfContained=true -p:PublishSingleFile=true `
-            -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:SelfContained=true -p:PublishSingleFile=false `
             -p:EnableMsixTooling=true -p:PublishTrimmed=false -p:PublishReadyToRun=false `
             "-flp:logfile=BuildLogs/Publish_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Publish_${{ github.run_id }}.binlog
@@ -93,7 +92,7 @@ jobs:
           }
           $count = @(Get-ChildItem -LiteralPath $dst -File).Count
           if($count -lt 10) { throw "Materialize hash-locked Backend produced too few files: $count" }
-          Write-Host "Materialized hash-locked Backend next to published EXE ($count files). PublishSingleFile must not swallow RepairCenter."
+          Write-Host "Materialized hash-locked Backend next to published EXE ($count files). Folder deploy must keep RepairCenter on disk."
 
       - name: Validate published runtime
         shell: powershell
@@ -104,10 +103,16 @@ jobs:
           foreach($required in @(
             'artifacts/publish/Backend/RepairCenter.ps1',
             'artifacts/publish/Backend/ElevatedBroker.ps1',
-            'artifacts/publish/Backend/CapabilityBaseline.json'
+            'artifacts/publish/Backend/CapabilityBaseline.json',
+            'artifacts/publish/Microsoft.ui.xaml.dll',
+            'artifacts/publish/Microsoft.WindowsAppRuntime.dll',
+            'artifacts/publish/e_sqlite3.dll'
           )) {
-            if(-not (Test-Path -LiteralPath $required)) { throw "Published backend file missing: $required" }
+            if(-not (Test-Path -LiteralPath $required)) { throw "Published runtime file missing: $required" }
           }
+          $dllCount=@(Get-ChildItem -LiteralPath 'artifacts/publish' -Filter '*.dll' -File).Count
+          if($dllCount -lt 8) { throw "Published payload looks like PublishSingleFile (dllCount=$dllCount)" }
+          Write-Host "Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"
 
       - name: Verify published payload trust chain
         shell: powershell
