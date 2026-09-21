@@ -145,7 +145,7 @@ jobs:
           if(-not $found) { throw 'ISCC not found after Inno Setup install.' }
           Write-Host "ISCC: $found"
 
-      - name: Build release artifacts (Portable + Setup + SHA256)
+      - name: Build release artifacts (launcher + App folder Portable + desktop-shortcut Setup)
         id: package
         shell: powershell
         run: |

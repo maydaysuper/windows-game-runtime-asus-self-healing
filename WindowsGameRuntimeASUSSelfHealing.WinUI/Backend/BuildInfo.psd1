@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-    Version = '4.1.4'
-    BuildId = '20260922.wpf.6'
+    Version = '4.2.0'
+    BuildId = '20260922.wpf.7'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4

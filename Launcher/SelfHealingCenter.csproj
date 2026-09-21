@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>SelfHealingCenter</AssemblyName>
+    <RootNamespace>SelfHealingCenter</RootNamespace>
+    <ApplicationIcon>..\WindowsGameRuntimeASUSSelfHealing.WinUI\Assets\app.ico</ApplicationIcon>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>4.2.0</Version>
+    <AssemblyVersion>4.2.0.0</AssemblyVersion>
+    <FileVersion>4.2.0.0</FileVersion>
+    <Product>自愈中心</Product>
+    <AssemblyTitle>自愈中心</AssemblyTitle>
+    <Description>Launches the WPF self-healing app from App\ with the correct working directory.</Description>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

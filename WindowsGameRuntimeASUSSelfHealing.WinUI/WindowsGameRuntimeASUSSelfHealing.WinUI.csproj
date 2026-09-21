@@ -13,9 +13,9 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>false</UseWindowsForms>
     <StartupObject>WindowsGameRuntimeASUSSelfHealing.WinUI.Program</StartupObject>
-    <Version>4.1.4</Version>
-    <AssemblyVersion>4.1.4.0</AssemblyVersion>
-    <FileVersion>4.1.4.0</FileVersion>
+    <Version>4.2.0</Version>
+    <AssemblyVersion>4.2.0.0</AssemblyVersion>
+    <FileVersion>4.2.0.0</FileVersion>
     <Product>Windows Game Runtime - ASUS Armoury Self-Healing Center</Product>
     <Description>Windows game runtime diagnostics, ASUS Armoury self-healing, GPU/ReBAR crash diagnosis and reports.</Description>
     <SelfContained>true</SelfContained>

@@ -11,12 +11,12 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '4.1.4'
+$Version = '4.2.0'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
 $Desktop = [Environment]::GetFolderPath('Desktop')
-$DesktopZip = Join-Path $Desktop ("Windows_Game_Runtime_ASUS_SelfHealing_WinUI3_v$Version`_win-x64.zip")
+$DesktopZip = Join-Path $Desktop ("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v$Version`_win-x64.zip")
 $StaticTests = Join-Path $PSScriptRoot 'Tests\Architecture.Tests.ps1'
 $BuildStamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $RestoreLog = Join-Path $LogRoot ("Restore_{0}.log" -f $BuildStamp)
@@ -365,26 +365,31 @@ try {
     Write-Ok ("大小：{0:N1} MB" -f ($exe.Length/1MB))
     Write-Ok ("SHA256：{0}" -f $hash)
 
-    Write-Step '生成完整 portable ZIP 构建包'
-    Remove-Item -LiteralPath $DesktopZip -Force -ErrorAction SilentlyContinue
-    Compress-Archive -Path (Join-Path $PublishRoot '*') -DestinationPath $DesktopZip -Force
-    $zipHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $DesktopZip).Hash.ToLowerInvariant()
-    Write-Ok ("ZIP：{0}" -f $DesktopZip)
-    Write-Ok ("ZIP SHA256：{0}" -f $zipHash)
-
+    Write-Step '组装用户包（启动器 + App 目录）并生成 Portable ZIP'
     $backendDir = Join-Path $PublishRoot 'Backend'
     if(-not (Test-Path -LiteralPath $backendDir)) {
         Fail 'publish 目录缺少 Backend。ASUS hash-lock 修复链不允许发布孤立 EXE。'
     }
+    $releaseDir = Join-Path $PSScriptRoot 'artifacts\release'
+    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Build-Release.ps1') -PublishRoot $PublishRoot -ReleaseDir $releaseDir -SkipInstaller
+    if($LASTEXITCODE -ne 0) { Fail 'Build-Release.ps1 组装用户包失败。' }
+    $builtZip = Join-Path $releaseDir ("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v{0}_win-x64.zip" -f $Version)
+    if(-not (Test-Path -LiteralPath $builtZip)) { Fail '未生成 Portable ZIP。' }
+    Remove-Item -LiteralPath $DesktopZip -Force -ErrorAction SilentlyContinue
+    Copy-Item -LiteralPath $builtZip -Destination $DesktopZip -Force
+    $zipHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $DesktopZip).Hash.ToLowerInvariant()
+    Write-Ok ("ZIP：{0}" -f $DesktopZip)
+    Write-Ok ("ZIP SHA256：{0}" -f $zipHash)
 
+    $launcher = Join-Path $PSScriptRoot 'artifacts\package\SelfHealingCenter.exe'
     Write-Host ''
-    Write-Host '最终程序为 unpackaged + self-contained WinUI 3。' -ForegroundColor DarkGray
-    Write-Host '主程序依赖与 Windows App SDK 自包含，但 Backend 目录必须与程序一起发布以保持 hash-lock。' -ForegroundColor DarkGray
-    Write-Host '因此 OneClick 不再把孤立 EXE 复制到桌面；普通用户请使用 Setup 安装包或完整 Portable ZIP。' -ForegroundColor DarkGray
+    Write-Host '最终程序为 WPF self-contained。用户包只有启动器、使用说明和 App 目录。' -ForegroundColor DarkGray
+    Write-Host '请双击 SelfHealingCenter.exe，不要单独运行 App 里的 EXE，也不要从开始菜单启动。' -ForegroundColor DarkGray
 
     if(-not $NoLaunch) {
-        Write-Step '从完整 publish 目录启动 WinUI 3 程序'
-        Start-Process -FilePath $exe.FullName -WorkingDirectory $PublishRoot
+        Write-Step '从用户包启动器打开自愈中心'
+        if(-not (Test-Path -LiteralPath $launcher)) { Fail '用户包缺少 SelfHealingCenter.exe。' }
+        Start-Process -FilePath $launcher -WorkingDirectory (Split-Path -Parent $launcher)
         Write-Ok '已启动。GUI 为普通权限；真正修复时才由 Elevated Broker 请求 UAC。'
     }
 
