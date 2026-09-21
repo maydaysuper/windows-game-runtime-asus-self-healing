@@ -70,7 +70,7 @@ internal static class StartupGuard
         var ex = new FileNotFoundException(
             "安装目录缺少 WinUI 运行库（" + string.Join("、", missing) +
             "）。dllCount=" + dllCount +
-            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v3.4.11 Setup，从开始菜单打开。" +
+            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v3.4.12 Setup，从开始菜单打开。" +
             "目录: " + HostDirectory);
         Write("NativeRuntime", ex);
         Notify(ex);
@@ -102,9 +102,17 @@ internal static class StartupGuard
         try
         {
             var log = Path.Combine(LogDirectory, "startup-crash.log");
+            var detail = new StringBuilder();
+            for (var cur = ex; cur != null; cur = cur.InnerException)
+            {
+                if (detail.Length > 0) detail.Append('\n');
+                detail.Append(cur.GetType().Name).Append(": ").Append(cur.Message);
+            }
+            var body = detail.ToString();
+            if (body.Length > 900) body = body[..900] + "…";
             MessageBoxW(
                 IntPtr.Zero,
-                "程序启动失败。\n\n" + ex.GetType().Name + ": " + ex.Message + "\n\n日志: " + log,
+                "程序启动失败。\n\n" + body + "\n\n日志: " + log,
                 "Windows 游戏运行环境自愈中心",
                 0x00000010);
         }

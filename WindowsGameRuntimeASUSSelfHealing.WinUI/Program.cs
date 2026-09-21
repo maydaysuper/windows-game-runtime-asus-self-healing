@@ -1,8 +1,18 @@
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinRT;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
+
+internal static class EarlyRuntime
+{
+    [ModuleInitializer]
+    internal static void Initialize()
+    {
+        StartupGuard.ApplyHostDirectory();
+    }
+}
 
 public static class Program
 {

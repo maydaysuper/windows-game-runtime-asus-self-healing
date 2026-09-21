@@ -1,4 +1,8 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.11
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.12
+
+## v3.4.12 紧急修复：v3.4.11 弹 XamlParseException
+
+v3.4.11 过了 Fail Fast，但 `App.xaml` 没有合并 WinUI `XamlControlsResources`。自包含包里 NavigationView / ThemeResource 解析失败。请改用 v3.4.12。ASUS hash-lock 未改。
 
 ## v3.4.11 紧急修复：v3.4.10 弹「快速异常检测失败」
 

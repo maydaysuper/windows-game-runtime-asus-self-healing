@@ -175,6 +175,7 @@ foreach($required in @(
     '<PublishSingleFile>false</PublishSingleFile>',
     '<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>',
     '<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>',
+    '<WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>',
     '<ExcludeFromSingleFile>true</ExcludeFromSingleFile>'
 )){
     if($csprojRaw.Contains($required)){Pass ("Publish invariant: "+$required)}else{Fail ("Missing publish invariant: "+$required)}
@@ -207,6 +208,10 @@ if($oneClickRaw -match "'-p:Platform=x64'" -and $oneClickRaw -match 'Publish_\{0
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
 if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'Microsoft\.ui\.xaml\.dll' -and $workflowRaw -match 'WindowsAppSdkBootstrapInitialize=false' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
+$appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
+if($appXamlRaw -match 'XamlControlsResources' -and $appXamlRaw -match 'Microsoft\.UI\.Xaml\.Controls'){Pass 'App.xaml merges WinUI XamlControlsResources'}else{Fail 'App.xaml missing XamlControlsResources'}
+$mainXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')
+if($mainXamlRaw -match 'Background="\{ThemeResource SystemAccentColorLight2\}"'){Fail 'MainWindow must not use Color theme resource as Brush'}else{Pass 'MainWindow accent color is a SolidColorBrush'}
 $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}
 

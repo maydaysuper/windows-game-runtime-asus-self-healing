@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '3.4.11'
+$Version = '3.4.12'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -328,6 +328,7 @@ try {
         '-p:PublishSingleFile=false',
         '-p:WindowsAppSdkBootstrapInitialize=false',
         '-p:WindowsAppSdkDeploymentManagerInitialize=false',
+        '-p:WindowsAppSdkUndockedRegFreeWinRTInitialize=true',
         '-p:EnableMsixTooling=true',
         '-p:PublishTrimmed=false',
         '-p:PublishReadyToRun=false',
