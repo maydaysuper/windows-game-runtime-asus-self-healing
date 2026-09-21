@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Remove="System.Windows.Shapes" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Backend\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

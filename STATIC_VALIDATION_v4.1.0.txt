@@ -1,5 +1,5 @@
 Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.0
-Local source-invariant validation: 227 PASS / 0 FAIL
+Local source-invariant validation: 229 PASS / 0 FAIL
 
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/App.xaml
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/MainWindow.xaml
@@ -119,6 +119,8 @@ PASS: code style analysis in build
 PASS: NuGet audit enabled
 PASS: NuGet audit includes transitive packages
 PASS: project is WPF + centrally pinned Sqlite
+PASS: WPF Shapes.Path does not shadow System.IO.Path
+PASS: System.IO is globally imported
 PASS: csproj has no Windows App SDK
 PASS: Backend Content is excluded from PublishSingleFile bundle
 PASS: WPF self-contained folder deploy (no single-file)
