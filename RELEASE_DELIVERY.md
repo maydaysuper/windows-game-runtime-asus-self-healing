@@ -12,7 +12,7 @@ Setup installs per-user, creates a desktop shortcut named 自愈中心, and does
 
 ```text
 SelfHealingCenter.exe
-使用说明.txt
+README.txt
 App\   (WPF host + Backend hash-lock)
 ```
 

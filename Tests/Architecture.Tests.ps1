@@ -205,7 +205,7 @@ if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -matc
 $issRaw=Read-Utf8Text (Join-Path $Root 'Installer\WindowsGameRuntimeASUSSelfHealing.iss')
 if($issRaw -match 'autoprograms'){Fail 'Setup must not create a Start Menu shortcut'}else{Pass 'Setup does not create a Start Menu shortcut'}
 if($issRaw -match 'autodesktop' -and $issRaw -match 'SelfHealingCenter.exe' -and $issRaw -notmatch '\[Tasks\]'){Pass 'Setup always creates a desktop shortcut to the launcher'}else{Fail 'Setup desktop-launcher contract drift'}
-if((Test-Path -LiteralPath (Join-Path $Root 'Launcher\SelfHealingCenter.cs')) -and (Test-Path -LiteralPath (Join-Path $Root '使用说明.txt'))){Pass 'Desktop launcher source and end-user readme exist'}else{Fail 'Desktop launcher / 使用说明 missing'}
+if((Test-Path -LiteralPath (Join-Path $Root 'Launcher\SelfHealingCenter.cs')) -and (Test-Path -LiteralPath (Join-Path $Root 'README.txt'))){Pass 'Desktop launcher source and end-user readme exist'}else{Fail 'Desktop launcher / README missing'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
 $appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
 if($appXamlRaw -match 'XamlControlsResources'){Fail 'App.xaml must not merge WinUI XamlControlsResources'}else{Pass 'App.xaml is WPF primitive resources'}

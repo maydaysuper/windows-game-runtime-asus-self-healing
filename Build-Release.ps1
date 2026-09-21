@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 [CmdletBinding()]
 param(
     [string]$PublishRoot = (Join-Path $PSScriptRoot 'artifacts\publish'),
@@ -46,7 +46,7 @@ Get-ChildItem -LiteralPath $app -Filter '*.xml' -File | Where-Object { $_.Name -
 $launcherOut=Join-Path $PSScriptRoot 'artifacts\launcher'
 Build-DesktopLauncher $launcherOut
 Copy-Item -LiteralPath (Join-Path $launcherOut 'SelfHealingCenter.exe') -Destination (Join-Path $package 'SelfHealingCenter.exe') -Force
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot '使用说明.txt') -Destination (Join-Path $package '使用说明.txt') -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'README.txt') -Destination (Join-Path $package 'README.txt') -Force
 
 $rootDlls=@(Get-ChildItem -LiteralPath $package -Filter '*.dll' -File).Count
 if($rootDlls -ne 0){ throw "User package root must not contain runtime DLLs (count=$rootDlls). Put them under App\." }
@@ -79,7 +79,7 @@ $manifest=[ordered]@{
     DotNet=[string]$build.DotNet
     Launch='desktop-shortcut-or-portable-exe'
     StartMenu=$false
-    PackageLayout='SelfHealingCenter.exe + App\ + 使用说明.txt'
+    PackageLayout='SelfHealingCenter.exe + App\ + README.txt'
     GeneratedUtc=[DateTime]::UtcNow.ToString('o')
     Portable=[IO.Path]::GetFileName($portable)
     Setup=$setupName

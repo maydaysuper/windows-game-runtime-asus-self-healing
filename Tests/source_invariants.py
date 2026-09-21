@@ -295,7 +295,7 @@ else: ok('app.ico present')
 launcher_cs=(ROOT/'Launcher'/'SelfHealingCenter.cs').read_text(encoding='utf-8') if (ROOT/'Launcher'/'SelfHealingCenter.cs').exists() else ''
 if 'InnerExeName' in launcher_cs and 'WorkingDirectory' in launcher_cs and 'App' in launcher_cs: ok('desktop launcher starts App inner EXE')
 else: fail('desktop launcher source missing or incomplete')
-readme=(ROOT/'使用说明.txt').read_text(encoding='utf-8') if (ROOT/'使用说明.txt').exists() else ''
+readme=(ROOT/'README.txt').read_text(encoding='utf-8') if (ROOT/'README.txt').exists() else ''
 if '双击' in readme and '开始菜单' in readme: ok('end-user readme explains double-click launch')
 else: fail('使用说明.txt missing double-click launch instructions')
 if '从开始菜单打开' in startup: fail('startup still tells the user to launch from the Start Menu')

@@ -8,7 +8,7 @@ This repository is a Windows 11 x64 WPF self-healing tool. Review PRs against th
 - Five primary entries only: 系统健康 / ASUS 奥创中心 / 游戏运行库 / 崩溃 Dump / 报告中心.
 - No auto-DDU, no BIOS/ReBAR/TDR writes. Unknown ASUS versions stay DIAGNOSE_ONLY.
 - WPF host: `PublishSingleFile=false`, self-contained folder deploy. `wpfgfx_cor3.dll` must sit next to the inner EXE.
-- User package layout: `SelfHealingCenter.exe` + `使用说明.txt` + `App\`. Do not dump runtime DLLs at the ZIP root.
+- User package layout: `SelfHealingCenter.exe` + `README.txt` + `App\`. Do not dump runtime DLLs at the ZIP root.
 - Launch: desktop shortcut or portable EXE. Do not recreate Start Menu shortcuts.
 
 ## Prefer

@@ -15,7 +15,7 @@ Build: `20260922.wpf.7`
 用户看到的只有三样：
 
 1. `SelfHealingCenter.exe`（桌面启动器）
-2. `使用说明.txt`
+2. `README.txt`
 3. `App\`（WPF 主程序 + Backend hash-lock，不要单独抽出来跑）
 
 WPF 仍然是 self-contained 目录部署，禁止 PublishSingleFile。ASUS 4151/4152、PV / HOLTEK / ENE 字节锁定未改。
