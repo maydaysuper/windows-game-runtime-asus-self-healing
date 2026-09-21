@@ -337,6 +337,16 @@ try {
     )
     Invoke-LoggedCommand -FilePath $dotnet -Arguments $publishArgs -Title '发布 WinUI 3 自包含运行目录' -DiagnosticLog $PublishLog
 
+    Write-Step 'Materialize hash-locked Backend beside published EXE'
+    $sourceBackend = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend'
+    $backendDir = Join-Path $PublishRoot 'Backend'
+    if(-not (Test-Path -LiteralPath $sourceBackend)) { Fail '源码 Backend 目录缺失，无法保持 ASUS hash-lock。' }
+    New-Item -ItemType Directory -Path $backendDir -Force | Out-Null
+    Get-ChildItem -LiteralPath $sourceBackend -File | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $backendDir $_.Name) -Force
+    }
+    Write-Ok ("已将 {0} 个 hash-lock Backend 文件落到 publish 目录。" -f @(Get-ChildItem -LiteralPath $backendDir -File).Count)
+
     Write-Step '验证发布目录与主程序'
     $exe = Get-ChildItem -LiteralPath $PublishRoot -Filter '*.exe' -File |
         Where-Object { $_.Name -notmatch 'createdump|WindowsAppRuntimeInstall' } |

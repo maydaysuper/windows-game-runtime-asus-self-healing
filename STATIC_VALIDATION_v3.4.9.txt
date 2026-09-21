@@ -1,5 +1,5 @@
 Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.9
-Local source-invariant validation: 206 PASS / 0 FAIL
+Local source-invariant validation: 209 PASS / 0 FAIL
 
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/App.xaml
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/MainWindow.xaml
@@ -103,6 +103,7 @@ PASS: published payload verifier covers x64 + backend + legacy hash chain
 PASS: installer builder verifies payload and supports Inno 7/6
 PASS: release builder emits portable + setup + manifests
 PASS: Windows CI emits verified installer + portable release artifacts
+PASS: gitattributes keeps Backend/legacy hash-lock files byte-identical
 PASS: NuGet central package management enabled
 PASS: Windows App SDK 2.5.1 pinned
 PASS: WinApp build tools 0.6.1 pinned
@@ -112,6 +113,7 @@ PASS: code style analysis in build
 PASS: NuGet audit enabled
 PASS: NuGet audit includes transitive packages
 PASS: project consumes centrally pinned packages
+PASS: Backend Content is excluded from PublishSingleFile bundle
 PASS: BuildInfo technology metadata
 PASS: capability baseline hash-lock
 PASS: ASUS capability baseline marked core/non-reducible
@@ -194,6 +196,7 @@ PASS: OneClick preserves child static-test stdout/stderr in dedicated log
 PASS: OneClick robust .NET 10 SDK bootstrap fallback
 PASS: OneClick does not auto-reset WinGet sources
 PASS: OneClick never ships a bare EXE without hash-locked Backend
+PASS: OneClick materializes hash-locked Backend beside published EXE
 PASS: OneClick 3.4.9
 PASS: launcher BOM-free 一键构建并启动_Win11.cmd
 PASS: launcher ASCII-only 一键构建并启动_Win11.cmd

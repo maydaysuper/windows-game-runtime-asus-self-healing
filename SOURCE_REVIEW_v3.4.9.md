@@ -10,4 +10,4 @@ Ship v3.4.8 compile fix through GitHub Actions as user-facing Setup.exe / Portab
 PDH `*W` and DbgHelp imports now use ExactSpelling. `PdhGetFormattedCounterArrayW` still uses `out uint itemCount` (CS1620).
 
 ## Release
-Windows CI is the compiler. `main` produces GitHub Release artifacts after payload hash-lock verification.
+Windows CI is the compiler. `PublishSingleFile` keeps native deps inside the EXE, but hash-locked `Backend` is copied beside it (`ExcludeFromSingleFile` + explicit materialize) so Recipe verification still sees RepairCenter.ps1 on disk. `main` produces GitHub Release artifacts after payload hash-lock verification.

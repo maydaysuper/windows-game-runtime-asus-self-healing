@@ -80,6 +80,21 @@ jobs:
         shell: powershell
         run: ./Tests/Show-MsBuildErrors.ps1 -LogRoot BuildLogs
 
+      - name: Materialize hash-locked Backend
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $src = Join-Path $PWD 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend'
+          $dst = Join-Path $PWD 'artifacts\publish\Backend'
+          if(-not (Test-Path -LiteralPath $src)) { throw "Source Backend missing: $src" }
+          New-Item -ItemType Directory -Path $dst -Force | Out-Null
+          Get-ChildItem -LiteralPath $src -File | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dst $_.Name) -Force
+          }
+          $count = @(Get-ChildItem -LiteralPath $dst -File).Count
+          if($count -lt 10) { throw "Materialize hash-locked Backend produced too few files: $count" }
+          Write-Host "Materialized hash-locked Backend next to published EXE ($count files). PublishSingleFile must not swallow RepairCenter."
+
       - name: Validate published runtime
         shell: powershell
         run: |

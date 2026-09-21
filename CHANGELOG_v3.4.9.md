@@ -2,6 +2,7 @@
 
 Build: `20260922.winui3.15`
 
+- PublishSingleFile no longer swallows Backend: `ExcludeFromSingleFile` plus CI/OneClick copy RepairCenter next to the EXE before packaging. Hash-lock files stay on disk.
 - Open-source GitHub delivery: Windows runner publishes **Setup.exe + Portable ZIP + SHA256 + GitHub Release**. Ordinary users no longer compile.
 - CI now keeps Restore/Build/Publish `.log` + `.binlog`, and on failure prints `CSxxxx` / `WMCxxxx` / `MSBxxxx` / `NETSDKxxxx` / `NUxxxx`.
 - Successful `main` builds create GitHub Release `v3.4.9` with the installers attached.
