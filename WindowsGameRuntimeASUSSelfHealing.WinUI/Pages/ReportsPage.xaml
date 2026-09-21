@@ -10,9 +10,9 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="报告中心" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="系统健康、修复记录、显卡检查和崩溃分析都在这里。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
+                <TextBlock Text="系统健康、修复记录、缓存清理和内存清理都在这里。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-            <Button Grid.Column="1" Content="高级设置" Click="OpenSettings_Click"/>
+            <Button Grid.Column="1" Content="系统工具" Click="OpenSettings_Click"/>
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="0,18,0,0">

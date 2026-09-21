@@ -10,8 +10,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '4.2.1'
+$Product = '奥创修复中心'
+$Version = '4.3.0'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -387,7 +387,7 @@ try {
     Write-Host '请双击 SelfHealingCenter.exe，不要单独运行 App 里的 EXE，也不要从开始菜单启动。' -ForegroundColor DarkGray
 
     if(-not $NoLaunch) {
-        Write-Step '从用户包启动器打开自愈中心'
+        Write-Step '从用户包启动器打开奥创修复中心'
         if(-not (Test-Path -LiteralPath $launcher)) { Fail '用户包缺少 SelfHealingCenter.exe。' }
         Start-Process -FilePath $launcher -WorkingDirectory (Split-Path -Parent $launcher)
         Write-Ok '已启动。GUI 为普通权限；真正修复时才由 Elevated Broker 请求 UAC。'

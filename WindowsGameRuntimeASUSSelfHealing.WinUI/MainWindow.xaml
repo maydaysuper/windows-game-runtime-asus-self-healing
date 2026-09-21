@@ -1,7 +1,7 @@
 <Window x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="自愈中心"
+        Title="奥创修复中心"
         Icon="pack://application:,,,/Assets/app.ico"
         Width="1360" Height="860"
         MinWidth="960" MinHeight="640"
@@ -25,7 +25,7 @@
                        VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
                 <TextBlock DockPanel.Dock="Left"
-                           Text="自愈中心"
+                           Text="奥创修复中心"
                            Foreground="White" FontSize="15" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="0,0,18,0"/>
                 <TextBlock x:Name="VersionText" DockPanel.Dock="Right"

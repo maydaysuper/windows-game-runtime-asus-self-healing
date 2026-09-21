@@ -1,7 +1,7 @@
-﻿#define MyAppName "自愈中心"
+﻿#define MyAppName "奥创修复中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.2.1"
+  #define MyAppVersion "4.3.0"
 #endif
 #ifndef SourceRoot
   #define SourceRoot "..\\artifacts\\package"
@@ -55,3 +55,6 @@ Type: filesandordirs; Name: "{app}\\BuildLogs"
 ; User SQLite state is outside {app}:
 ;   %LOCALAPPDATA%\WindowsGameRuntimeASUSSelfHealing\State\state-v1.db
 ; Uninstall must not delete Transaction / Incident / Workflow / dump analysis history.
+
+[InstallDelete]
+Type: files; Name: "{autodesktop}\\自愈中心.lnk"

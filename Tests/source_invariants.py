@@ -239,7 +239,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.2.1': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.3.0': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -320,8 +320,22 @@ if 'DisplayName' in runtime_xaml and 'DisplayStatus' in runtime_xaml and 'Result
 else: fail('runtime cards still bind raw Name/Status/Detail jargon')
 if '奥创更新错误' in safety_xaml: ok('ASUS page is update-error focused')
 else: fail('ASUS page still looks like generic system health')
-if 'TopNavButton' in app_xaml and '自愈中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): ok('single top chrome without duplicate title')
+if 'TopNavButton' in app_xaml and '奥创修复中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): ok('single top chrome without duplicate title')
 else: fail('main window still duplicates the long product title')
+if '自愈中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): fail('main window still uses old product name 自愈中心')
+else: ok('product renamed to 奥创修复中心')
+maint=(PROJ/'Services'/'SystemMaintenanceService.cs').read_text(encoding='utf-8')
+settings_xaml=(PROJ/'Pages'/'SettingsPage.xaml').read_text(encoding='utf-8')
+for token,msg in [
+    ('EmptyWorkingSet','memory cleaner uses EmptyWorkingSet'),
+    ('SHEmptyRecycleBin','cache cleaner can empty recycle bin'),
+    ('shader','cache cleaner excludes shader caches'),
+]:
+    ok(msg) if token in maint else fail('maintenance missing '+token)
+if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
+else: fail('settings page missing cache/memory tools')
+if '高级设置' in (PROJ/'Pages'/'ReportsPage.xaml').read_text(encoding='utf-8'): fail('reports still labels the tools page 高级设置')
+else: ok('reports opens 系统工具')
 
 # No-feature-reduction capability baseline. This is shipped and hash-locked by BuildInfo.
 cap_path=BACK/'CapabilityBaseline.json'

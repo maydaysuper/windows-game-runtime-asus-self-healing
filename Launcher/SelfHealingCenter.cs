@@ -35,7 +35,7 @@ internal static class Program
             var exe = Path.Combine(appDir, InnerExeName);
             if (!File.Exists(exe))
             {
-                Fail("找不到 App 目录里的主程序。\n\n请把压缩包整个解压后再双击「自愈中心」。不要只复制这一个 EXE，也不要从开始菜单查找。");
+                Fail("找不到 App 目录里的主程序。\n\n请把压缩包整个解压后再双击「奥创修复中心」。不要只复制这一个 EXE，也不要从开始菜单查找。");
                 return 1;
             }
 
@@ -57,6 +57,6 @@ internal static class Program
 
     private static void Fail(string text)
     {
-        MessageBoxW(IntPtr.Zero, text, "自愈中心", MbIconError);
+        MessageBoxW(IntPtr.Zero, text, "奥创修复中心", MbIconError);
     }
 }

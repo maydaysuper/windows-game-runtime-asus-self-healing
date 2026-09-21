@@ -146,7 +146,7 @@ public partial class MainWindow : Window
         var headerDock = new DockPanel();
         var title = new TextBlock
         {
-            Text = "自愈中心",
+            Text = "奥创修复中心",
             Foreground = Brushes.White,
             FontSize = 15,
             FontWeight = FontWeights.SemiBold,
@@ -190,7 +190,7 @@ public partial class MainWindow : Window
         root.Children.Add(footer);
         Content = root;
         Background = new SolidColorBrush(Color.FromRgb(248, 250, 252));
-        Title = "自愈中心";
+        Title = "奥创修复中心";
         Width = 1360;
         Height = 860;
         MinWidth = 960;

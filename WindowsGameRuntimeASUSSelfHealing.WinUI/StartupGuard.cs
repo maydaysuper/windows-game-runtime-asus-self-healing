@@ -70,7 +70,7 @@ internal static class StartupGuard
         throw new FileNotFoundException(
             "安装目录缺少 WPF 运行库（" + string.Join("、", missing) +
             "）。dllCount=" + dllCount +
-            "。请解压完整文件夹后双击「自愈中心」，或运行 Setup 后从桌面快捷方式打开。不要只复制孤立 EXE，也不要从开始菜单查找。" +
+            "。请解压完整文件夹后双击「奥创修复中心」，或运行 Setup 后从桌面快捷方式打开。不要只复制孤立 EXE，也不要从开始菜单查找。" +
             "目录: " + HostDirectory);
     }
 
@@ -115,7 +115,7 @@ internal static class StartupGuard
             MessageBoxW(
                 IntPtr.Zero,
                 "程序启动失败。\n\n" + body + "\n\n日志: " + log,
-                "自愈中心",
+                "奥创修复中心",
                 0x00000010);
         }
         catch { }
