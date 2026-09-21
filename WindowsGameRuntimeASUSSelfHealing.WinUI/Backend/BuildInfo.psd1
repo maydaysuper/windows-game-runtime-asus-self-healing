@@ -1,14 +1,14 @@
 ﻿@{
     SchemaVersion = 8
     Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-    Version = '3.4.14'
-    BuildId = '20260922.winui3.20'
+    Version = '4.0.0'
+    BuildId = '20260922.wpf.1'
     Channel = 'Stable'
-    Frontend = 'WinUI 3 / Windows App SDK 2.5.1'
+    Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4
     BrokerProtocolVersion = 2
     StateSchemaVersion = 3
-    WindowsAppSDK = '2.5.1'
+    WindowsAppSDK = 'WPF'
     DotNet = '10.0'
     Language = 'C# 14'
     PackageManagement = 'NuGet Central Package Management'

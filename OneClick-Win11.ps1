@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-$Version = '3.4.14'
+$Version = '4.0.0'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -286,8 +286,8 @@ try {
     & $dotnet --info
 
     Write-Host ''
-    Write-Host '构建方式：.NET CLI + Microsoft.WindowsAppSDK + Microsoft.Windows.SDK.BuildTools.WinApp'
-    Write-Host '不需要先安装 Visual Studio；首次构建需要联网恢复 NuGet 包。'
+    Write-Host '构建方式：.NET CLI + WPF + Microsoft.Data.Sqlite'
+    Write-Host '不需要 Windows App SDK / WinUI，也不需要先安装 Visual Studio；首次构建需要联网恢复 NuGet 包。'
 
     Write-Step '清理旧 bin / obj / publish'
     $projectDir = Split-Path -Parent $Project
@@ -311,7 +311,7 @@ try {
         $restoreArgs += '--force'
         $restoreArgs += '--no-cache'
     }
-    Invoke-LoggedCommand -FilePath $dotnet -Arguments $restoreArgs -Title '恢复 WinUI 3 / Windows App SDK NuGet 依赖' -DiagnosticLog $RestoreLog
+    Invoke-LoggedCommand -FilePath $dotnet -Arguments $restoreArgs -Title '恢复 WPF / Sqlite NuGet 依赖' -DiagnosticLog $RestoreLog
 
     $publishArgs = @(
         'publish',$Project,
@@ -322,21 +322,15 @@ try {
         '--no-restore',
         '--nologo',
         '-p:Platform=x64',
-        '-p:WindowsPackageType=None',
-        '-p:WindowsAppSDKSelfContained=true',
         '-p:SelfContained=true',
         '-p:PublishSingleFile=false',
-        '-p:WindowsAppSdkBootstrapInitialize=false',
-        '-p:WindowsAppSdkDeploymentManagerInitialize=false',
-        '-p:WindowsAppSdkUndockedRegFreeWinRTInitialize=true',
-        '-p:EnableMsixTooling=true',
         '-p:PublishTrimmed=false',
         '-p:PublishReadyToRun=false',
         '-v:minimal',
         ("-flp:logfile={0};verbosity=normal" -f $PublishLog),
         ("-bl:{0}" -f $PublishBinLog)
     )
-    Invoke-LoggedCommand -FilePath $dotnet -Arguments $publishArgs -Title '发布 WinUI 3 自包含运行目录' -DiagnosticLog $PublishLog
+    Invoke-LoggedCommand -FilePath $dotnet -Arguments $publishArgs -Title '发布 WPF 自包含运行目录' -DiagnosticLog $PublishLog
 
     Write-Step 'Materialize hash-locked Backend beside published EXE'
     $sourceBackend = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend'
@@ -357,22 +351,14 @@ try {
 
     $dlls = @(Get-ChildItem -LiteralPath $PublishRoot -Filter '*.dll' -File)
     if($dlls.Count -lt 8) {
-        Fail ("publish 目录 DLL 过少（{0}），疑似又打成了 Single-file。WinUI 原生运行库必须和 EXE 在同一目录，否则安装后无法打开。" -f $dlls.Count)
+        Fail ("publish 目录 DLL 过少（{0}），疑似又打成了 Single-file。WPF 原生运行库必须和 EXE 在同一目录，否则安装后无法打开。" -f $dlls.Count)
     }
-    foreach($requiredDll in @('Microsoft.ui.xaml.dll','Microsoft.WindowsAppRuntime.dll','e_sqlite3.dll')) {
+    foreach($requiredDll in @('wpfgfx_cor3.dll','PresentationNative_cor3.dll','e_sqlite3.dll')) {
         if(-not (Test-Path -LiteralPath (Join-Path $PublishRoot $requiredDll))) {
-            Fail ("publish 目录缺少 {0}。这是 v3.4.9 安装后打不开的根因，禁止继续打包。" -f $requiredDll)
+            Fail ("publish 目录缺少 {0}。禁止继续打包。" -f $requiredDll)
         }
     }
-    $appPri = Join-Path $PublishRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
-    $resPri = Join-Path $PublishRoot 'resources.pri'
-    if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
-        Copy-Item -LiteralPath $appPri -Destination $resPri -Force
-    }
-    if(-not (Test-Path -LiteralPath $resPri)) {
-        Fail 'publish 目录缺少 resources.pri。WASDK 2.x unpackaged 的 WinUI 主题资源需要这个文件。'
-    }
-    Write-Ok ("WinUI 原生 DLL 已与 EXE 同目录（{0} 个 DLL）。" -f $dlls.Count)
+    Write-Ok ("WPF 原生 DLL 已与 EXE 同目录（{0} 个 DLL）。" -f $dlls.Count)
 
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe.FullName).Hash.ToLowerInvariant()
     Write-Ok ("EXE：{0}" -f $exe.FullName)

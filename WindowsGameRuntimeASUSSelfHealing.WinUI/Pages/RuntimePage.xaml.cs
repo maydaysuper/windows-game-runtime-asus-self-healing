@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
+using System.Windows;
+using System.Windows.Controls;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -20,7 +19,6 @@ public sealed partial class RuntimePage : Page
     public RuntimePage()
     {
         InitializeComponent();
-        NavigationCacheMode = NavigationCacheMode.Enabled;
         RuntimeRows.ItemsSource = _rows;
         PackageRows.ItemsSource = _packages;
         Loaded += async (_, _) =>

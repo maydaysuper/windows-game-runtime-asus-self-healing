@@ -166,38 +166,33 @@ $csprojRaw=Read-Utf8Text (Join-Path $ProjectRoot 'WindowsGameRuntimeASUSSelfHeal
 $packagesRaw=Read-Utf8Text (Join-Path $Root 'Directory.Packages.props')
 $buildPropsRaw=Read-Utf8Text (Join-Path $Root 'Directory.Build.props')
 foreach($required in @(
-    '<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>',
+    '<TargetFramework>net10.0-windows</TargetFramework>',
     '<Platform>x64</Platform>',
     '<PlatformTarget>x64</PlatformTarget>',
-    '<WindowsPackageType>None</WindowsPackageType>',
-    '<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>',
+    '<UseWPF>true</UseWPF>',
     '<SelfContained>true</SelfContained>',
     '<PublishSingleFile>false</PublishSingleFile>',
-    '<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>',
-    '<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>',
-    '<WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>',
     '<ExcludeFromSingleFile>true</ExcludeFromSingleFile>'
 )){
     if($csprojRaw.Contains($required)){Pass ("Publish invariant: "+$required)}else{Fail ("Missing publish invariant: "+$required)}
 }
 foreach($required in @(
     '<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>',
-    'Microsoft.WindowsAppSDK" Version="2.5.1',
-    'Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.6.1',
     'Microsoft.Data.Sqlite" Version="10.0.12'
 )){
     if($packagesRaw.Contains($required)){Pass ("Central package invariant: "+$required)}else{Fail ("Missing central package invariant: "+$required)}
 }
+if($packagesRaw -match 'Microsoft.WindowsAppSDK'){Fail 'Windows App SDK must not remain in Directory.Packages.props'}else{Pass 'Windows App SDK removed from central packages'}
 foreach($required in @('<LangVersion>14.0</LangVersion>','<NuGetAudit>true</NuGetAudit>','<NuGetAuditMode>all</NuGetAuditMode>','<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>')){
     if($buildPropsRaw.Contains($required)){Pass ("Modern build invariant: "+$required)}else{Fail ("Missing modern build invariant: "+$required)}
 }
-if([string]$buildJson.WindowsAppSDK -eq '2.5.1' -and [string]$buildJson.DotNet -eq '10.0' -and [string]$buildJson.Language -eq 'C# 14'){Pass 'BuildInfo current stable technology metadata'}else{Fail 'BuildInfo technology metadata mismatch'}
+if([string]$buildJson.WindowsAppSDK -eq 'WPF' -and [string]$buildJson.DotNet -eq '10.0' -and [string]$buildJson.Language -eq 'C# 14'){Pass 'BuildInfo current stable technology metadata'}else{Fail 'BuildInfo technology metadata mismatch'}
 
 # 11) One-click package version must match BuildInfo.
 $oneClickRaw=Read-Utf8Text (Join-Path $Root 'OneClick-Win11.ps1')
 if($oneClickRaw -match 'publish 目录缺少 Backend' -and $oneClickRaw -match '孤立 EXE' -and $oneClickRaw -notmatch '\$DesktopExe'){Pass 'OneClick never ships bare EXE without Backend'}else{Fail 'OneClick bare-EXE delivery regression'}
 if($oneClickRaw -match 'Materialize hash-locked Backend' -and $oneClickRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI\\Backend'){Pass 'OneClick materializes hash-locked Backend beside published EXE'}else{Fail 'OneClick no longer copies Backend beside published EXE'}
-if($oneClickRaw -match "-p:PublishSingleFile=false" -and $oneClickRaw -match 'Microsoft\.ui\.xaml\.dll' -and $oneClickRaw -match '安装后无法打开' -and $oneClickRaw -match 'WindowsAppSdkBootstrapInitialize=false'){Pass 'OneClick forbids WinUI PublishSingleFile payload'}else{Fail 'OneClick must refuse PublishSingleFile WinUI payloads'}
+if($oneClickRaw -match "-p:PublishSingleFile=false" -and $oneClickRaw -match 'wpfgfx_cor3.dll' -and $oneClickRaw -match '安装后无法打开'){Pass 'OneClick forbids WPF PublishSingleFile payload'}else{Fail 'OneClick must refuse PublishSingleFile WPF payloads'}
 $versionPattern=("(?m)^\s*"+[regex]::Escape('$Version')+"\s*=\s*'"+[regex]::Escape([string]$buildJson.Version)+"'\s*$")
 if($oneClickRaw -match $versionPattern){Pass 'OneClick version matches BuildInfo'}else{Fail 'OneClick version does not match BuildInfo'}
 if($oneClickRaw -match 'Architecture\.Tests\.ps1'){Pass 'OneClick runs architecture static tests before publish'}else{Fail 'OneClick no longer runs architecture static tests'}
@@ -206,15 +201,14 @@ if($oneClickRaw -match 'source update --name winget' -and $oneClickRaw -match '0
 if($oneClickRaw -notmatch 'source reset'){Pass 'OneClick does not destructively reset WinGet sources'}else{Fail 'OneClick must not automatically reset WinGet sources'}
 if($oneClickRaw -match "'-p:Platform=x64'" -and $oneClickRaw -match 'Publish_\{0\}\.log' -and $oneClickRaw -match '-bl:'){Pass 'OneClick pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'OneClick x64 publish/logging contract missing'}
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
-if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'Microsoft\.ui\.xaml\.dll' -and $workflowRaw -match 'WindowsAppSdkBootstrapInitialize=false' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
+if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'wpfgfx_cor3.dll' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
 $appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
-if($appXamlRaw -match 'XamlControlsResources'){Fail 'App.xaml must not merge XamlControlsResources on unpackaged WASDK 2.x'}else{Pass 'App.xaml uses primitive brushes only'}
+if($appXamlRaw -match 'XamlControlsResources'){Fail 'App.xaml must not merge WinUI XamlControlsResources'}else{Pass 'App.xaml is WPF primitive resources'}
 if($appXamlRaw -match 'CardStrokeBrush'){Pass 'App.xaml defines fallback card brushes'}else{Fail 'App.xaml missing CardStrokeBrush'}
-if(Test-Path -LiteralPath (Join-Path $ProjectRoot 'MainWindow.xaml')){Fail 'MainWindow.xaml must be removed'}else{Pass 'MainWindow shell is C# only'}
-$mainCs=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.cs')
-if($mainCs -match 'new NavigationView'){Fail 'MainWindow must not construct NavigationView'}else{Pass 'MainWindow does not construct NavigationView'}
-if($csprojRaw -match 'CopyAppPriToResourcesPri'){Pass 'csproj copies AssemblyName.pri to resources.pri'}else{Fail 'csproj missing resources.pri copy target'}
+if(-not (Test-Path -LiteralPath (Join-Path $ProjectRoot 'MainWindow.xaml'))){Fail 'MainWindow.xaml missing'}else{Pass 'MainWindow is WPF XAML'}
+$mainCs=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml.cs')
+if($mainCs -match 'NavigationView'){Fail 'MainWindow must not construct NavigationView'}else{Pass 'MainWindow does not construct NavigationView'}
 $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}
 
@@ -236,9 +230,9 @@ foreach($launcherName in @('一键构建并启动_Win11.cmd','Launch-Win11.cmd',
 }
 
 # 12) v3.4 simplified information architecture, Dump and GPU/ReBAR analysis.
-$mainWindowRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.cs')
+$mainWindowRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')
 foreach($tag in @('overview','asus','runtime','crash','reports')){
-    if($mainWindowRaw -match ('\("[^"]+",\s*"'+$tag+'"\)')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
+    if($mainWindowRaw -match ('Tag="'+$tag+'"')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
 }
 if($mainWindowRaw -notmatch 'Tag\s*=\s*"transactions"' -and $mainWindowRaw -notmatch 'Tag\s*=\s*"settings"'){Pass 'Developer/history pages removed from primary navigation'}else{Fail 'Primary navigation regressed to developer-oriented pages'}
 $dumpRaw=Read-Utf8Text (Join-Path $ProjectRoot 'Services\DumpAnalysisService.cs')

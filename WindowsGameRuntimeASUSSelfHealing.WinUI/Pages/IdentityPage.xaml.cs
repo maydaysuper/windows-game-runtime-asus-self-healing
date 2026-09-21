@@ -1,4 +1,5 @@
-using Microsoft.UI.Xaml;using Microsoft.UI.Xaml.Controls;using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
+using System.Windows;
+using System.Windows.Controls;using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Pages;
 public sealed partial class IdentityPage:Page{
  private readonly BackendService _backend=App.Services.Backend;private bool _loaded;

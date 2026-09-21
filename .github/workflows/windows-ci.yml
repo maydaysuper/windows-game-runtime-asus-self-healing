@@ -50,7 +50,7 @@ jobs:
             "-flp:logfile=BuildLogs/Restore_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Restore_${{ github.run_id }}.binlog
 
-      - name: Build WinUI 3
+      - name: Build WPF
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -60,7 +60,7 @@ jobs:
             "-flp:logfile=BuildLogs/Build_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Build_${{ github.run_id }}.binlog
 
-      - name: Publish self-contained WinUI 3
+      - name: Publish self-contained WPF
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -68,12 +68,8 @@ jobs:
           dotnet publish $env:PROJECT -c $env:CONFIGURATION -r $env:RUNTIME `
             -o artifacts/publish --self-contained true --no-restore --nologo `
             -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
-            -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true `
             -p:SelfContained=true -p:PublishSingleFile=false `
-            -p:WindowsAppSdkBootstrapInitialize=false `
-            -p:WindowsAppSdkDeploymentManagerInitialize=false `
-            -p:WindowsAppSdkUndockedRegFreeWinRTInitialize=true `
-            -p:EnableMsixTooling=true -p:PublishTrimmed=false -p:PublishReadyToRun=false `
+            -p:PublishTrimmed=false -p:PublishReadyToRun=false `
             "-flp:logfile=BuildLogs/Publish_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Publish_${{ github.run_id }}.binlog
 
@@ -107,21 +103,15 @@ jobs:
             'artifacts/publish/Backend/RepairCenter.ps1',
             'artifacts/publish/Backend/ElevatedBroker.ps1',
             'artifacts/publish/Backend/CapabilityBaseline.json',
-            'artifacts/publish/Microsoft.ui.xaml.dll',
-            'artifacts/publish/Microsoft.WindowsAppRuntime.dll',
+            'artifacts/publish/wpfgfx_cor3.dll',
+            'artifacts/publish/PresentationNative_cor3.dll',
             'artifacts/publish/e_sqlite3.dll'
           )) {
             if(-not (Test-Path -LiteralPath $required)) { throw "Published runtime file missing: $required" }
           }
-          $appPri='artifacts/publish/WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
-          $resPri='artifacts/publish/resources.pri'
-          if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
-            Copy-Item -LiteralPath $appPri -Destination $resPri -Force
-          }
-          if(-not (Test-Path -LiteralPath $resPri)) { throw "Published resources.pri missing (WASDK 2.x unpackaged WinUI needs it)" }
           $dllCount=@(Get-ChildItem -LiteralPath 'artifacts/publish' -Filter '*.dll' -File).Count
           if($dllCount -lt 8) { throw "Published payload looks like PublishSingleFile (dllCount=$dllCount)" }
-          Write-Host "Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"
+          Write-Host "Self-contained WPF runtime beside EXE (dllCount=$dllCount)"
 
       - name: Verify published payload trust chain
         shell: powershell

@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Media;
+using System.Windows.Media;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 

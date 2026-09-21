@@ -1,6 +1,5 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
+using System.Windows;
+using System.Windows.Controls;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -14,7 +13,6 @@ public sealed partial class OverviewPage : Page
     public OverviewPage()
     {
         InitializeComponent();
-        NavigationCacheMode = NavigationCacheMode.Enabled;
         Loaded += OverviewPage_Loaded;
     }
 

@@ -1,6 +1,5 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using System.Text.Json;
+using System.Windows;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -32,23 +31,18 @@ internal static class PageHelpers
         State = e.String("State"), StartedAt = e.String("StartedAt"), UpdatedAt = e.String("UpdatedAt"), LastDetail = e.String("LastDetail")
     };
 
-    public static async Task ShowAsync(FrameworkElement owner, string title, string content, string closeText = "确定")
+    public static Task ShowAsync(FrameworkElement owner, string title, string content, string closeText = "确定")
     {
-        var dlg = new ContentDialog { XamlRoot = owner.XamlRoot, Title = title, Content = content, CloseButtonText = closeText };
-        await dlg.ShowAsync();
+        _ = owner;
+        _ = closeText;
+        MessageBox.Show(Window.GetWindow(owner), content, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        return Task.CompletedTask;
     }
 
-    public static async Task<bool> ConfirmAsync(FrameworkElement owner, string title, string content, string primary = "继续")
+    public static Task<bool> ConfirmAsync(FrameworkElement owner, string title, string content, string primary = "继续")
     {
-        var dlg = new ContentDialog
-        {
-            XamlRoot = owner.XamlRoot,
-            Title = title,
-            Content = new ScrollViewer { MaxHeight = 520, Content = new TextBlock { Text = content, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true } },
-            PrimaryButtonText = primary,
-            CloseButtonText = "取消",
-            DefaultButton = ContentDialogButton.Close
-        };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        _ = primary;
+        var result = MessageBox.Show(Window.GetWindow(owner), content, title, MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+        return Task.FromResult(result == MessageBoxResult.OK);
     }
 }

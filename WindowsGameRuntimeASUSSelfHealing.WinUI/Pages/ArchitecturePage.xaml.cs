@@ -1,4 +1,5 @@
-using Microsoft.UI.Xaml;using Microsoft.UI.Xaml.Controls;using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
+using System.Windows;
+using System.Windows.Controls;using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Pages;
 public sealed partial class ArchitecturePage:Page{
  private readonly BackendService _backend=App.Services.Backend;private bool _loaded;public ArchitecturePage(){InitializeComponent();Loaded+=async(_,_)=>{if(_loaded)return;_loaded=true;await RefreshAsync();};}

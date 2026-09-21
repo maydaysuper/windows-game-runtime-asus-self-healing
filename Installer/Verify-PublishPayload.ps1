@@ -50,32 +50,22 @@ Assert-PeX64 $exe
 if(-not (Test-Path -LiteralPath $backend)) { throw "Published Backend directory missing: $backend" }
 
 $runtimeFiles=@(
-    'Microsoft.ui.xaml.dll',
-    'Microsoft.WindowsAppRuntime.dll',
+    'wpfgfx_cor3.dll',
+    'PresentationNative_cor3.dll',
     'e_sqlite3.dll'
 )
 foreach($name in $runtimeFiles) {
     $runtimePath=Join-Path $root $name
     if(-not (Test-Path -LiteralPath $runtimePath)) {
-        throw "Unpackaged WinUI runtime file missing (PublishSingleFile is forbidden): $runtimePath"
+        throw "Self-contained WPF runtime file missing (PublishSingleFile is forbidden): $runtimePath"
     }
     Assert-PeX64 $runtimePath
 }
 $dllCount=@(Get-ChildItem -LiteralPath $root -Filter '*.dll' -File).Count
 if($dllCount -lt 8) {
-    throw "Published payload looks like PublishSingleFile (dllCount=$dllCount). WinUI native DLLs must sit next to the EXE or Setup will not launch."
+    throw "Published payload looks like PublishSingleFile (dllCount=$dllCount). WPF native DLLs must sit next to the EXE or Setup will not launch."
 }
-Write-Host "[PASS] Unpackaged WinUI runtime beside EXE (dllCount=$dllCount)"
-
-$appPri=Join-Path $root 'WindowsGameRuntimeASUSSelfHealing.WinUI.pri'
-$resPri=Join-Path $root 'resources.pri'
-if((Test-Path -LiteralPath $appPri) -and -not (Test-Path -LiteralPath $resPri)) {
-    Copy-Item -LiteralPath $appPri -Destination $resPri -Force
-}
-if(-not (Test-Path -LiteralPath $resPri)) {
-    throw "Unpackaged WASDK 2.x payload missing resources.pri (WinUI ThemeResource/MRT). appPri exists=$([bool](Test-Path -LiteralPath $appPri))"
-}
-Write-Host "[PASS] resources.pri present for unpackaged WinUI"
+Write-Host "[PASS] Self-contained WPF runtime beside EXE (dllCount=$dllCount)"
 
 $build=Read-Utf8Json $buildInfoPath
 $required=@{

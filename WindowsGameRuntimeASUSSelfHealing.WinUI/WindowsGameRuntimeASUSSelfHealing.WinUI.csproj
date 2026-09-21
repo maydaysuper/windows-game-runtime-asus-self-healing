@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>WindowsGameRuntimeASUSSelfHealing.WinUI</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64</Platforms>
@@ -11,44 +9,22 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <UseWinUI>true</UseWinUI>
-    <Version>3.4.14</Version>
-    <AssemblyVersion>3.4.14.0</AssemblyVersion>
-    <FileVersion>3.4.14.0</FileVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <StartupObject>WindowsGameRuntimeASUSSelfHealing.WinUI.Program</StartupObject>
+    <Version>4.0.0</Version>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
     <Product>Windows Game Runtime - ASUS Armoury Self-Healing Center</Product>
     <Description>Windows game runtime diagnostics, ASUS Armoury self-healing, GPU/ReBAR crash diagnosis and reports.</Description>
-    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
-
-    <!-- Unpackaged folder deploy: WinUI native DLLs must sit next to the EXE.
-         PublishSingleFile extracts them to %TEMP%\.net and WASDK 2.x still
-         probes the EXE directory, so v3.4.9 Setup/Portable launched then exited. -->
-    <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
-    <EnableMsixTooling>true</EnableMsixTooling>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>false</PublishReadyToRun>
-    <!-- v3.4.10 Fail Fast: bootstrap auto-init runs before Main and looks for the
-         shared Windows App Runtime MSIX. Self-contained apps do not use that
-         framework; a miss calls Environment.FailFast ("快速异常检测失败"). -->
-    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
-    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
-    <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
-    <WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>false</WindowsAppSDKBootstrapAutoInitializeOptions_OnError_FailFast>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
-  <!-- WASDK 2.x unpackaged emits AssemblyName.pri. WinUI/MRT still looks for resources.pri. -->
-  <Target Name="CopyAppPriToResourcesPri" AfterTargets="Build">
-    <Copy SourceFiles="$(OutDir)$(AssemblyName).pri" DestinationFiles="$(OutDir)resources.pri" Condition="Exists('$(OutDir)$(AssemblyName).pri')" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyAppPriToResourcesPriOnPublish" AfterTargets="Publish">
-    <Copy SourceFiles="$(PublishDir)$(AssemblyName).pri" DestinationFiles="$(PublishDir)resources.pri" Condition="Exists('$(PublishDir)$(AssemblyName).pri')" SkipUnchangedFiles="true" />
-  </Target>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
 

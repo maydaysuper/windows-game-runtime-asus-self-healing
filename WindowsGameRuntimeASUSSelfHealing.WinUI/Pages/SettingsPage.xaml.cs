@@ -1,5 +1,5 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Pages;
 
@@ -65,15 +65,15 @@ public sealed partial class SettingsPage : Page
         finally { RefreshButton.IsEnabled = true; }
     }
     private void OpenDeepTest_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(typeof(DeepTestPage));
+        => Frame.Navigate(new DeepTestPage());
 
     private void OpenIdentity_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(typeof(IdentityPage));
+        => Frame.Navigate(new IdentityPage());
 
     private void OpenArchitecture_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(typeof(ArchitecturePage));
+        => Frame.Navigate(new ArchitecturePage());
 
     private void BackToReports_Click(object sender, RoutedEventArgs e)
-        => Frame.Navigate(typeof(ReportsPage));
+        => Frame.Navigate(new ReportsPage());
 
 }

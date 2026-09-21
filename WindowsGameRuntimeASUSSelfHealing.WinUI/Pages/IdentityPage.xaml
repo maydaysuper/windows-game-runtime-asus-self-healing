@@ -1,5 +1,5 @@
 <Page x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.Pages.IdentityPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ctrl="using:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
+    xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
     <Grid Padding="26"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel><TextBlock Text="组件识别 / 故障关联" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="ProfileID + ProductCode + UpgradeCode + Burn + Signer + SHA256 + 版本；关联评分只归组证据，不授权修复" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/></StackPanel>

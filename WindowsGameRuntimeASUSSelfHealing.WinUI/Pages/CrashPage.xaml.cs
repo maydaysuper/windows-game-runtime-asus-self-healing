@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
-using Windows.Storage.Pickers;
+using System.Windows;
+using System.Windows.Controls;
+using Microsoft.Win32;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -22,7 +21,6 @@ public sealed partial class CrashPage : Page
     public CrashPage()
     {
         InitializeComponent();
-        NavigationCacheMode = NavigationCacheMode.Enabled;
         CrashList.ItemsSource = _events;
         DumpHistoryList.ItemsSource = _dumpHistory;
         Loaded += async (_, _) =>
@@ -146,21 +144,16 @@ public sealed partial class CrashPage : Page
     {
         try
         {
-            var app = (App)Application.Current;
-            if (app.MainWindow is null) throw new InvalidOperationException("主窗口尚未就绪。");
-            var picker = new FileOpenPicker();
-            picker.FileTypeFilter.Add(".dmp");
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(app.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var file = await picker.PickSingleFileAsync();
-            if (file is null) return;
+            var dlg = new OpenFileDialog { Filter = "Minidump (*.dmp)|*.dmp|All files (*.*)|*.*" };
+            if (dlg.ShowDialog() != true) return;
+            var dumpPath = dlg.FileName;
 
             AnalyzeButton.IsEnabled = false;
             CrashInfo.Title = "正在分析 Dump";
             CrashInfo.Message = "使用 Windows DbgHelp 直接读取 Minidump 异常流和模块表，不会把文件上传到网络。";
             CrashInfo.Severity = InfoBarSeverity.Informational;
 
-            var analysis = await App.Services.Performance.MeasureAsync("Crash.DumpAnalyze", () => App.Services.DumpAnalysis.AnalyzeAsync(file.Path));
+            var analysis = await App.Services.Performance.MeasureAsync("Crash.DumpAnalyze", () => App.Services.DumpAnalysis.AnalyzeAsync(dumpPath));
             var reportPath = await App.Services.Reports.CreateDumpAnalysisReportAsync(analysis);
             analysis = analysis with { ReportPath = reportPath };
             await App.Services.StateStore.SaveDumpAnalysisAsync(analysis);

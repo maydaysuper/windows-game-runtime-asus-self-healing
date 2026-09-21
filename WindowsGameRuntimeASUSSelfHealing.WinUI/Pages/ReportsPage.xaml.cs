@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
+using System.Windows;
+using System.Windows.Controls;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -18,7 +17,6 @@ public sealed partial class ReportsPage : Page
     public ReportsPage()
     {
         InitializeComponent();
-        NavigationCacheMode = NavigationCacheMode.Enabled;
         ReportsList.ItemsSource = _reports;
         TxList.ItemsSource = _transactions;
         ReportsList.SelectionChanged += (_, _) => OpenSelectedButton.IsEnabled = ReportsList.SelectedItem is ReportItem;
@@ -181,7 +179,7 @@ public sealed partial class ReportsPage : Page
     }
 
     private void OpenFolder_Click(object sender, RoutedEventArgs e) => App.Services.Reports.OpenReportFolder();
-    private void OpenSettings_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(SettingsPage));
+    private void OpenSettings_Click(object sender, RoutedEventArgs e) => Frame.Navigate(new SettingsPage());
 
     private async void ContinueButton_Click(object sender, RoutedEventArgs e)
     {

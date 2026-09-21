@@ -1,4 +1,8 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.14
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v4.0.0
+
+## v4.0.0 底层重铸：WPF
+
+WinUI 3 unpackaged 无法在本机启动。v4.0.0 前端改为 WPF / .NET 10 自包含，ASUS 修复引擎与 hash-lock 保持不变。请卸载 3.4.x 后安装 4.0.0。
 
 ## v3.4.14 紧急修复：v3.4.13 仍闪退
 

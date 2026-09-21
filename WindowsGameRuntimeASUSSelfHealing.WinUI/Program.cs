@@ -1,17 +1,12 @@
 using System.Runtime.CompilerServices;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
-using WinRT;
+using System.Windows;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
 
 internal static class EarlyRuntime
 {
     [ModuleInitializer]
-    internal static void Initialize()
-    {
-        StartupGuard.ApplyHostDirectory();
-    }
+    internal static void Initialize() => StartupGuard.ApplyHostDirectory();
 }
 
 public static class Program
@@ -23,21 +18,9 @@ public static class Program
         try
         {
             StartupGuard.ProbeNativeRuntime();
-            ComWrappersSupport.InitializeComWrappers();
-            Application.Start(p =>
-            {
-                try
-                {
-                    var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
-                    SynchronizationContext.SetSynchronizationContext(context);
-                    new App();
-                }
-                catch (Exception ex)
-                {
-                    StartupGuard.Write("Application.Start", ex);
-                    StartupGuard.Notify(ex);
-                }
-            });
+            var app = new App();
+            app.InitializeComponent();
+            app.Run();
         }
         catch (Exception ex)
         {

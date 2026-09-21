@@ -15,8 +15,8 @@ internal static class StartupGuard
 
     private static readonly string[] RequiredRuntimeFiles =
     [
-        "Microsoft.ui.xaml.dll",
-        "Microsoft.WindowsAppRuntime.dll",
+        "wpfgfx_cor3.dll",
+        "PresentationNative_cor3.dll",
         "e_sqlite3.dll"
     ];
 
@@ -38,20 +38,6 @@ internal static class StartupGuard
         catch { }
         Environment.SetEnvironmentVariable("MICROSOFT_WINDOWSAPPRUNTIME_BASE_DIRECTORY", HostDirectory);
         Environment.SetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR", HostDirectory);
-        EnsureResourcesPri();
-    }
-
-    public static void EnsureResourcesPri()
-    {
-        try
-        {
-            var resources = Path.Combine(HostDirectory, "resources.pri");
-            if (File.Exists(resources)) return;
-            var appPri = Path.Combine(HostDirectory, "WindowsGameRuntimeASUSSelfHealing.WinUI.pri");
-            if (File.Exists(appPri))
-                File.Copy(appPri, resources, overwrite: false);
-        }
-        catch { }
     }
 
     public static void Install()
@@ -85,7 +71,7 @@ internal static class StartupGuard
         var ex = new FileNotFoundException(
             "安装目录缺少 WinUI 运行库（" + string.Join("、", missing) +
             "）。dllCount=" + dllCount +
-            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v3.4.14 Setup，从开始菜单打开。" +
+            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载后改装 v4.0.0 Setup，从开始菜单打开。" +
             "目录: " + HostDirectory);
         Write("NativeRuntime", ex);
         Notify(ex);
