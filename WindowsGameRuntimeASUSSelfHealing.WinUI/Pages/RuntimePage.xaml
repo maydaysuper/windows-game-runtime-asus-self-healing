@@ -4,32 +4,30 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls"
     xmlns:models="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Models">
-    <Grid Margin="28,24,28,20">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0">
-                <TextBlock Text="游戏运行库 / C++" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="检测并修复 VC++、DirectX 与游戏常用运行组件；下载包必须通过来源与签名校验" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button x:Name="OnlineButton" Content="联网对比" Click="OnlineButton_Click"/>
-                <Button Content="生成 Dry Run" Click="PlanButton_Click"/>
-                <Button x:Name="RepairButton" Content="安全修复" Click="RepairButton_Click" IsEnabled="False" Margin="0"/>
-            </StackPanel>
-        </Grid>
+    <ScrollViewer>
+        <StackPanel Margin="28,22,28,28">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,20,0">
+                    <TextBlock Text="游戏运行库 / C++" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="先看本机 VC++ / DirectX 是否正常，再核对 Microsoft 官方包。官方包取不到时，不会把本机已正常的运行库标成要修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                    <Button x:Name="OnlineButton" Content="联网对比" Click="OnlineButton_Click"/>
+                    <Button Content="生成 Dry Run" Click="PlanButton_Click"/>
+                    <Button x:Name="RepairButton" Content="安全修复" Click="RepairButton_Click" IsEnabled="False" Margin="0"/>
+                </WrapPanel>
+            </Grid>
 
-        <ctrl:StatusBanner x:Name="RuntimeInfo" Grid.Row="1" Margin="0,16,0,0" IsOpen="True" Title="等待检测" Message="联网下载和签名验证全部在独立后台进程执行。"/>
+            <ctrl:StatusBanner x:Name="RuntimeInfo" Margin="0,16,0,0" IsOpen="True" Title="等待检测" Message="联网下载和签名验证全部在独立后台进程执行。"/>
 
-        <Grid Grid.Row="2" Margin="0,16,0,0">
-            <Grid.RowDefinitions><RowDefinition Height="1.15*"/><RowDefinition Height="0.85*"/></Grid.RowDefinitions>
-            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <TextBlock Text="运行库状态" FontSize="16" FontWeight="SemiBold"/>
-                    <ListView x:Name="RuntimeRows" Grid.Row="1" Margin="0,8,0,0" SelectionMode="Single">
-                        <ListView.ItemTemplate>
+            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="运行库状态（本机）" FontSize="16" FontWeight="SemiBold"/>
+                    <ItemsControl x:Name="RuntimeRows" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type models:ComponentItem}">
-                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}">
+                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}" Margin="0,0,0,8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -44,35 +42,42 @@
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </Grid>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Border>
-            <Border Grid.Row="1" Margin="0,12,0,0" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <TextBlock Text="Microsoft 官方包信任证据" FontSize="16" FontWeight="SemiBold"/>
-                    <ListView x:Name="PackageRows" Grid.Row="1" Margin="0,8,0,0" SelectionMode="Single">
-                        <ListView.ItemTemplate>
+
+            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,12,0,0">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock Text="Microsoft 官方包信任证据" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="PackageVerdict" DockPanel.Dock="Right" FontWeight="SemiBold" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl x:Name="PackageRows" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type models:RuntimePackageItem}">
-                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}">
+                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}" Margin="0,0,0,8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Margin="0,0,16,0">
-                                            <TextBlock Text="{Binding Key}" FontWeight="SemiBold" FontSize="14"/>
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding Key}" FontWeight="SemiBold" FontSize="14"/>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Verdict}" FontWeight="SemiBold" FontSize="12" Foreground="{Binding StatusForeground}" HorizontalAlignment="Right"/>
+                                            </DockPanel>
                                             <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12" Opacity="0.86"/>
                                             <TextBlock Text="{Binding FinalUri}" TextTrimming="CharacterEllipsis" FontSize="11" Opacity="0.62" Margin="0,4,0,0"/>
                                         </StackPanel>
-                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="12" VerticalAlignment="Top"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="12" VerticalAlignment="Top" Margin="12,0,0,0"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </Grid>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Border>
-        </Grid>
-    </Grid>
+        </StackPanel>
+    </ScrollViewer>
 </Page>

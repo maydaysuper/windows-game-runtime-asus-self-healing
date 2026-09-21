@@ -1,7 +1,7 @@
 #define MyAppName "Windows Game Runtime - ASUS Armoury Self-Healing Center"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.1.1"
+  #define MyAppVersion "4.1.2"
 #endif
 #ifndef SourceRoot
   #define SourceRoot "..\\artifacts\\publish"
@@ -36,7 +36,8 @@ SetupLogging=yes
 Uninstallable=yes
 UsePreviousAppDir=yes
 UsePreviousGroup=yes
-UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile=..\\WindowsGameRuntimeASUSSelfHealing.WinUI\\Assets\\app.ico
+UninstallDisplayIcon={app}\\{#MyAppExeName}
 
 [Files]
 Source: "{#SourceRoot}\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

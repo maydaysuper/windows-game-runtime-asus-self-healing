@@ -4,12 +4,14 @@ namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
 public sealed class HealthScoreService
 {
+    private static readonly string[] AsusGroups = ["PV", "HOLTEK", "ENE"];
+
     public HealthScoreSnapshot Calculate(
         IReadOnlyCollection<ComponentItem> components,
         bool brokerValid,
         IReadOnlyCollection<CrashEventItem> recentCrashGroups)
     {
-        var asus = components.Where(x => !x.Group.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase)).ToArray();
+        var asus = components.Where(x => AsusGroups.Contains(x.Group, StringComparer.OrdinalIgnoreCase)).ToArray();
         var runtime = components.Where(x => x.Group.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase)).ToArray();
 
         var asusSevere = CountSevere(asus);
@@ -43,7 +45,11 @@ public sealed class HealthScoreService
             state,
             summary,
             asusState,
-            DomainSummary(asusSevere, asusWarn, "ASUS 组件"),
+            asusSevere > 0
+                ? $"奥创有 {asusSevere} 项更新/组件错误，详情到奥创中心"
+                : asusWarn > 0
+                    ? $"奥创有 {asusWarn} 项需要关注，详情到奥创中心"
+                    : "当前没有奥创 4151/4152 更新错误",
             runtimeState,
             DomainSummary(runtimeSevere, runtimeWarn, "运行库"),
             crashState,

@@ -9,6 +9,7 @@ LEGACY_ADAPTER_LOCK.json -text
 *.bat text eol=crlf
 *.iss text eol=crlf
 *.sln text eol=crlf
+*.ico binary
 *.png binary
 *.jpg binary
 *.zip binary

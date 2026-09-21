@@ -43,6 +43,7 @@ public sealed partial class OverviewPage : Page
             var crashes = await App.Services.StateStore.ReadCrashEventGroupsAsync(7, 120);
             var health = App.Services.HealthScore.Calculate(components, result.Payload.Bool("BrokerValid"), crashes);
             ApplyHealth(health);
+            ApplyAsusCard(result.Payload.StringArray("ActiveErrorCodes"), health);
             try { await App.Services.Workflow.RecordDiagnosedAsync(health.Summary); }
             catch (Exception wf) { App.Services.SessionLog.Bug("Overview.RecordDiagnosed", wf); }
 
@@ -60,7 +61,7 @@ public sealed partial class OverviewPage : Page
 
             SummaryInfo.Title = $"健康度 {health.Score}/100";
             SummaryInfo.Severity = health.Score >= 90 ? InfoBarSeverity.Success : health.Score >= 72 ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
-            SummaryInfo.Message = health.Summary + "。健康度为本软件本地诊断指数，不是 Windows 官方评分。";
+            SummaryInfo.Message = health.Summary + "。健康度为本软件本地诊断指数，不是 Windows 官方评分。奥创更新错误请到「ASUS 奥创中心」。";
         }
         catch (Exception ex)
         {
@@ -83,10 +84,28 @@ public sealed partial class OverviewPage : Page
         HealthCard.Background = StatusPalette.Brush(health.State);
         HealthRing.BorderBrush = StatusPalette.Foreground(health.State);
 
-        SetDomain(AsusCard, AsusStatusText, AsusDetailText, health.AsusState, health.AsusSummary);
         SetDomain(RuntimeCard, RuntimeStatusText, RuntimeDetailText, health.RuntimeState, health.RuntimeSummary);
         SetDomain(CrashCard, CrashStatusText, CrashDetailText, health.CrashState, health.CrashSummary);
         SetDomain(SystemCard, SystemStatusText, SystemDetailText, health.SystemState, health.SystemSummary);
+    }
+
+    private void ApplyAsusCard(string[] codes, HealthScoreSnapshot health)
+    {
+        var update = codes.Where(c =>
+            c.Contains("4151", StringComparison.OrdinalIgnoreCase)
+            || c.Contains("4152", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (update.Length > 0)
+        {
+            AsusCard.Background = StatusPalette.Brush("FAIL");
+            AsusStatusText.Text = "发现更新错误";
+            AsusDetailText.Text = "奥创 " + string.Join(" / ", update) + "。到「ASUS 奥创中心」检测能不能自动修。";
+            return;
+        }
+
+        var state = health.AsusState is "FAIL" or "WARN" ? health.AsusState : "PASS";
+        AsusCard.Background = StatusPalette.Brush(state);
+        AsusStatusText.Text = state == "PASS" ? "无更新错误" : "需到奥创中心";
+        AsusDetailText.Text = health.AsusSummary;
     }
 
     private static void SetDomain(Border card, TextBlock statusText, TextBlock detailText, string state, string summary)

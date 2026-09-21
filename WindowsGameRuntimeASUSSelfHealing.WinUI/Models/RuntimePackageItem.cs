@@ -25,11 +25,16 @@ public sealed class RuntimePackageItem
         get
         {
             if (Success && TrustComplete) return "PASS";
-            if (!string.IsNullOrWhiteSpace(Error) && HasEvidence) return "WARN";
-            if (!HasEvidence) return "INFO";
-            return "WARN";
+            if (HasEvidence && (!Success || !TrustComplete)) return "WARN";
+            return "INFO";
         }
     }
+
+    public string Verdict => Success && TrustComplete
+        ? "不必修复"
+        : HasEvidence
+            ? "需要关注"
+            : "不必修复";
 
     public string Summary
     {
@@ -37,19 +42,31 @@ public sealed class RuntimePackageItem
         {
             if (Success && TrustComplete)
             {
-                var bits = new List<string>();
+                var bits = new List<string> { "结论：不必修复" };
                 if (!string.IsNullOrWhiteSpace(Version)) bits.Add(Version);
                 if (!string.IsNullOrWhiteSpace(Signer)) bits.Add(Signer);
-                if (!string.IsNullOrWhiteSpace(Source)) bits.Add(Source);
-                return bits.Count == 0 ? "Microsoft 官方包签名与来源校验通过" : string.Join(" · ", bits);
+                return string.Join(" · ", bits);
             }
-            if (!string.IsNullOrWhiteSpace(Error)) return Error;
+
+            var err = FriendlyError(Error);
             if (!HasEvidence)
-                return "尚未拿到完整的 Microsoft 官方包证据。本地 VC++ / DirectX 仍以上方运行库状态为准，不把这次空结果当成故障。";
-            return "官方包证据不完整，未通过签名/来源校验。";
+                return string.IsNullOrWhiteSpace(err)
+                    ? "结论：不必修复。官方安装器这次没取到，以上方本机 VC++ / DirectX 状态为准。"
+                    : "结论：不必修复。" + err;
+            return string.IsNullOrWhiteSpace(err)
+                ? "结论：需要关注。官方包证据不完整。"
+                : "结论：需要关注。" + err;
         }
     }
 
     public Brush StatusBrush => StatusPalette.Brush(Status);
     public Brush StatusForeground => StatusPalette.Foreground(Status);
+
+    private static string FriendlyError(string error)
+    {
+        if (string.IsNullOrWhiteSpace(error)) return "";
+        if (error.Contains("Host", StringComparison.OrdinalIgnoreCase) && error.Contains("只读"))
+            return "官方包下载器变量冲突已在本版修复，请再点一次「联网对比」。";
+        return error;
+    }
 }

@@ -32,6 +32,18 @@ public static class JsonHelpers
             foreach (var item in v.EnumerateArray()) yield return item;
     }
 
+    public static string[] StringArray(this JsonElement element, string name)
+    {
+        var list = new List<string>();
+        foreach (var item in element.Array(name))
+        {
+            if (item.ValueKind == JsonValueKind.Null) continue;
+            var s = item.ValueKind == JsonValueKind.String ? item.GetString() : item.ToString();
+            if (!string.IsNullOrWhiteSpace(s)) list.Add(s.Trim());
+        }
+        return list.ToArray();
+    }
+
     private static bool IsTruthy(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;

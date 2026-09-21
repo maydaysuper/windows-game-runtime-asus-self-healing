@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
@@ -10,6 +13,7 @@ public partial class App : Application
     public App()
     {
         StartupGuard.Install();
+        EventManager.RegisterClassHandler(typeof(ListView), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(BubbleNestedWheel));
         DispatcherUnhandledException += OnDispatcherUnhandled;
     }
 
@@ -36,6 +40,17 @@ public partial class App : Application
             StartupGuard.Notify(ex);
             Shutdown(-1);
         }
+    }
+
+    private static void BubbleNestedWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (e.Handled || sender is not DependencyObject origin) return;
+        e.Handled = true;
+        var args = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent
+        };
+        (VisualTreeHelper.GetParent(origin) as UIElement)?.RaiseEvent(args);
     }
 
     private static void OnDispatcherUnhandled(object sender, DispatcherUnhandledExceptionEventArgs args)

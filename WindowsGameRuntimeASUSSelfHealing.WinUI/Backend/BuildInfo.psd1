@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = 'Windows Game Runtime / ASUS Armoury Self-Healing Center'
-    Version = '4.1.1'
-    BuildId = '20260922.wpf.3'
+    Version = '4.1.2'
+    BuildId = '20260922.wpf.4'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4
@@ -14,7 +14,7 @@
     PackageManagement = 'NuGet Central Package Management'
     CapabilityBaseline = 'CapabilityBaseline.json'
     CapabilityBaselineSHA256 = 'e7737f8059e8961b7239448ec820aab1e4ff246d26c39008a058106cace00848'
-    EngineSHA256 = '72a5def7d463ef0dd5ae3f0772ca4872c2759a32781661a636cdc08dc68013a8'
+    EngineSHA256 = '6961e8e50a8dc24d594d5fb8ba65cb4db741c579e9cf534e37639f6030bb8c32'
     BrokerSHA256 = '7e02b7f05c4cf68997475e19153ce1fb4dff276f5836739f29bacaec5ddf120b'
     BootstrapSHA256 = '571477cdfee70df36a64e1f4e6854d9f92ef1586f60e108c8063b4614a0be130'
     UiBridgeSHA256 = '688c52c52c1bc1878e2f96cffb1287048bbb29a50e4ccf3ff71aaadc83f911dc'

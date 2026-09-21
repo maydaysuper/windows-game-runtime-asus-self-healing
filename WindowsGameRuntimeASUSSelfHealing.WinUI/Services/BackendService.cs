@@ -52,7 +52,7 @@ public sealed class BackendService : IBackendClient, IDisposable
             using var doc = JsonDocument.Parse(File.ReadAllText(_buildInfoJsonPath, Encoding.UTF8));
             var root = doc.RootElement;
             return new BuildIdentity(
-                root.GetProperty("Version").GetString() ?? "4.1.1",
+                root.GetProperty("Version").GetString() ?? "4.1.2",
                 root.GetProperty("BuildId").GetString() ?? "unknown",
                 root.TryGetProperty("WindowsAppSDK", out var was) ? was.GetString() ?? "" : "",
                 root.TryGetProperty("DotNet", out var dotnet) ? dotnet.GetString() ?? "" : "",
@@ -70,7 +70,7 @@ public sealed class BackendService : IBackendClient, IDisposable
         }
         catch
         {
-            return new BuildIdentity("4.1.1", "unknown", "WPF", "10.0", "C# 14", "", "", "", "", "", "", "", "", "", "");
+            return new BuildIdentity("4.1.2", "unknown", "WPF", "10.0", "C# 14", "", "", "", "", "", "", "", "", "", "");
         }
     }
 

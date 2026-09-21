@@ -33,6 +33,7 @@ public sealed partial class RuntimePage : Page
                 RuntimeInfo.Message = "来自主页最近一次健康检测；需要核对 Microsoft 最新官方包时再点击“联网对比”。";
                 RuntimeInfo.Severity = cached.Any(x => x.Status is "FAIL" or "REPAIR" or "WARN" or "UPDATE") ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
             }
+            SetPackageVerdict();
         };
     }
 
@@ -61,13 +62,27 @@ public sealed partial class RuntimePage : Page
                 });
             var elig = r.Payload.GetProperty("Eligibility");
             _eligible = elig.Bool("Eligible");
-            RuntimeInfo.Title = "资格状态：" + elig.String("State");
-            var decision = elig.String("Decision");
-            if (_packages.Count > 0 && _packages.All(p => p.Status != "PASS"))
-                decision += " 官方包卡片为空或 INFO 只表示这次没取到 Microsoft 安装器证据，不代表本机 VC++/DirectX 坏了。";
-            RuntimeInfo.Message = decision;
-            RuntimeInfo.Severity = _eligible ? InfoBarSeverity.Success : elig.String("State") == "NO_ACTION_REQUIRED" ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
+            var localBad = _rows.Any(x => x.Status is "FAIL" or "REPAIR" or "NEEDS_REPAIR");
+            if (_eligible)
+            {
+                RuntimeInfo.Title = "结论：可以安全修复";
+                RuntimeInfo.Message = elig.String("Decision");
+                RuntimeInfo.Severity = InfoBarSeverity.Success;
+            }
+            else if (localBad)
+            {
+                RuntimeInfo.Title = "结论：本机运行库需要关注";
+                RuntimeInfo.Message = elig.String("Decision");
+                RuntimeInfo.Severity = InfoBarSeverity.Warning;
+            }
+            else
+            {
+                RuntimeInfo.Title = "结论：不必修复";
+                RuntimeInfo.Message = elig.String("Decision") + " 官方包卡片即使是 INFO，也不代表本机 VC++ / DirectX 坏了。";
+                RuntimeInfo.Severity = InfoBarSeverity.Success;
+            }
             RepairButton.IsEnabled = _eligible;
+            SetPackageVerdict();
             foreach (var pkg in _packages.Where(p => p.Status == "WARN" && !string.IsNullOrWhiteSpace(p.Error)))
                 App.Services.SessionLog.Note("Runtime.Package", pkg.Key + ": " + pkg.Error);
         }
@@ -81,6 +96,27 @@ public sealed partial class RuntimePage : Page
             App.Services.SessionLog.Bug("Runtime.Online", ex);
         }
         finally { OnlineButton.IsEnabled = true; }
+    }
+
+    private void SetPackageVerdict()
+    {
+        if (PackageVerdict == null) return;
+        if (_packages.Count == 0)
+        {
+            PackageVerdict.Text = "尚未联网对比";
+            PackageVerdict.Foreground = StatusPalette.Foreground("INFO");
+            return;
+        }
+
+        if (_packages.Any(p => p.Verdict == "需要关注"))
+        {
+            PackageVerdict.Text = "结论：官方包需要关注";
+            PackageVerdict.Foreground = StatusPalette.Foreground("WARN");
+            return;
+        }
+
+        PackageVerdict.Text = "结论：不必修复";
+        PackageVerdict.Foreground = StatusPalette.Foreground("PASS");
     }
 
     private async void PlanButton_Click(object sender, RoutedEventArgs e)
@@ -101,7 +137,7 @@ public sealed partial class RuntimePage : Page
             {
                 App.Services.SessionLog.Bug("Runtime.RecordPlan", wf);
             }
-            await PageHelpers.ShowAsync(this, "VC++ / DirectX Dry Run", _planText);
+            await PageHelpers.ShowAsync(this, _eligible ? "Dry Run：可以修复" : "Dry Run：不必修复", _planText);
         }
         catch (Exception ex)
         {
