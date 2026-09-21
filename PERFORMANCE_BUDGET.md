@@ -35,7 +35,7 @@ Elevated MSI/DISM/ASUS repair transactions are not forcibly paused or killed for
 
 ## Build/publish trade-offs
 
-- `self-contained folder deploy` (not PublishSingleFile). WPF native DLLs (`wpfgfx_cor3.dll`, `PresentationNative_cor3.dll`) must sit next to the EXE; Inno Setup already wraps the folder.
+- `self-contained folder deploy` (not PublishSingleFile). WPF native DLLs must sit next to the inner EXE under `App\`. The desktop launcher is net48 and does not bundle the WPF runtime. Inno Setup wraps launcher + App folder and creates a desktop shortcut only.
 - `PublishTrimmed=false`: WPF compatibility is preferred over risky trimming.
 - `PublishReadyToRun=false`: avoids inflating package size until Windows A/B startup measurements demonstrate a worthwhile gain.
 - Stable dependency versions stay centralized in `Directory.Packages.props`; NuGet direct/transitive audit remains enabled.

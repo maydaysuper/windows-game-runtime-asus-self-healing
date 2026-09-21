@@ -202,6 +202,10 @@ if($oneClickRaw -notmatch 'source reset'){Pass 'OneClick does not destructively 
 if($oneClickRaw -match "'-p:Platform=x64'" -and $oneClickRaw -match 'Publish_\{0\}\.log' -and $oneClickRaw -match '-bl:'){Pass 'OneClick pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'OneClick x64 publish/logging contract missing'}
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
 if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'wpfgfx_cor3.dll' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
+$issRaw=Read-Utf8Text (Join-Path $Root 'Installer\WindowsGameRuntimeASUSSelfHealing.iss')
+if($issRaw -match 'autoprograms'){Fail 'Setup must not create a Start Menu shortcut'}else{Pass 'Setup does not create a Start Menu shortcut'}
+if($issRaw -match 'autodesktop' -and $issRaw -match 'SelfHealingCenter.exe' -and $issRaw -notmatch '\[Tasks\]'){Pass 'Setup always creates a desktop shortcut to the launcher'}else{Fail 'Setup desktop-launcher contract drift'}
+if((Test-Path -LiteralPath (Join-Path $Root 'Launcher\SelfHealingCenter.cs')) -and (Test-Path -LiteralPath (Join-Path $Root 'README.txt'))){Pass 'Desktop launcher source and end-user readme exist'}else{Fail 'Desktop launcher / README missing'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
 $appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
 if($appXamlRaw -match 'XamlControlsResources'){Fail 'App.xaml must not merge WinUI XamlControlsResources'}else{Pass 'App.xaml is WPF primitive resources'}

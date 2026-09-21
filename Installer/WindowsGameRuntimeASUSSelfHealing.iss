@@ -1,15 +1,17 @@
-#define MyAppName "Windows Game Runtime - ASUS Armoury Self-Healing Center"
+﻿#define MyAppName "自愈中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.1.4"
+  #define MyAppVersion "4.2.0"
 #endif
 #ifndef SourceRoot
-  #define SourceRoot "..\\artifacts\\publish"
+  #define SourceRoot "..\\artifacts\\package"
 #endif
 #ifndef OutputDir
   #define OutputDir "..\\artifacts\\installer"
 #endif
-#define MyAppExeName "WindowsGameRuntimeASUSSelfHealing.WinUI.exe"
+#define MyAppExeName "SelfHealingCenter.exe"
+; Inner WPF host (do not shortcut this; launcher sets WorkingDir to App\):
+; WindowsGameRuntimeASUSSelfHealing.WinUI.exe
 
 [Setup]
 AppId={{8E7A18D4-0B8B-4F8C-A094-9B2026A57A41}
@@ -17,8 +19,9 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}.0
 AppPublisher={#MyAppPublisher}
+AppVerName={#MyAppName} {#MyAppVersion}
+UninstallDisplayName={#MyAppName}
 DefaultDirName={localappdata}\\Programs\\WindowsGameRuntimeASUSSelfHealing
-DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog commandline
@@ -35,7 +38,6 @@ RestartApplications=no
 SetupLogging=yes
 Uninstallable=yes
 UsePreviousAppDir=yes
-UsePreviousGroup=yes
 SetupIconFile=..\\WindowsGameRuntimeASUSSelfHealing.WinUI\\Assets\\app.ico
 UninstallDisplayIcon={app}\\{#MyAppExeName}
 
@@ -43,11 +45,7 @@ UninstallDisplayIcon={app}\\{#MyAppExeName}
 Source: "{#SourceRoot}\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; WorkingDir: "{app}"
-Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
-
-[Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; WorkingDir: "{app}"
 
 [Run]
 Filename: "{app}\\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent; WorkingDir: "{app}"

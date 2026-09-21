@@ -1,7 +1,8 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 [CmdletBinding()]
 param(
     [string]$PublishRoot = (Join-Path (Split-Path -Parent $PSScriptRoot) 'artifacts\publish'),
+    [string]$SourceRoot = '',
     [string]$OutputDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'artifacts\installer')
 )
 $ErrorActionPreference='Stop'
@@ -18,6 +19,13 @@ if(-not (Test-Path -LiteralPath $PublishRoot)){ throw "Publish root not found: $
 & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $verify -PublishRoot $PublishRoot
 if($LASTEXITCODE -ne 0){ throw "Publish payload verification failed: ExitCode=$LASTEXITCODE" }
 
+if([string]::IsNullOrWhiteSpace($SourceRoot)){ $SourceRoot = $PublishRoot }
+if(-not (Test-Path -LiteralPath $SourceRoot)){ throw "Installer source root not found: $SourceRoot" }
+$launcher=Join-Path $SourceRoot 'SelfHealingCenter.exe'
+$inner=Join-Path $SourceRoot 'App\WindowsGameRuntimeASUSSelfHealing.WinUI.exe'
+if(-not (Test-Path -LiteralPath $launcher)){ throw "Desktop launcher missing from installer source: $launcher" }
+if(-not (Test-Path -LiteralPath $inner)){ throw "Inner WPF EXE missing from installer source: $inner" }
+
 $iscc = @(
     (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
@@ -28,7 +36,7 @@ $iscc = @(
 if(-not $iscc){ throw 'Inno Setup 7/6 (ISCC.exe) not found.' }
 Write-Host "ISCC: $iscc"
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-$source=(Resolve-Path -LiteralPath $PublishRoot).Path
+$source=(Resolve-Path -LiteralPath $SourceRoot).Path
 $out=(Resolve-Path -LiteralPath $OutputDir).Path
 $iss=Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.iss'
 $isccArgs=@(
