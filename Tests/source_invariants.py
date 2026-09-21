@@ -248,7 +248,7 @@ one=(ROOT/'OneClick-Win11.ps1').read_text(encoding='utf-8')
 
 # Windows PowerShell 5.1 gate compatibility: JSON must be read explicitly as UTF-8 and fatal errors must surface.
 arch_test=(ROOT/'Tests'/'Architecture.Tests.ps1').read_text(encoding='utf-8-sig')
-if all(x in arch_test for x in ['function Read-Utf8Json','System.Text.UTF8Encoding','[IO.File]::ReadAllText','[FATAL] Architecture.Tests.ps1 line']): ok('PS5.1 static gate uses explicit UTF-8 JSON + fatal diagnostics')
+if all(x in arch_test for x in ['function Read-Utf8Json','System.Text.UTF8Encoding','[IO.File]::ReadAllText','[FATAL] Architecture.Tests.ps1 line','ParseInput']): ok('PS5.1 static gate uses explicit UTF-8 JSON + fatal diagnostics')
 else: fail('PS5.1 static gate UTF-8/fatal diagnostics missing')
 if all(x in arch_test for x in ["$buildJson=Read-Utf8Json", "$lock=Read-Utf8Json", "try{$capability=Read-Utf8Json"]): ok('all static-gate JSON inputs bypass Windows PowerShell default code page')
 else: fail('static-gate JSON still depends on Windows PowerShell default code page')

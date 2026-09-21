@@ -34,7 +34,8 @@ Write-Host ("PowerShell={0}; Edition={1}; OS={2}" -f $PSVersionTable.PSVersion,$
 $parseErrors=@()
 foreach($file in @(Get-ChildItem -LiteralPath $Root -Recurse -Filter '*.ps1' -File)){
     $tokens=$null;$errors=$null
-    [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)
+    $raw=Read-Utf8Text $file.FullName
+    [void][System.Management.Automation.Language.Parser]::ParseInput($raw,[ref]$tokens,[ref]$errors)
     foreach($e in @($errors)){$parseErrors += ("{0}:{1}:{2} {3}" -f $file.FullName,$e.Extent.StartLineNumber,$e.Extent.StartColumnNumber,$e.Message)}
 }
 if($parseErrors.Count -eq 0){Pass 'PowerShell parser: all .ps1 files'}else{foreach($e in $parseErrors){Fail $e}}
