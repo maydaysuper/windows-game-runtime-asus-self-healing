@@ -33,9 +33,9 @@
                            VerticalAlignment="Center" Margin="12,0,0,0"/>
                 <StackPanel x:Name="NavBar" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="OverviewNav" Style="{StaticResource TopNavButton}" Content="系统健康" Tag="overview" Click="Nav_Click"/>
-                    <Button x:Name="AsusNav" Style="{StaticResource TopNavButton}" Content="ASUS 奥创中心" Tag="asus" Click="Nav_Click"/>
+                    <Button x:Name="AsusNav" Style="{StaticResource TopNavButton}" Content="奥创中心" Tag="asus" Click="Nav_Click"/>
                     <Button x:Name="RuntimeNav" Style="{StaticResource TopNavButton}" Content="游戏运行库" Tag="runtime" Click="Nav_Click"/>
-                    <Button x:Name="CrashNav" Style="{StaticResource TopNavButton}" Content="崩溃 / Dump" Tag="crash" Click="Nav_Click"/>
+                    <Button x:Name="CrashNav" Style="{StaticResource TopNavButton}" Content="游戏崩溃" Tag="crash" Click="Nav_Click"/>
                     <Button x:Name="ReportsNav" Style="{StaticResource TopNavButton}" Content="报告中心" Tag="reports" Click="Nav_Click" Margin="0"/>
                 </StackPanel>
             </DockPanel>
@@ -43,7 +43,7 @@
         <Frame x:Name="ContentFrame" Grid.Row="1" NavigationUIVisibility="Hidden" JournalOwnership="OwnsJournal"/>
         <Border Grid.Row="2" Padding="16,8" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Background="White">
             <DockPanel>
-                <TextBlock x:Name="StatusText" Text="就绪 · 后台任务按硬件自适应限流" Foreground="#64748B" FontSize="12"/>
+                <TextBlock x:Name="StatusText" Text="就绪" Foreground="#64748B" FontSize="12"/>
                 <TextBlock x:Name="BuildText" Foreground="#64748B" HorizontalAlignment="Right" FontSize="12"/>
             </DockPanel>
         </Border>

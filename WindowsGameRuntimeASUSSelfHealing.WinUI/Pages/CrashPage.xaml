@@ -9,45 +9,45 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="游戏崩溃 / GPU / ReBAR / Dump" FontSize="22" FontWeight="SemiBold"/>
-                    <TextBlock Text="把 ReBAR、显存/Shared GPU Memory、TDR、显示驱动、WHEA、LiveKernel 和 Dump 组合成一条根因证据链" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="游戏崩溃" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="看游戏为什么崩，以及显卡有没有问题。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button x:Name="RefreshButton" Content="刷新崩溃证据" Click="RefreshButton_Click"/>
-                    <Button x:Name="GpuDiagnosisButton" Content="GPU / ReBAR 深度诊断" Click="GpuDiagnosisButton_Click"/>
-                    <Button x:Name="AnalyzeButton" Content="选择 Dump 分析" Click="AnalyzeDump_Click"/>
+                    <Button x:Name="RefreshButton" Content="刷新" Click="RefreshButton_Click"/>
+                    <Button x:Name="GpuDiagnosisButton" Content="检查显卡" Click="GpuDiagnosisButton_Click"/>
+                    <Button x:Name="AnalyzeButton" Content="分析崩溃文件" Click="AnalyzeDump_Click"/>
                 </StackPanel>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="CrashInfo" IsOpen="True" Title="按需加载" Message="事件日志使用 SQLite 增量游标；GPU/ReBAR 与 Dump 都只在本机分析，不上传。"/>
+            <ctrl:StatusBanner x:Name="CrashInfo" IsOpen="True" Title="本机分析" Message="崩溃和显卡问题都在这台电脑上分析，不会上传。"/>
 
             <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                 <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="ReBAR 爆显存 / 黑屏根因诊断" FontSize="19" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="GpuDiagnosisTitle" Text="等待诊断" FontSize="24" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                            <TextBlock x:Name="GpuDiagnosisSummary" Text="会综合显存压力、Shared GPU Memory、TDR、驱动、WHEA、LiveKernel 和 Dump；不会仅凭 ReBAR 开启就下结论。" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Text="显卡黑屏 / 爆显存" FontSize="19" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="GpuDiagnosisTitle" Text="等待检查" FontSize="24" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="GpuDiagnosisSummary" Text="会看显存、驱动超时和崩溃文件，再给出结论。" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                            <Button x:Name="GpuSafeRepairButton" Content="安全 GPU 修复" IsEnabled="False" Click="GpuSafeRepairButton_Click"/>
-                            <Button x:Name="OpenGpuReportButton" Content="打开 GPU 报告" IsEnabled="False" Click="OpenGpuReportButton_Click"/>
+                            <Button x:Name="GpuSafeRepairButton" Content="安全清理显卡缓存" IsEnabled="False" Click="GpuSafeRepairButton_Click"/>
+                            <Button x:Name="OpenGpuReportButton" Content="打开报告" IsEnabled="False" Click="OpenGpuReportButton_Click"/>
                         </StackPanel>
                     </Grid>
 
                     <Grid Margin="0,14,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
-                        <Border CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="ReBAR" FontWeight="SemiBold"/><TextBlock x:Name="RebarText" Text="UNKNOWN" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="2" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="Dedicated / Shared GPU Memory" FontWeight="SemiBold"/><TextBlock x:Name="GpuMemoryText" Text="等待采样" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="4" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="TDR / WHEA / Power" FontWeight="SemiBold"/><TextBlock x:Name="GpuEventText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="6" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="最近 Dump" FontWeight="SemiBold"/><TextBlock x:Name="GpuDumpText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="大显存模式" FontWeight="SemiBold"/><TextBlock x:Name="RebarText" Text="等待检查" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="2" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="显存占用" FontWeight="SemiBold"/><TextBlock x:Name="GpuMemoryText" Text="等待检查" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="4" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="显卡异常记录" FontWeight="SemiBold"/><TextBlock x:Name="GpuEventText" Text="等待检查" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="6" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="最近崩溃文件" FontWeight="SemiBold"/><TextBlock x:Name="GpuDumpText" Text="等待检查" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
                     </Grid>
 
                     <Grid Margin="0,14,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="证据链" FontWeight="SemiBold"/><TextBox x:Name="GpuEvidenceText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
-                        <StackPanel Grid.Column="2"><TextBlock Text="处理 / 自动修复策略" FontWeight="SemiBold"/><TextBox x:Name="GpuRepairPlanText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
+                        <StackPanel><TextBlock Text="判断依据" FontWeight="SemiBold"/><TextBox x:Name="GpuEvidenceText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="建议" FontWeight="SemiBold"/><TextBox x:Name="GpuRepairPlanText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
                     </Grid>
                 </StackPanel>
             </Border>
@@ -58,10 +58,10 @@
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Dump 核心结论" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="崩溃文件结论" FontSize="17" FontWeight="SemiBold"/>
                             <Button x:Name="OpenDumpReportButton" Grid.Column="1" Content="打开分析报告" IsEnabled="False" Click="OpenDumpReport_Click"/>
                         </Grid>
-                        <TextBlock x:Name="DumpReasonText" Grid.Row="1" Margin="0,12,0,0" Text="选择一个 .dmp 后，这里会直接给出核心报错方向。" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="DumpReasonText" Grid.Row="1" Margin="0,12,0,0" Text="选择一个崩溃文件后，这里会直接给出原因。" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DumpFileText" Grid.Row="2" Margin="0,12,0,0" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DumpExceptionText" Grid.Row="3" Margin="0,6,0,0" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DumpModuleText" Grid.Row="4" Margin="0,6,0,0" TextWrapping="Wrap"/>
@@ -71,7 +71,7 @@
 
                 <Border Grid.Column="2" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="GPU / PnP" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="显卡状态" FontSize="16" FontWeight="SemiBold"/>
                         <TextBox x:Name="GpuText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="210" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                     </StackPanel>
                 </Border>
@@ -112,16 +112,16 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
                 <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="WER 自动 Dump" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="只对指定游戏 EXE 开启，默认保留 3 个 full dump。" Foreground="{StaticResource MutedTextBrush}"/>
+                        <TextBlock Text="给指定游戏自动保存崩溃文件" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="只对你填写的游戏生效，默认保留 3 份。" Foreground="{StaticResource MutedTextBrush}"/>
                         <TextBox x:Name="ExeNameBox" Text="game.exe"/>
-                        <StackPanel Orientation="Horizontal"><Button Content="启用 Dump" Click="EnableDump_Click"/><Button Content="关闭 Dump" Click="DisableDump_Click"/></StackPanel>
+                        <StackPanel Orientation="Horizontal"><Button Content="开启自动保存" Click="EnableDump_Click"/><Button Content="关闭自动保存" Click="DisableDump_Click"/></StackPanel>
                         <TextBox x:Name="WerText" IsReadOnly="True" AcceptsReturn="True" Height="100" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="最近 Dump 分析" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="最近崩溃分析" FontSize="16" FontWeight="SemiBold"/>
                         <ListView x:Name="DumpHistoryList" Height="170" SelectionMode="Single">
                             <ListView.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:DumpAnalysisResult}">

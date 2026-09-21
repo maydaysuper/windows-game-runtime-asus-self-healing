@@ -157,7 +157,7 @@ try {
             $script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
             $snap=Get-SystemSnapshot -Force
             $elig=Get-RuntimeRepairEligibility $snap
-            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;Packages=@();Retired=$true;Message='已停用 Microsoft 官方安装器下载、版本对比和自动修复。本机 DLL 正常即为通过。'})
+            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;Packages=@();Retired=$true;Message='本机运行库检测完成。不下载微软安装包。'})
         }
         'PLAN_RUNTIME' {
             $snap=Get-SystemSnapshot -Force
@@ -169,7 +169,7 @@ try {
             $g=$Group
             if(-not $g){$g=[string]$snap.RecommendedGroup}
             if(-not $g){
-                Write-BridgeResult $true ([PSCustomObject]@{Plan=$null;Text='当前没有命中已验证 ASUS 自动修复组合。';RecommendedGroup=''} )
+                Write-BridgeResult $true ([PSCustomObject]@{Plan=$null;Text='结论：不必修复。现在没有可自动修的奥创更新错误。';RecommendedGroup=''} )
             }else{
                 $plan=New-RepairPlan 'ASUS' $g $snap
                 Write-BridgeResult $true ([PSCustomObject]@{Plan=$plan;Text=(Format-RepairPlan $plan);RecommendedGroup=$g})

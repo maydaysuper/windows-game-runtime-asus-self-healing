@@ -29,8 +29,8 @@ public sealed partial class OverviewPage : Page
     {
         RefreshButton.IsEnabled = false;
         SummaryInfo.Severity = InfoBarSeverity.Informational;
-        SummaryInfo.Title = "系统体检中";
-        SummaryInfo.Message = "正在后台读取组件完整性与安全门禁；崩溃健康度优先读取 SQLite 缓存，不主动重复扫描事件历史。";
+        SummaryInfo.Title = "正在体检";
+        SummaryInfo.Message = "正在查看奥创、运行库和近期崩溃。";
         try
         {
             using var result = await App.Services.Performance.MeasureAsync(
@@ -50,24 +50,21 @@ public sealed partial class OverviewPage : Page
             var issues = components
                 .Where(x => x.Status is "FAIL" or "REPAIR" or "WARN" or "UPDATE" or "NEEDS_REPAIR")
                 .Take(5)
-                .Select(x => $"[{x.Status}] {x.Name}：{x.Detail}")
+                .Select(x => $"{x.DisplayName}：{x.ResultLine}")
                 .ToList();
             if (crashes.Any(x => x.Severity == "FAIL"))
-                issues.Add($"[崩溃] 近 7 天缓存有 {crashes.Count(x => x.Severity == "FAIL")} 个严重崩溃组，可到“崩溃 / Dump”查看。 ");
-            IssueText.Text = issues.Count == 0 ? "当前没有发现需要立即处理的项目。" : string.Join("\n", issues);
+                issues.Add($"近 7 天有 {crashes.Count(x => x.Severity == "FAIL")} 次严重崩溃，可到「游戏崩溃」查看。");
+            IssueText.Text = issues.Count == 0 ? "结论：现在没有需要处理的项目。" : string.Join("\n", issues);
 
-            var profile = App.Services.Resources.Profile;
-            ResourceModeText.Text = $"资源模式：{profile.Name} · CPU {profile.LogicalProcessors} 逻辑核心 · 可用内存预算 {profile.MemoryText} · 后台重任务最多 {profile.MaxBackgroundOperations} 个并发。";
-
-            SummaryInfo.Title = $"健康度 {health.Score}/100";
+            SummaryInfo.Title = health.Score >= 90 ? "整体正常" : health.Score >= 72 ? "有项目需关注" : "有项目需处理";
             SummaryInfo.Severity = health.Score >= 90 ? InfoBarSeverity.Success : health.Score >= 72 ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
-            SummaryInfo.Message = health.Summary + "。健康度为本软件本地诊断指数，不是 Windows 官方评分。奥创更新错误请到「ASUS 奥创中心」。";
+            SummaryInfo.Message = health.Summary;
         }
         catch (Exception ex)
         {
             SummaryInfo.Severity = InfoBarSeverity.Error;
-            SummaryInfo.Title = "系统体检失败";
-            SummaryInfo.Message = ex.Message;
+            SummaryInfo.Title = "体检失败";
+            SummaryInfo.Message = CustomerCopy.Plain(ex.Message);
             App.Services.SessionLog.Bug("Overview.Health", ex);
         }
         finally
@@ -97,8 +94,8 @@ public sealed partial class OverviewPage : Page
         if (update.Length > 0)
         {
             AsusCard.Background = StatusPalette.Brush("FAIL");
-            AsusStatusText.Text = "发现更新错误";
-            AsusDetailText.Text = "奥创 " + string.Join(" / ", update) + "。到「ASUS 奥创中心」检测能不能自动修。";
+            AsusStatusText.Text = "有更新错误";
+            AsusDetailText.Text = "奥创更新失败。请到「奥创中心」看能不能自动修。";
             return;
         }
 
@@ -111,7 +108,7 @@ public sealed partial class OverviewPage : Page
     private static void SetDomain(Border card, TextBlock statusText, TextBlock detailText, string state, string summary)
     {
         card.Background = StatusPalette.Brush(state);
-        statusText.Text = state switch { "PASS" => "正常", "WARN" => "需关注", "FAIL" => "需处理", _ => state };
+        statusText.Text = StatusPalette.Display(state);
         detailText.Text = summary;
     }
 
@@ -120,10 +117,10 @@ public sealed partial class OverviewPage : Page
         ReportButton.IsEnabled = false;
         try
         {
-            var path = await App.Services.Performance.MeasureAsync("Reports.SystemHealth", () => App.Services.Reports.GenerateSystemHealthReportAsync());
-            await PageHelpers.ShowAsync(this, "系统报告已生成", path);
+            await App.Services.Performance.MeasureAsync("Reports.SystemHealth", () => App.Services.Reports.GenerateSystemHealthReportAsync());
+            await PageHelpers.ShowAsync(this, "报告已生成", "已保存到报告中心。");
         }
-        catch (Exception ex) { await PageHelpers.ShowAsync(this, "生成报告失败", ex.Message); }
+        catch (Exception ex) { await PageHelpers.ShowAsync(this, "生成报告失败", CustomerCopy.Plain(ex.Message)); }
         finally { ReportButton.IsEnabled = true; }
     }
 }

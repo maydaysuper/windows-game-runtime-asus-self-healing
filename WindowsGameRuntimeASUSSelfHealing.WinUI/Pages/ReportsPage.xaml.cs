@@ -40,9 +40,9 @@ public sealed partial class ReportsPage : Page
             _reports.Clear();
             foreach (var item in reports) _reports.Add(item);
             var workflow = App.Services.Workflow.Current;
-            WorkflowText.Text = $"当前流程：{workflow.State} · {workflow.Type} {workflow.Group} · {workflow.Detail}";
+            WorkflowText.Text = workflow.State is "Idle" or "" ? "当前没有正在进行的修复。" : StatusPalette.Display(workflow.State);
             Info.Title = "报告已同步";
-            Info.Message = $"本机报告 {_reports.Count} 份 · 修复事务 {_transactions.Count} 条。";
+            Info.Message = $"报告 {_reports.Count} 份，修复记录 {_transactions.Count} 条。";
             Info.Severity = InfoBarSeverity.Success;
         }
         catch (Exception ex)
@@ -68,14 +68,14 @@ public sealed partial class ReportsPage : Page
             if (r.Payload.TryGetProperty("Open", out var open) && open.ValueKind == System.Text.Json.JsonValueKind.Object)
             {
                 await App.Services.Workflow.RecordTransactionStateAsync(open.String("Type"), open.String("Group"), open.String("State"), open.String("LastDetail"));
-                TransactionInfo.Title = "存在未闭合修复事务";
-                TransactionInfo.Message = $"{open.String("TransactionId")} · {open.String("State")} · {open.String("LastDetail")}";
+                TransactionInfo.Title = "有未完成的修复";
+                TransactionInfo.Message = CustomerCopy.Plain(open.String("LastDetail"));
                 TransactionInfo.Severity = InfoBarSeverity.Warning;
             }
             else
             {
-                TransactionInfo.Title = "修复事务状态正常";
-                TransactionInfo.Message = "没有未完成事务；完整 Transaction ID、Journal 状态与修复详情仍保留。";
+                TransactionInfo.Title = "没有未完成的修复";
+                TransactionInfo.Message = "现在不用续跑。";
                 TransactionInfo.Severity = InfoBarSeverity.Success;
             }
         }
@@ -84,10 +84,10 @@ public sealed partial class ReportsPage : Page
             var cached = await App.Services.StateStore.ReadTransactionsAsync();
             _transactions.Clear();
             foreach (var row in cached) _transactions.Add(row);
-            TransactionInfo.Title = cached.Count > 0 ? "正在显示本地事务缓存" : "事务读取失败";
+            TransactionInfo.Title = cached.Count > 0 ? "正在显示上次记录" : "读取失败";
             TransactionInfo.Message = cached.Count > 0
-                ? "实时 Transaction 读取失败，当前保留 SQLite 历史：" + ex.Message
-                : ex.Message;
+                ? "刚才没读到最新记录，先显示上次结果。"
+                : CustomerCopy.Plain(ex.Message);
             TransactionInfo.Severity = cached.Count > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
         }
     }
@@ -109,7 +109,7 @@ public sealed partial class ReportsPage : Page
         {
             await App.Services.Workflow.RecordVerificationStartedAsync();
             using var r = await _backend.RunAsync("VERIFY", timeout: TimeSpan.FromMinutes(5));
-            var detail = r.Success ? r.Payload.String("Path") : r.Error;
+            var detail = r.Success ? "检测完成，结果已保存到报告中心。" : CustomerCopy.Plain(r.Error);
             var backendState = "FAILED";
             if (r.Success)
             {
@@ -118,7 +118,7 @@ public sealed partial class ReportsPage : Page
                     backendState = open.String("State");
             }
             await App.Services.Workflow.RecordVerificationResultAsync(r.Success, backendState, detail);
-            Info.Title = r.Success ? "最终验收已返回" : "最终验收失败";
+            Info.Title = r.Success ? "检测完成" : "检测失败";
             Info.Message = detail;
             Info.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
             await RefreshAsync();
@@ -126,8 +126,8 @@ public sealed partial class ReportsPage : Page
         catch (Exception ex)
         {
             await App.Services.Workflow.RecordVerificationResultAsync(false, "FAILED", ex.Message);
-            Info.Title = "最终验收失败";
-            Info.Message = ex.Message;
+            Info.Title = "检测失败";
+            Info.Message = CustomerCopy.Plain(ex.Message);
             Info.Severity = InfoBarSeverity.Error;
         }
         finally { VerifyButton.IsEnabled = true; }
@@ -138,9 +138,9 @@ public sealed partial class ReportsPage : Page
         button.IsEnabled = false;
         try
         {
-            var path = await generator();
+            await generator();
             Info.Title = title + "已生成";
-            Info.Message = path;
+            Info.Message = "已保存到报告中心。";
             Info.Severity = InfoBarSeverity.Success;
             await RefreshAsync();
         }
@@ -160,8 +160,8 @@ public sealed partial class ReportsPage : Page
         {
             using var r = await _backend.RunAsync("EXPORT_REPORT", timeout: TimeSpan.FromMinutes(8));
             if (!r.Success) throw new InvalidOperationException(r.Error);
-            Info.Title = "完整诊断 ZIP 已生成";
-            Info.Message = r.Payload.String("Path");
+            Info.Title = "诊断包已生成";
+            Info.Message = "已保存到报告中心。";
             Info.Severity = InfoBarSeverity.Success;
         }
         catch (Exception ex)

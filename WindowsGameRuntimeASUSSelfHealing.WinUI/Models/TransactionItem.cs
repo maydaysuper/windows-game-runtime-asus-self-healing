@@ -12,6 +12,8 @@ public sealed class TransactionItem
     public string StartedAt { get; init; } = "";
     public string UpdatedAt { get; init; } = "";
     public string LastDetail { get; init; } = "";
+    public string DisplayState => StatusPalette.Display(State);
+    public string ResultLine => CustomerCopy.Plain(LastDetail);
     public Brush StatusBrush => StatusPalette.Brush(State);
     public Brush StatusForeground => StatusPalette.Foreground(State);
 }

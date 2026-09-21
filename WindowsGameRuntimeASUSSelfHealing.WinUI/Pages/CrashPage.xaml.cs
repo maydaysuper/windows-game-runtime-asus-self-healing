@@ -40,21 +40,21 @@ public sealed partial class CrashPage : Page
     private async Task RefreshAsync()
     {
         RefreshButton.IsEnabled = false;
-        CrashInfo.Title = "增量读取中";
-        CrashInfo.Message = "仅从上次游标附近继续读取 Event Log；历史事件从本地 SQLite 聚合。";
+        CrashInfo.Title = "正在读取";
+        CrashInfo.Message = "正在查看最近的游戏崩溃记录。";
         CrashInfo.Severity = InfoBarSeverity.Informational;
         try
         {
             var snapshot = await App.Services.Performance.MeasureAsync("Crash.IncrementalRefresh", () => _telemetry.RefreshAsync());
             _events.Clear();
             foreach (var item in snapshot.Events) _events.Add(item);
-            GpuText.Text = snapshot.GpuLines.Count == 0 ? "本次未刷新 GPU/PnP 实时状态。" : string.Join("\n\n", snapshot.GpuLines);
-            WerText.Text = snapshot.WerLines.Count == 0 ? "未配置目标进程 LocalDumps，或本次使用离线缓存。" : string.Join("\n", snapshot.WerLines);
+            GpuText.Text = snapshot.GpuLines.Count == 0 ? "这次没有新的显卡状态。" : string.Join("\n\n", snapshot.GpuLines);
+            WerText.Text = snapshot.WerLines.Count == 0 ? "还没有给指定游戏打开自动保存。" : string.Join("\n", snapshot.WerLines);
 
-            CrashInfo.Title = snapshot.FromIncrementalCache ? "已显示本地缓存" : "增量读取完成";
+            CrashInfo.Title = snapshot.FromIncrementalCache ? "已显示上次结果" : "读取完成";
             CrashInfo.Message = snapshot.FromIncrementalCache
                 ? snapshot.Warning
-                : $"新增 {snapshot.NewEventCount} 条原始事件；当前 {_events.Count} 个崩溃组。没有重新扫描全部历史。";
+                : _events.Count == 0 ? "近 7 天没有游戏崩溃记录。" : $"近 7 天有 {_events.Count} 组崩溃记录。";
             CrashInfo.Severity = snapshot.FromIncrementalCache ? InfoBarSeverity.Warning : _events.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
         }
         catch (Exception ex)
@@ -71,8 +71,8 @@ public sealed partial class CrashPage : Page
     {
         GpuDiagnosisButton.IsEnabled = false;
         GpuSafeRepairButton.IsEnabled = false;
-        GpuDiagnosisTitle.Text = "正在采集 GPU 证据…";
-        GpuDiagnosisSummary.Text = "正在读取 ReBAR/BAR、GPU memory counters、TDR/驱动事件、WHEA、Kernel-Power、LiveKernelReports 和最近 Dump。";
+        GpuDiagnosisTitle.Text = "正在检查显卡…";
+        GpuDiagnosisSummary.Text = "正在查看显存、驱动超时和最近崩溃文件。";
         try
         {
             var diagnosis = await App.Services.Performance.MeasureAsync("Crash.GpuDiagnosis", () => App.Services.GpuDiagnostics.AnalyzeAsync());
@@ -84,7 +84,7 @@ public sealed partial class CrashPage : Page
         }
         catch (Exception ex)
         {
-            GpuDiagnosisTitle.Text = "GPU 诊断失败";
+            GpuDiagnosisTitle.Text = "显卡检查失败";
             GpuDiagnosisSummary.Text = ex.Message;
             GpuEvidenceText.Text = "";
             GpuRepairPlanText.Text = "";
@@ -104,7 +104,7 @@ public sealed partial class CrashPage : Page
         GpuEvidenceText.Text = result.EvidenceText;
         GpuRepairPlanText.Text = result.RepairPlanText;
         GpuSafeRepairButton.IsEnabled = result.SafeAutoRepairAvailable;
-        GpuSafeRepairButton.Content = string.IsNullOrWhiteSpace(result.SafeAutoRepairLabel) ? "安全 GPU 修复" : result.SafeAutoRepairLabel;
+        GpuSafeRepairButton.Content = string.IsNullOrWhiteSpace(result.SafeAutoRepairLabel) ? "安全清理显卡缓存" : result.SafeAutoRepairLabel;
         OpenGpuReportButton.IsEnabled = !string.IsNullOrWhiteSpace(result.ReportPath);
     }
 
@@ -118,8 +118,8 @@ public sealed partial class CrashPage : Page
         if (_gpuDiagnosis?.SafeAutoRepairAvailable != true) return;
         var confirmed = await PageHelpers.ConfirmAsync(
             this,
-            "执行安全 GPU 修复",
-            "只会把当前用户的 DirectX/显卡 Shader Cache 改名迁移到本机备份目录，并执行 PnP 设备重扫描。不会 DDU、不会卸载驱动、不会写 BIOS/ReBAR、不会修改 TDR 注册表。建议先退出正在运行的游戏。",
+            "清理显卡缓存",
+            "只会把显卡缓存挪到备份目录，并重新扫描设备。不会卸载驱动，也不会改主板设置。建议先退出游戏。",
             "通过 UAC 执行");
         if (!confirmed) return;
 
@@ -127,12 +127,12 @@ public sealed partial class CrashPage : Page
         try
         {
             var result = await _broker.ExecuteAsync("GPU_SAFE_REPAIR");
-            await PageHelpers.ShowAsync(this, result.Success ? "安全 GPU 修复完成" : "安全 GPU 修复未完成", result.Detail);
+            await PageHelpers.ShowAsync(this, result.Success ? "清理完成" : "清理未完成", CustomerCopy.Plain(result.Detail));
             await RunGpuDiagnosisAsync();
         }
         catch (Exception ex)
         {
-            await PageHelpers.ShowAsync(this, "安全 GPU 修复失败", ex.Message);
+            await PageHelpers.ShowAsync(this, "清理失败", CustomerCopy.Plain(ex.Message));
         }
         finally
         {

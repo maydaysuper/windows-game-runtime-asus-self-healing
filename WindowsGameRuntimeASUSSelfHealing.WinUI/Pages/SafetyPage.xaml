@@ -9,28 +9,28 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,20,0">
-                    <TextBlock Text="ASUS 奥创中心" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock Text="只检查 Armoury Crate 当前有没有 4151 / 4152 更新错误。首页的系统健康是总览，不会在这里再跑一遍磁盘和运行库。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="奥创中心" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="只回答一件事：现在有没有奥创更新错误，要不要修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
                     <ComboBox x:Name="GroupCombo" Width="180" SelectedIndex="0">
                         <ComboBoxItem Content="自动识别" Tag="AUTO"/>
-                        <ComboBoxItem Content="Patriot / VGA" Tag="PV"/>
-                        <ComboBoxItem Content="Holtek" Tag="HOLTEK"/>
-                        <ComboBoxItem Content="ENE M2" Tag="ENE"/>
+                        <ComboBoxItem Content="内存 / 显卡灯效" Tag="PV"/>
+                        <ComboBoxItem Content="主板内存灯效" Tag="HOLTEK"/>
+                        <ComboBoxItem Content="硬盘灯效" Tag="ENE"/>
                     </ComboBox>
-                    <Button x:Name="PlanButton" Content="检测奥创更新错误" Click="AsusPlan_Click"/>
+                    <Button x:Name="PlanButton" Content="检测更新错误" Click="AsusPlan_Click"/>
                     <Button x:Name="ExecuteButton" Content="执行安全修复" IsEnabled="False" Click="ExecuteButton_Click" Margin="0"/>
                 </WrapPanel>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="PlanInfo" Margin="0,16,0,0" IsOpen="True" Severity="Informational" Title="等待奥创检测" Message="点「检测奥创更新错误」后，这里会明确告诉你：现在有没有 4151/4152，要不要修。" />
+            <ctrl:StatusBanner x:Name="PlanInfo" Margin="0,16,0,0" IsOpen="True" Severity="Informational" Title="等待检测" Message="点「检测更新错误」后，这里会明确告诉你：要不要修。" />
 
             <Grid Margin="0,16,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="0.95*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.45*"/></Grid.ColumnDefinitions>
                 <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="奥创更新错误" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="现在的问题" FontSize="16" FontWeight="SemiBold"/>
                         <ItemsControl x:Name="PreflightList" Margin="0,10,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:PreflightItem}">
@@ -42,9 +42,9 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Margin="0,0,12,0">
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12" Opacity="0.82"/>
+                                                <TextBlock Text="{Binding ResultLine}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="13"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="12" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayStatus}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="13" VerticalAlignment="Top"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -55,7 +55,7 @@
                 <Border Grid.Column="2" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" MinHeight="280">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <TextBlock Text="检测结论 / 修复方案" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="结论" FontSize="16" FontWeight="SemiBold"/>
                         <TextBox x:Name="PlanText" Grid.Row="1" Margin="0,10,0,0" MinHeight="240" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                     </Grid>
                 </Border>

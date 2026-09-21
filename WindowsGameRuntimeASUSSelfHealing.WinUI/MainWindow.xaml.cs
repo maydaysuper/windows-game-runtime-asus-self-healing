@@ -31,9 +31,9 @@ public partial class MainWindow : Window
         {
             var build = App.Services.Backend.GetBuildIdentity();
             if (VersionText != null)
-                VersionText.Text = $"WPF · v{build.Version}";
+                VersionText.Text = $"v{build.Version}";
             if (BuildText != null)
-                BuildText.Text = $"{build.BuildId} · {build.WindowsAppSdk} · .NET {build.DotNet} · {build.Language}";
+                BuildText.Text = "";
         }
         catch (Exception ex)
         {
@@ -63,11 +63,11 @@ public partial class MainWindow : Window
             if (StatusText != null)
                 StatusText.Text = tag switch
                 {
-                    "asus" => "ASUS 奥创中心 · 只查奥创更新错误，不重复首页体检",
-                    "runtime" => "游戏运行库 · 只检测本机，不再下载 Microsoft 官方安装器",
-                    "crash" => "崩溃 / GPU / ReBAR / Dump · 全部本机分析",
-                    "reports" => "报告中心 · 事务、验收与诊断包",
-                    _ => "系统健康 · 后台任务按硬件自适应限流"
+                    "asus" => "奥创中心 · 只看现在有没有更新错误",
+                    "runtime" => "游戏运行库 · 看能不能玩游戏",
+                    "crash" => "游戏崩溃 · 看为什么崩",
+                    "reports" => "报告中心 · 检测结果和修复记录",
+                    _ => "系统健康 · 一眼看懂现在正不正常"
                 };
         }
         catch (Exception ex)

@@ -8,12 +8,12 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
-                    <TextBlock Text="系统健康检测" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock Text="一眼查看 ASUS、游戏运行库、近期崩溃与系统安全状态" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="系统健康" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="一眼看懂：奥创、运行库、崩溃、系统保护现在正不正常。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button x:Name="RefreshButton" Content="重新体检" Click="RefreshButton_Click"/>
-                    <Button x:Name="ReportButton" Content="生成系统报告" Click="ReportButton_Click" Margin="0"/>
+                    <Button x:Name="ReportButton" Content="生成报告" Click="ReportButton_Click" Margin="0"/>
                 </StackPanel>
             </Grid>
 
@@ -29,7 +29,6 @@
                         </Border>
                         <TextBlock x:Name="HealthText" Text="正在体检…" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,14,0,0"/>
                         <ProgressBar x:Name="HealthProgress" Minimum="0" Maximum="100" Value="0" Width="210" Height="6" Margin="0,12,0,0"/>
-                        <TextBlock Text="本地诊断健康指数" Foreground="{StaticResource MutedTextBrush}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -38,28 +37,28 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <Border x:Name="AsusCard" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                         <StackPanel>
-                            <TextBlock Text="ASUS 奥创中心" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock Text="奥创中心" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
                             <TextBlock x:Name="AsusStatusText" Text="检测中…" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <TextBlock x:Name="AsusDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" FontSize="12"/>
                         </StackPanel>
                     </Border>
                     <Border x:Name="RuntimeCard" Grid.Column="2" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                         <StackPanel>
-                            <TextBlock Text="游戏运行库 / C++" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock Text="游戏运行库" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
                             <TextBlock x:Name="RuntimeStatusText" Text="检测中…" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <TextBlock x:Name="RuntimeDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" FontSize="12"/>
                         </StackPanel>
                     </Border>
                     <Border x:Name="CrashCard" Grid.Row="2" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                         <StackPanel>
-                            <TextBlock Text="游戏崩溃 / Dump" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
-                            <TextBlock x:Name="CrashStatusText" Text="读取缓存…" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="游戏崩溃" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock x:Name="CrashStatusText" Text="读取中…" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <TextBlock x:Name="CrashDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" FontSize="12"/>
                         </StackPanel>
                     </Border>
                     <Border x:Name="SystemCard" Grid.Row="2" Grid.Column="2" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                         <StackPanel>
-                            <TextBlock Text="系统安全" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock Text="系统保护" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource MutedTextBrush}"/>
                             <TextBlock x:Name="SystemStatusText" Text="检测中…" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <TextBlock x:Name="SystemDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" FontSize="12"/>
                         </StackPanel>
@@ -67,13 +66,13 @@
                 </Grid>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="SummaryInfo" IsOpen="True" Severity="Informational" Title="后台健康检测" Message="诊断运行在后台，界面不会同步执行 PowerShell、WMI 或 Event Log 重任务。" />
+            <ctrl:StatusBanner x:Name="SummaryInfo" IsOpen="True" Severity="Informational" Title="正在体检" Message="正在查看奥创、运行库和近期崩溃。" />
 
             <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,4,0,0">
                 <StackPanel>
-                    <TextBlock Text="需要关注" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="IssueText" Text="正在汇总关键问题…" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="22"/>
-                    <TextBlock x:Name="ResourceModeText" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="12"/>
+                    <TextBlock Text="结论" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="IssueText" Text="正在汇总…" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="22"/>
+                    <TextBlock x:Name="ResourceModeText" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="12" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
         </StackPanel>

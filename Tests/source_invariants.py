@@ -239,7 +239,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.2.0': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.2.1': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -276,12 +276,22 @@ if "Status -in @('N/A','INFO')" in engine_text or 'Status -in @(\'N/A\',\'INFO\'
 else: fail('final verification still maps INFO to WARN')
 if '$eligible=$false' in engine_text.replace(' ', '') or '$eligible = $false' in engine_text: ok('runtime auto-repair via official installer is disabled')
 else: fail('runtime repair eligibility still allows official-installer repair')
-online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-RuntimeDiagnosticRows',1)[0]
+online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-OfficialVC14Target',1)[0]
 if 'Get-VCRedistOnlinePackage' in online_fn or 'Get-DirectXWebInstaller' in online_fn or 'Invoke-OfficialMicrosoftDownload' in online_fn: fail('Update-RuntimeOnlineInfo still downloads Microsoft installers')
 else: ok('Update-RuntimeOnlineInfo is a retired no-download stub')
+if 'function Get-OfficialVC14Target' in engine_text and '14.42.0.0' in engine_text: ok('VC++ keeps offline official-baseline comparison')
+else: fail('VC++ offline version comparison missing')
 diag_fn=engine_text.split('function Get-RuntimeDiagnosticRows',1)[1].split('function Write-RuntimeOnlineWorker',1)[0]
 if 'RuntimeOnlineInfo' in diag_fn or '建议执行修复安装' in diag_fn: fail('runtime diagnostics still compare official packages or WARN on SideBySide')
 else: ok('runtime diagnostics are local-only and do not WARN for official compare')
+if 'C++ 运行库' in diag_fn and '游戏 DirectX' in diag_fn and '老游戏兼容组件' in diag_fn: ok('runtime diagnostics use customer-facing names')
+else: fail('runtime diagnostic names are still jargon')
+plan_fn=engine_text.split('function Format-RepairPlan',1)[1].split('function Save-Transaction',1)[0]
+if '结论：' in plan_fn and 'Microsoft 官方包信任证据' not in plan_fn and 'SHA256=' not in plan_fn: ok('repair plan text leads with a customer conclusion')
+else: fail('repair plan text still dumps hashes/paths')
+verify_fn=engine_text.split('function Run-FinalVerification',1)[1].split('function Test-BrokerIntegrity',1)[0]
+if 'installed=' in verify_fn or 'runtime=' in verify_fn: fail('final verification still prints installed=/runtime= jargon')
+else: ok('final verification prints customer results')
 headless_fn=engine_text.split('function Invoke-RuntimeRepairHeadless',1)[1].split('function Invoke-ContinuePendingRepairHeadless',1)[0]
 if 'Update-RuntimeOnlineInfo' in headless_fn or 'Invoke-RuntimeAutoRepair' in headless_fn: fail('runtime repair headless still tries Microsoft installer repair')
 else: ok('runtime repair headless refuses without downloading')
@@ -306,6 +316,8 @@ if '<ScrollViewer>' in runtime_xaml and 'ItemsControl' in runtime_xaml: ok('runt
 else: fail('runtime page still traps wheel inside nested ListView')
 if '联网对比' in runtime_xaml or '安全修复' in runtime_xaml or '官方包信任证据' in runtime_xaml: fail('runtime Microsoft compare/repair UI must be removed')
 else: ok('runtime page is local-only detection')
+if 'DisplayName' in runtime_xaml and 'DisplayStatus' in runtime_xaml and 'ResultLine' in runtime_xaml: ok('runtime cards show customer-facing result labels')
+else: fail('runtime cards still bind raw Name/Status/Detail jargon')
 if '奥创更新错误' in safety_xaml: ok('ASUS page is update-error focused')
 else: fail('ASUS page still looks like generic system health')
 if 'TopNavButton' in app_xaml and '自愈中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): ok('single top chrome without duplicate title')

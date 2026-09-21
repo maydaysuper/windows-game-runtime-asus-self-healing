@@ -22,4 +22,15 @@ public static class StatusPalette
         "UPDATE" or "ELIGIBLE" or "INFO" => Color.FromRgb(30, 64, 175),
         _ => Color.FromRgb(100, 116, 139),
     });
+
+    public static string Display(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
+    {
+        "PASS" or "HEALTHY" or "COMPLETED" => "正常",
+        "REPAIR" or "FAIL" or "BLOCK" or "BLOCKED" or "NEEDS_REPAIR" => "需处理",
+        "WARN" or "MANUAL" or "WAIT_REBOOT" or "BUSY" or "MANUAL_ONLY" or "ATTENTION" => "需关注",
+        "UPDATE" or "ELIGIBLE" => "可更新",
+        "INFO" => "说明",
+        "NO_ACTION_REQUIRED" => "不必修复",
+        _ => string.IsNullOrWhiteSpace(status) ? "" : status,
+    };
 }

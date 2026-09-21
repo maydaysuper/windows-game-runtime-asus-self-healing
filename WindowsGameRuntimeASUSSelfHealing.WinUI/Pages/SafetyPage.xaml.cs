@@ -46,13 +46,15 @@ public sealed partial class SafetyPage : Page
 
             foreach (var code in updateCodes)
             {
+                var isKnown = code.Contains("4151", StringComparison.OrdinalIgnoreCase)
+                    || code.Contains("4152", StringComparison.OrdinalIgnoreCase);
                 _asusErrors.Add(new PreflightItem
                 {
-                    Name = "奥创更新错误 " + code,
+                    Name = isKnown ? "奥创更新失败" : "奥创相关错误",
                     Status = "FAIL",
-                    Detail = code is "4151" or "4152"
-                        ? "Armoury Crate 正在报 " + code + "。这是奥创组件更新失败，不是系统健康体检。"
-                        : "奥创相关错误码 " + code + "。"
+                    Detail = isKnown
+                        ? "奥创组件更新没有成功。这不是系统体检问题，到这里处理。"
+                        : "奥创报告了安装错误。"
                 });
             }
 
@@ -60,11 +62,9 @@ public sealed partial class SafetyPage : Page
             {
                 _asusErrors.Add(new PreflightItem
                 {
-                    Name = row.Name,
+                    Name = row.DisplayName,
                     Status = row.Status is "FAIL" or "REPAIR" or "NEEDS_REPAIR" ? "FAIL" : "WARN",
-                    Detail = string.IsNullOrWhiteSpace(row.ErrorCode)
-                        ? row.Detail
-                        : "错误码 " + row.ErrorCode + " · " + row.Detail
+                    Detail = row.ResultLine
                 });
             }
 
@@ -74,31 +74,31 @@ public sealed partial class SafetyPage : Page
                 {
                     Name = "当前没有奥创更新错误",
                     Status = "PASS",
-                    Detail = "没有命中 4151 / 4152，也没有已验证奥创组件处于失败状态。"
+                    Detail = "奥创现在没有更新失败。不必修复。"
                 });
-                PlanInfo.Title = "奥创结论：不必修复";
-                PlanInfo.Message = "当前 Armoury Crate 没有更新错误。首页系统健康是总览，这里只看奥创。";
+                PlanInfo.Title = "结论：不必修复";
+                PlanInfo.Message = "奥创没有更新错误。";
                 PlanInfo.Severity = InfoBarSeverity.Success;
             }
             else if (updateCodes.Length > 0)
             {
-                PlanInfo.Title = "奥创结论：发现更新错误";
-                PlanInfo.Message = "命中 " + string.Join(" / ", updateCodes) + "。点「检测奥创更新错误」生成是否可自动修的方案。未知新版本只诊断。";
+                PlanInfo.Title = "结论：发现更新错误";
+                PlanInfo.Message = "点「检测更新错误」看能不能自动修。未知新版本只诊断，不套旧方案。";
                 PlanInfo.Severity = InfoBarSeverity.Warning;
             }
             else
             {
-                PlanInfo.Title = "奥创结论：有组件需要关注";
-                PlanInfo.Message = "没有 4151/4152，但有奥创组件状态异常。请看左侧条目。";
+                PlanInfo.Title = "结论：有组件需要关注";
+                PlanInfo.Message = "没有更新失败，但有奥创组件状态异常。请看左侧。";
                 PlanInfo.Severity = InfoBarSeverity.Warning;
             }
         }
         catch (Exception ex)
         {
             _asusErrors.Clear();
-            PlanInfo.Title = "奥创检测失败";
+            PlanInfo.Title = "检测失败";
             PlanInfo.Severity = InfoBarSeverity.Error;
-            PlanInfo.Message = ex.Message;
+            PlanInfo.Message = CustomerCopy.Plain(ex.Message);
             App.Services.SessionLog.Bug("ASUS.Errors", ex);
         }
     }
@@ -146,7 +146,7 @@ public sealed partial class SafetyPage : Page
         catch (Exception ex)
         {
             App.Services.SessionLog.Bug("ASUS.Plan", ex);
-            SetPlanFailure(ex.Message);
+            SetPlanFailure(CustomerCopy.Plain(ex.Message));
         }
     }
 
@@ -155,22 +155,22 @@ public sealed partial class SafetyPage : Page
         ExecuteButton.IsEnabled = eligible;
         if (eligible)
         {
-            PlanInfo.Title = "奥创结论：可以安全修复";
-            PlanInfo.Message = "已通过修复资格。执行时 Broker 会再诊断一次。";
+            PlanInfo.Title = "结论：可以安全修复";
+            PlanInfo.Message = "点「执行安全修复」后会弹出系统确认。";
             PlanInfo.Severity = InfoBarSeverity.Success;
             return;
         }
 
         if (state == "NO_ACTION_REQUIRED")
         {
-            PlanInfo.Title = "奥创结论：不必修复";
-            PlanInfo.Message = "当前没有命中已验证的奥创自动修复组合。不是系统健康冲突，就是现在没有 4151/4152 可修。";
+            PlanInfo.Title = "结论：不必修复";
+            PlanInfo.Message = "现在没有可自动修的奥创更新错误。";
             PlanInfo.Severity = InfoBarSeverity.Success;
             return;
         }
 
-        PlanInfo.Title = "奥创结论：" + state;
-        PlanInfo.Message = "当前不会改系统。请看右侧方案里的原因。未知奥创版本只诊断。";
+        PlanInfo.Title = "结论：暂不修复";
+        PlanInfo.Message = "当前不会改系统。请看右侧原因。未知奥创版本只诊断。";
         PlanInfo.Severity = InfoBarSeverity.Warning;
     }
 
@@ -178,7 +178,7 @@ public sealed partial class SafetyPage : Page
     {
         _eligible = false;
         ExecuteButton.IsEnabled = false;
-        PlanInfo.Title = "计划生成失败";
+        PlanInfo.Title = "检测失败";
         PlanInfo.Message = error;
         PlanInfo.Severity = InfoBarSeverity.Error;
     }
@@ -186,7 +186,7 @@ public sealed partial class SafetyPage : Page
     private async void ExecuteButton_Click(object sender, RoutedEventArgs e)
     {
         if (!_eligible) return;
-        var confirmed = await PageHelpers.ConfirmAsync(this, "确认执行修复", PlanText.Text + "\n\nElevated Broker 会在管理员上下文重新执行完整 Repair Eligibility。", "通过 UAC 执行");
+        var confirmed = await PageHelpers.ConfirmAsync(this, "确认执行修复", "接下来会弹出系统确认。只会按已验证步骤修奥创更新错误。", "继续");
         if (!confirmed) return;
         ExecuteButton.IsEnabled = false;
         var action = _planType == "RUNTIME" ? "RUNTIME_REPAIR" : "ASUS_REPAIR";
@@ -195,14 +195,14 @@ public sealed partial class SafetyPage : Page
             await App.Services.Workflow.RecordBrokerStartAsync(_planType, _planGroup);
             var result = await _broker.ExecuteAsync(action, _planGroup);
             await App.Services.Workflow.RecordBrokerResultAsync(_planType, _planGroup, result.Success, result.State, result.Detail);
-            await PageHelpers.ShowAsync(this, result.Success ? "Broker 已返回" : "Broker 未完成", result.Detail);
+            await PageHelpers.ShowAsync(this, result.Success ? "修复已返回" : "修复未完成", CustomerCopy.Plain(result.Detail));
             _eligible = false;
         }
         catch (Exception ex)
         {
             App.Services.SessionLog.Bug("ASUS.Repair", ex);
             await App.Services.Workflow.RecordBrokerResultAsync(_planType, _planGroup, false, "FAILED", ex.Message);
-            await PageHelpers.ShowAsync(this, "Broker 错误", ex.Message);
+            await PageHelpers.ShowAsync(this, "修复出错", CustomerCopy.Plain(ex.Message));
         }
         finally
         {

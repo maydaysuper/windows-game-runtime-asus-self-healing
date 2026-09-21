@@ -22,7 +22,7 @@ public sealed partial class RuntimePage : Page
             _loaded = true;
             var cached = await App.Services.StateStore.ReadComponentStatesAsync("RUNTIME");
             foreach (var row in cached) _rows.Add(row);
-            if (cached.Count > 0) ApplyLocalVerdict("已加载本机检测缓存");
+            if (cached.Count > 0) ApplyLocalVerdict("已有检测结果");
             else await RefreshLocalAsync(false);
         };
     }
@@ -32,8 +32,8 @@ public sealed partial class RuntimePage : Page
     private async Task RefreshLocalAsync(bool force)
     {
         RefreshButton.IsEnabled = false;
-        RuntimeInfo.Title = "本机检测中";
-        RuntimeInfo.Message = "只读本机 VC++ / DirectX 文件与注册表，不下载 Microsoft 官方安装器。";
+        RuntimeInfo.Title = "正在检测";
+        RuntimeInfo.Message = "正在查看本机 C++ 运行库和 DirectX。";
         RuntimeInfo.Severity = InfoBarSeverity.Informational;
         try
         {
@@ -47,12 +47,12 @@ public sealed partial class RuntimePage : Page
                     _rows.Add(row);
             }
             await App.Services.StateStore.UpsertComponentStatesAsync(_rows);
-            ApplyLocalVerdict("本机检测完成");
+            ApplyLocalVerdict("检测完成");
         }
         catch (Exception ex)
         {
-            RuntimeInfo.Title = "本机检测失败";
-            RuntimeInfo.Message = ex.Message;
+            RuntimeInfo.Title = "检测失败";
+            RuntimeInfo.Message = CustomerCopy.Plain(ex.Message);
             RuntimeInfo.Severity = InfoBarSeverity.Error;
             App.Services.SessionLog.Bug("Runtime.Local", ex);
         }
@@ -62,15 +62,21 @@ public sealed partial class RuntimePage : Page
     private void ApplyLocalVerdict(string title)
     {
         var broken = _rows.Any(x => x.Status is "FAIL" or "REPAIR" or "NEEDS_REPAIR");
+        var warn = _rows.Any(x => x.Status is "WARN" or "UPDATE");
         RuntimeInfo.Title = title;
         if (broken)
         {
-            RuntimeInfo.Message = "本机运行库文件异常。本工具不再下载 Microsoft 官方安装器，请自行安装 Visual C++ Redistributable 或 DirectX End-User Runtime。";
+            RuntimeInfo.Message = "有运行库不完整。本工具不会自动安装，请按每条结果自行处理。";
+            RuntimeInfo.Severity = InfoBarSeverity.Warning;
+        }
+        else if (warn)
+        {
+            RuntimeInfo.Message = "可以玩游戏，但有项目版本偏低，建议更新。";
             RuntimeInfo.Severity = InfoBarSeverity.Warning;
         }
         else
         {
-            RuntimeInfo.Message = "本机 VC++ / DirectX 可用。已停用官方包对比和自动修复，最终验收不再因此标 WARN。";
+            RuntimeInfo.Message = "结论：不必修复。C++ 运行库和 DirectX 都可用。";
             RuntimeInfo.Severity = InfoBarSeverity.Success;
         }
     }

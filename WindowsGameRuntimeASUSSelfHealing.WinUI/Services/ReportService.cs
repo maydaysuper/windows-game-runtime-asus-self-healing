@@ -33,25 +33,24 @@ public sealed class ReportService
         var status = await _stateStore.GetStatusAsync(cancellationToken).ConfigureAwait(false);
 
         var text = new StringBuilder();
-        text.AppendLine("# Windows Game Runtime 系统健康报告");
+        text.AppendLine("# 自愈中心 系统健康报告");
         text.AppendLine();
-        text.AppendLine($"- 生成时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
-        text.AppendLine($"- 综合健康度：**{health.Score}/100**（{health.Summary}）");
-        text.AppendLine($"- ASUS：{health.AsusSummary}");
-        text.AppendLine($"- 游戏运行库：{health.RuntimeSummary}");
+        text.AppendLine($"- 时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
+        text.AppendLine($"- 总分：**{health.Score}/100**（{health.Summary}）");
+        text.AppendLine($"- 奥创：{health.AsusSummary}");
+        text.AppendLine($"- 运行库：{health.RuntimeSummary}");
         text.AppendLine($"- 崩溃：{health.CrashSummary}");
-        text.AppendLine($"- 系统安全门禁：{health.SystemSummary}");
+        text.AppendLine($"- 系统保护：{health.SystemSummary}");
         text.AppendLine();
-        text.AppendLine("## 组件状态");
+        text.AppendLine("## 检测结果");
         foreach (var row in components)
-            text.AppendLine($"- [{row.Status}] {row.Name}：本机={row.Installed}；目标={row.Target}；{row.Detail}");
+            text.AppendLine($"- {row.DisplayStatus}  {row.DisplayName}：{row.ResultLine}");
         text.AppendLine();
-        text.AppendLine("## 本地状态缓存");
-        text.AppendLine($"- SQLite schema：{status.SchemaVersion}");
-        text.AppendLine($"- Crash events：{status.CrashEventCount}");
-        text.AppendLine($"- Repair transactions：{status.TransactionCount}");
+        text.AppendLine("## 记录");
+        text.AppendLine($"- 崩溃记录：{status.CrashEventCount}");
+        text.AppendLine($"- 修复记录：{status.TransactionCount}");
         text.AppendLine();
-        text.AppendLine("> 健康度是本软件依据组件完整性、安全门禁和近期崩溃证据计算的本地诊断指数，不是 Microsoft 官方系统评分。");
+        text.AppendLine("> 分数是本软件的本地判断，不是 Windows 官方评分。");
 
         return await WriteReportAsync("SYSTEM", "SystemHealth", text.ToString(), cancellationToken).ConfigureAwait(false);
     }

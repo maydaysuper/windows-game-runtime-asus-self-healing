@@ -472,27 +472,50 @@ function Update-RuntimeOnlineInfo([switch]$Force) {
     return [PSCustomObject]@{Success=$true;Info=$script:RuntimeOnlineInfo;Errors=@();Retired=$true}
 }
 
+function Get-OfficialVC14Target {
+    # Offline Microsoft VC++ 2015-2022 baseline. Live installer download is retired.
+    # This still lets local version comparison work without aka.ms / dxwebsetup.
+    return [PSCustomObject]@{Version='14.42.0.0';Minimum='14.30.0.0';Source='BuiltIn'}
+}
+
 function Get-RuntimeDiagnosticRows([switch]$Deep) {
     $rows = @()
+    $vcTarget = Get-OfficialVC14Target
+    $archName = @{ x64='64位'; x86='32位'; arm64='ARM' }
     foreach ($arch in @(Get-RequiredVCRedistArchitectures)) {
         $reg = Get-VCRuntimeRegistryState $arch
         $files = @(Get-VCRuntimeFileState $arch -Deep:$Deep)
         $healthyFiles = @($files | Where-Object { $_.Exists -and $_.SignatureOK }).Count
-        $status = 'INFO'
-        $detail = ''
-        if (-not $reg.Installed -or -not $reg.Version) {
+        $label = 'C++ 运行库（' + $(if($archName.ContainsKey($arch)){$archName[$arch]}else{$arch}) + '）'
+        $installed = [string]$reg.Version
+        $target = [string]$vcTarget.Version
+        $status = 'PASS'
+        $runtime = '本机可用'
+        $detail = '正常，可以运行游戏。'
+        if (-not $reg.Installed -or -not $reg.Version -or $healthyFiles -lt $files.Count) {
             $status = 'REPAIR'
-            $detail = '未检测到 Microsoft Visual C++ v14 Redistributable。请自行安装官方运行库，本工具不再下载或修复。'
-        } elseif ($healthyFiles -lt $files.Count) {
-            $status = 'REPAIR'
-            $detail = "关键运行库 DLL 缺失或签名异常：$healthyFiles/$($files.Count) 正常。请自行安装 Visual C++ Redistributable，本工具不再下载官方安装器。"
+            $runtime = '未安装'
+            $detail = '没有完整的 C++ 运行库，部分游戏会打不开。请到微软安装「Visual C++ 2015-2022 运行库」。本工具不会自动下载。'
         } else {
-            $status = 'PASS'
-            $detail = "本机 VC++ v14 $($reg.Version) 关键 DLL 正常。已停用 Microsoft 官方安装器对比。"
+            $cmpMin = Compare-VersionSafe $installed $vcTarget.Minimum
+            if ($cmpMin -lt 0) {
+                $status = 'WARN'
+                $runtime = '版本偏低'
+                $detail = '已经能用，但版本偏低，部分新游戏可能打不开。建议更新微软 C++ 运行库。'
+            } else {
+                $cmpRec = Compare-VersionSafe $installed $vcTarget.Version
+                if ($cmpRec -ge 0) {
+                    $runtime = '已达到建议版本'
+                    $detail = '正常，已达到当前建议版本。'
+                } else {
+                    $runtime = '本机可用'
+                    $detail = '正常，可以运行游戏。'
+                }
+            }
         }
         $rows += [PSCustomObject]@{
-            Key="VC_$arch";Name="Microsoft Visual C++ v14 ($arch)";Installed=[string]$reg.Version;Target='';
-            Runtime=("关键DLL {0}/{1}" -f $healthyFiles,$files.Count);ErrorCode='';Status=$status;Detail=$detail;Group='RUNTIME'
+            Key="VC_$arch";Name=$label;Installed=$installed;Target=$target;
+            Runtime=$runtime;ErrorCode='';Status=$status;Detail=$detail;Group='RUNTIME'
         }
     }
 
@@ -500,23 +523,27 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
     $legacy = Get-DirectXLegacyState
 
     $coreStatus = 'PASS'
-    $coreDetail = 'Windows DirectX 核心文件快速检查正常。已停用官方安装器对比与自动修复。'
+    $coreDetail = '正常，游戏 DirectX 可用。'
+    $coreRuntime = '本机可用'
     if (-not $core.Healthy) {
         $coreStatus = 'REPAIR'
-        $coreDetail = "DirectX 系统核心存在缺失/签名异常文件：$($core.BadFiles.Count)。请自行运行 DISM RestoreHealth / SFC，本工具不再自动修复运行库。"
+        $coreDetail = '游戏 DirectX 不完整。请用 Windows 系统修复处理，本工具不会自动改系统文件。'
+        $coreRuntime = '不完整'
     }
     $rows += [PSCustomObject]@{
-        Key='DirectXCore';Name='DirectX Windows Core';Installed=[string]$core.DirectXVersion;Target='';Runtime=("系统DLL异常={0}" -f $core.BadFiles.Count);ErrorCode='';Status=$coreStatus;Detail=$coreDetail;Group='RUNTIME'
+        Key='DirectXCore';Name='游戏 DirectX';Installed='已安装';Target='';Runtime=$coreRuntime;ErrorCode='';Status=$coreStatus;Detail=$coreDetail;Group='RUNTIME'
     }
 
     $legacyStatus = 'PASS'
-    $legacyDetail = '本机 Legacy DirectX 组件完整（D3DX/XInput/XAudio）。已停用官方安装器对比。'
+    $legacyDetail = '正常，老游戏兼容组件齐全。'
+    $legacyRuntime = '本机可用'
     if (-not $legacy.Healthy) {
         $legacyStatus = 'REPAIR'
-        $legacyDetail = "Legacy DirectX 组件缺失=$($legacy.Missing.Count)，签名异常=$($legacy.BadSignature.Count)。请自行安装 DirectX End-User Runtime，本工具不再下载官方安装器。"
+        $legacyDetail = '老游戏兼容组件缺失，部分老游戏可能打不开。请到微软安装 DirectX 最终用户运行时。本工具不会自动下载。'
+        $legacyRuntime = '不完整'
     }
     $rows += [PSCustomObject]@{
-        Key='DirectXLegacy';Name='DirectX Legacy Runtime';Installed='本地组件';Target='';Runtime=("缺失={0};签名异常={1}" -f $legacy.Missing.Count,$legacy.BadSignature.Count);ErrorCode='';Status=$legacyStatus;Detail=$legacyDetail;Group='RUNTIME'
+        Key='DirectXLegacy';Name='老游戏兼容组件';Installed='已安装';Target='';Runtime=$legacyRuntime;ErrorCode='';Status=$legacyStatus;Detail=$legacyDetail;Group='RUNTIME'
     }
     return $rows
 }
@@ -1327,10 +1354,11 @@ function Get-ASUSRepairEligibility([string]$Group,[object]$Snap) {
 function Get-RuntimeRepairEligibility([object]$Snap) {
     $pre=Get-EnvironmentPreflight 'Runtime' '';$reasons=@();$warnings=@();foreach($x in @($pre.Rows)){if($x.Blocking){$reasons += "$($x.Name): $($x.Detail)"}elseif($x.Status -eq 'WARN'){$warnings += "$($x.Name): $($x.Detail)"}}
     $todo=@($Snap.Rows|Where-Object{$_.Group -eq 'RUNTIME' -and $_.Status -eq 'REPAIR'})
-    if($todo.Count -gt 0){$reasons += 'VC++ / DirectX 官方安装器对比与自动修复已停用。本机文件异常时请自行安装 Microsoft Visual C++ Redistributable 或 DirectX End-User Runtime。'}
+    if($todo.Count -gt 0){$reasons += '运行库不完整。本工具不会自动下载微软安装包，请自行安装 C++ 运行库或 DirectX 最终用户运行时。'}
     $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons);if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()};$eligible=$false
-    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$(if($todo.Count -gt 0){'本机运行库文件异常，但本工具不再下载 Microsoft 官方安装器或自动修复。'}else{$stateInfo.Decision});EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
+    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$(if($todo.Count -gt 0){'运行库不完整，需要自行安装，本工具不会自动修复。'}else{'运行库正常，不必修复。'});EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
 }
+
 
 function Convert-PlanRows([object[]]$Rows) {
     $out=@()
@@ -1342,19 +1370,72 @@ function Convert-PlanRows([object[]]$Rows) {
 
 function New-RepairPlan([ValidateSet('ASUS','RUNTIME')][string]$Type,[string]$Group,[object]$Snap) {
     $id='PLAN-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+([guid]::NewGuid().ToString('N').Substring(0,6));$actions=@();$recovery=@();$risk='LOW';$elig=$null;$label='';$moduleIdentity=$null;$runtimePackages=@()
-    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('保存修复前组件/版本/错误证据基线','执行只读 SelfTest；任何安全门禁失败立即停止','验证 Profile / ProductCode / UpgradeCode / Burn / 目标安装器 / Authenticode / SHA256','按已验证组件链标准卸载，不删除未知 MSI/驱动','需要时进入真实重启门禁并自动续跑','仅在旧 MSI 注销后处理对应 SourceHash / 组件残留','安装目标版本并验证 MSI/Burn/真实 DLL 或运行文件','进入 60 秒观察期，检查新的 4151/4152/1603/1618/1721');$recovery=@('中央 Evidence/Recovery Bundle','组件自身回滚包（若可用）','修复模块备份目录','系统还原点仅作为附加恢复层','事务 Hash-chain Journal 可用于断点追踪');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='Microsoft VC++ / DirectX 运行环境';$actions=@('只读检测本机 VC++ / DirectX 文件与注册表','不再下载 Microsoft 官方安装器，也不再自动修复运行库','本机文件异常时请自行安装 Visual C++ Redistributable 或 DirectX End-User Runtime');$recovery=@('用户自行安装 Microsoft 官方运行库','系统组件由 DISM/CBS 管理，不手工替换系统 DLL');$risk='LOW'}
+    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('确认奥创组件身份','按已验证步骤修复','修完后再看有没有新的更新错误');$recovery=@('用本工具生成的恢复包还原','需要时使用系统还原点');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='游戏运行库';$actions=@('检测本机 C++ 运行库和 DirectX','不下载微软安装包，也不自动修复','不完整时请自行到微软安装对应运行库');$recovery=@('自行安装微软官方运行库');$risk='LOW'}
     $plan=[PSCustomObject]@{SchemaVersion=2;PlanId=$id;AppVersion=$AppVersion;BuildId=$BuildId;EngineSHA256=$script:EngineSHA256;CreatedAt=(Get-Date).ToString('o');Type=$Type;Group=$Group;Label=$label;PlanState=[string]$elig.State;EnvironmentStates=@($elig.EnvironmentStates);Decision=[string]$elig.Decision;Eligible=[bool]$elig.Eligible;BlockingReasons=@($elig.Reasons);Warnings=@($elig.Warnings);Risk=$risk;Actions=$actions;Recovery=$recovery;TargetRows=Convert-PlanRows $elig.TargetRows;Fingerprints=$(if($Type -eq 'ASUS'){@($elig.Fingerprints)}else{@()});Policy=$(if($Type -eq 'ASUS'){$elig.Policy}else{$null});RepairModuleIdentity=$moduleIdentity;RuntimePackageIdentities=@($runtimePackages)}
     $path=Join-Path $PlanRoot ($id+'.json');try{[void](Write-JsonAtomic $path $plan 16)}catch{};$script:CurrentPlan=$plan;return $plan
 }
 
-function Format-RepairPlan([object]$Plan) {
-    if(-not $Plan){return '尚未生成修复预演。'};$lines=@();$lines += "计划: $($Plan.PlanId)";$lines += "对象: $($Plan.Label)";$lines += "状态: $($Plan.PlanState)";$lines += "风险级别: $($Plan.Risk)";$lines += "允许执行: $($Plan.Eligible)";$envState=@($Plan.EnvironmentStates)-join ', ';if(-not $envState){$envState='READY'};$lines += "环境状态: $envState";$lines += "判断: $($Plan.Decision)";$lines += "Engine: v$($Plan.AppVersion) / Build=$($Plan.BuildId) / SHA256=$($Plan.EngineSHA256)"
-    if(@($Plan.TargetRows).Count -gt 0){$lines += '';$lines += '目标项目:';foreach($r in @($Plan.TargetRows)){$lines += "  - $($r.Name): $($r.Installed) -> $($r.Target) / $($r.ErrorCode) / $($r.Status)"}}
-    if(@($Plan.Fingerprints).Count -gt 0){$lines += '';$lines += '身份指纹 / 精确修复对象:';foreach($f in @($Plan.Fingerprints)){$ti=$f.TargetInstaller;$trust=$null;if($ti){$trust=$ti.Trust};$lines += "  - $($f.Key): Profile=$($f.ProfileID) Product=$($f.ProductCode) Upgrade=$($f.UpgradeCode)";$lines += "    MSI(native)=$($f.MSI.Version) state=$($f.MSI.State); target=$($ti.Path)";if($trust){$lines += "    Signer=$($trust.Signer); Thumbprint=$($trust.Thumbprint); SHA256=$($trust.SHA256)"};if($f.OldBundle){$lines += "    RollbackBundle=$($f.OldBundle.BundleId) registered=$($f.OldBundle.Registered) cache=$($f.OldBundle.CachePath)"};$d=Get-DefinitionByKey ([string]$f.Key);if($d){$lines += "    InstallRoot=$($d.InstallRoot)";$lines += "    SourceHash=$(Get-SourceHashPath ([string]$d.ProductCode))";$lines += "    RLS=$env:ProgramFiles\ASUS\RLSDownload\$($d.Rls)";$lines += "    OldBundle=$($d.OldBundleId); TargetBundle=$($d.TargetBundleId)"}}}
-    if($Plan.RepairModuleIdentity){$lines += '';$lines += '修复执行模块:';$lines += "  Path=$($Plan.RepairModuleIdentity.Path)";$lines += "  SHA256=$($Plan.RepairModuleIdentity.SHA256)";$lines += "  Expected=$($Plan.RepairModuleIdentity.ExpectedSHA256)"}
-    if(@($Plan.RuntimePackageIdentities).Count -gt 0){$lines += '';$lines += 'Microsoft 官方包信任证据:';foreach($rp in @($Plan.RuntimePackageIdentities)){$lines += "  - $($rp.Key): version=$($rp.Version) sha256=$($rp.SHA256) trustComplete=$($rp.TrustComplete)";$lines += "    signature=$($rp.SignatureStatus) signer=$($rp.Signer) thumbprint=$($rp.Thumbprint)";$lines += "    source=$($rp.Source) verified=$($rp.VerifiedAt)";$lines += "    original=$($rp.OriginalUri)";foreach($hop in @($rp.RedirectChain)){$lines += "    redirect[$($hop.Hop)] HTTP $($hop.StatusCode): $($hop.From) -> $($hop.To)"};$lines += "    final=$($rp.FinalUri) host=$($rp.FinalHost)"}}
-    if($Plan.Policy){$lines += '';$lines += ('策略允许写入根：'+(@($Plan.Policy.AllowedWriteRoots)-join ' | '));$lines += ('策略允许服务：'+(@($Plan.Policy.AllowedServices)-join ', '))};if(@($Plan.BlockingReasons).Count -gt 0){$lines += '';$lines += '阻断原因:';foreach($x in @($Plan.BlockingReasons)){$lines += "  [BLOCK] $x"}};if(@($Plan.Warnings).Count -gt 0){$lines += '';$lines += '警告:';foreach($x in @($Plan.Warnings)){$lines += "  [WARN] $x"}};if($Plan.PlanState -eq 'NO_ACTION_REQUIRED'){$lines += '';$lines += '[NO_ACTION_REQUIRED] 当前健康，不需要执行 VC++ / DirectX 或 ASUS 修复。环境中的待重启/忙碌状态仍单独显示。'};$lines += '';$lines += '执行步骤:';foreach($x in @($Plan.Actions)){$lines += "  - $x"};$lines += '';$lines += '恢复路径:';foreach($x in @($Plan.Recovery)){$lines += "  - $x"};return ($lines -join "`r`n")
+function ConvertTo-CustomerSentence([string]$Text) {
+    if(-not $Text){return ''}
+    $t=[string]$Text
+    $t=$t -replace '(?i)NO_ACTION_REQUIRED','不必修复'
+    $t=$t -replace '(?i)WAIT_REBOOT','需要先重启'
+    $t=$t -replace '(?i)MANUAL_ONLY','只能人工处理'
+    $t=$t -replace 'https?://\S+',''
+    $t=$t -replace '[A-Za-z]:\\[^\s]+','本机文件'
+    $t=$t -replace '\\\\[^\s]+','本机文件'
+    $t=$t -replace '\b[0-9a-fA-F]{64}\b',''
+    $t=$t -replace 'SHA256=\S+',''
+    $t=$t -replace 'ProductCode=\S+',''
+    $t=$t -replace 'UpgradeCode=\S+',''
+    $t=$t -replace 'Thumbprint=\S+',''
+    $t=$t -replace 'Authenticode','签名'
+    $t=$t -replace '\s+',' '
+    return $t.Trim()
 }
+
+function Format-RepairPlan([object]$Plan) {
+    if(-not $Plan){return '还没有检测结论。'}
+    $state=[string]$Plan.PlanState
+    $eligible=[bool]$Plan.Eligible
+    $lines=New-Object System.Collections.ArrayList
+    if($eligible){[void]$lines.Add('结论：需要修复，而且可以自动修')}
+    elseif($state -eq 'NO_ACTION_REQUIRED'){[void]$lines.Add('结论：不必修复')}
+    elseif($state -in @('MANUAL_ONLY','MANUAL')){[void]$lines.Add('结论：发现了问题，但不能自动修')}
+    elseif($state -eq 'WAIT_REBOOT'){[void]$lines.Add('结论：先重启电脑，再回来检测')}
+    elseif($state -eq 'BUSY'){[void]$lines.Add('结论：现在有别的安装在进行，等它结束后再测')}
+    elseif($state -eq 'BLOCKED'){[void]$lines.Add('结论：现在不能修')}
+    else{[void]$lines.Add('结论：暂不修复')}
+    [void]$lines.Add('')
+    $decision=ConvertTo-CustomerSentence ([string]$Plan.Decision)
+    if($decision){[void]$lines.Add($decision)}
+    $targets=@($Plan.TargetRows)
+    if($targets.Count -gt 0){
+        [void]$lines.Add('')
+        [void]$lines.Add('涉及项目：')
+        foreach($r in $targets){
+            $name=[string]$r.Name
+            $detail=ConvertTo-CustomerSentence ([string]$r.Runtime)
+            if(-not $detail){$detail=ConvertTo-CustomerSentence ([string]$r.Status)}
+            [void]$lines.Add(('  · {0}：{1}' -f $name,$detail))
+        }
+    }
+    $blocks=@($Plan.BlockingReasons)
+    if($blocks.Count -gt 0 -and $state -ne 'NO_ACTION_REQUIRED'){
+        [void]$lines.Add('')
+        [void]$lines.Add('原因：')
+        foreach($x in $blocks){[void]$lines.Add('  · '+(ConvertTo-CustomerSentence ([string]$x)))}
+    }
+    if($eligible){
+        [void]$lines.Add('')
+        [void]$lines.Add('接下来：点「执行安全修复」，然后在系统确认窗口同意。')
+        [void]$lines.Add('修完后再看一次，有没有新的更新错误。')
+    } elseif($state -eq 'NO_ACTION_REQUIRED'){
+        [void]$lines.Add('现在不用动手。')
+    }
+    return (($lines.ToArray()) -join "`r`n")
+}
+
 
 function Save-Transaction([object]$Tx) {
     if(-not $Tx){return}
@@ -2483,62 +2564,66 @@ function Run-FinalVerification {
     $lines = New-Object System.Collections.ArrayList
     $counts = @{PASS=0;WARN=0;FAIL=0}
     function AddV([string]$Kind,[string]$Text) {
-        [void]$lines.Add("[$Kind] $Text")
+        $label = @{PASS='正常';WARN='需关注';FAIL='需处理'}[$Kind]
+        [void]$lines.Add("[$label] $Text")
         $counts[$Kind] = [int]$counts[$Kind] + 1
     }
 
     foreach ($r in @($snap.Rows)) {
-        if ($r.Status -eq 'PASS') { AddV 'PASS' "$($r.Name) installed=$($r.Installed) runtime=$($r.Runtime)" }
-        elseif ($r.Status -eq 'REPAIR') { AddV 'FAIL' "$($r.Name) 仍命中已验证故障状态：$($r.Detail)" }
-        elseif ($r.Status -eq 'UPDATE') { AddV 'WARN' "$($r.Name) 有正常更新目标：installed=$($r.Installed) target=$($r.Target)" }
-        elseif ($r.Status -in @('N/A','INFO')) { AddV 'PASS' "$($r.Name) installed=$($r.Installed) runtime=$($r.Runtime)" }
-        else { AddV 'WARN' "$($r.Name) installed=$($r.Installed) target=$($r.Target) detail=$($r.Detail)" }
+        $answer = [string]$r.Detail
+        if (-not $answer) { $answer = [string]$r.Runtime }
+        if (-not $answer) { $answer = '本机可用' }
+        if ($r.Status -eq 'PASS' -or $r.Status -in @('N/A','INFO')) { AddV 'PASS' "$($r.Name)  $answer" }
+        elseif ($r.Status -eq 'REPAIR') { AddV 'FAIL' "$($r.Name)  $answer" }
+        elseif ($r.Status -eq 'UPDATE') { AddV 'WARN' "$($r.Name)  有可用更新" }
+        else { AddV 'WARN' "$($r.Name)  $answer" }
     }
 
+    $svcMap = @{ArmouryCrateService='奥创主服务';'ROG Live Service'='ROG 在线服务';LightingService='灯效服务'}
     foreach ($n in @('ArmouryCrateService','ROG Live Service','LightingService')) {
         $svc = Get-Service -Name $n -ErrorAction SilentlyContinue
-        if ($svc -and $svc.Status -eq 'Running') { AddV 'PASS' "$n = Running" }
-        else { AddV 'WARN' "$n 未运行或不存在" }
+        $label = $svcMap[$n]
+        if ($svc -and $svc.Status -eq 'Running') { AddV 'PASS' "$label正在运行" }
+        else { AddV 'WARN' "$label未运行" }
     }
 
-    if (@($snap.ActiveMsi).Count -eq 0) { AddV 'PASS' '最近15分钟没有新的相关 MSI 1721/1603/1618/11721 错误' }
-    else { AddV 'WARN' "最近15分钟有 $(@($snap.ActiveMsi).Count) 个去重后的相关 MSI 错误事件" }
+    if (@($snap.ActiveMsi).Count -eq 0) { AddV 'PASS' '最近没有安装失败记录' }
+    else { AddV 'WARN' '最近有安装失败记录，建议到奥创中心查看' }
 
     if (@($snap.ActiveArmoury).Count -eq 0) {
-        AddV 'PASS' '最近15分钟没有新的 Armoury 4151/4152/其他4xxx更新错误/FailedVersionMismatch'
+        AddV 'PASS' '最近没有奥创更新错误'
     } else {
-        $codes = @($snap.ActiveErrorCodes) -join ','
-        AddV 'FAIL' "最近15分钟仍有 $(@($snap.ActiveArmoury).Count) 个 Armoury 当前错误事件，错误码=$codes"
+        AddV 'FAIL' '最近仍有奥创更新错误，请到奥创中心处理'
     }
 
-    if (@($snap.PendingReboot).Count -eq 0) { AddV 'PASS' '没有待重启标记' }
-    else { AddV 'WARN' ('待重启：' + (@($snap.PendingReboot) -join ',')) }
+    if (@($snap.PendingReboot).Count -eq 0) { AddV 'PASS' '不需要重启' }
+    else { AddV 'WARN' '需要先重启电脑，再回来检测' }
 
+    $overall = if($counts.FAIL -gt 0){'需要处理'}elseif($counts.WARN -gt 0){'有项目需要关注'}else{'全部正常'}
     $header = @(
-        '=== Windows Game Runtime / ASUS Armoury Self-Healing Center 最终验收 ===',
+        '=== 自愈中心 检测结果 ===',
         ('时间: ' + (Get-Date)),
         ('版本: ' + $AppVersion),
         ('总体状态: ' + $snap.HealthText),
-        ('历史事件3小时: Armoury=' + @($snap.HistoryArmoury).Count + '; MSI=' + @($snap.HistoryMsi).Count + '（历史不参与健康评分）'),
         ''
     )
-    $summary = "SUMMARY: PASS={0} WARN={1} FAIL={2}" -f $counts.PASS,$counts.WARN,$counts.FAIL
+    $summary = "小结：正常={0}  需关注={1}  需处理={2}  → {3}" -f $counts.PASS,$counts.WARN,$counts.FAIL,$overall
     ($header + @($lines) + @('', $summary)) | Set-Content -LiteralPath $out -Encoding Unicode
 
     $icon = [System.Windows.Forms.MessageBoxIcon]::Information
     if ($counts.FAIL -gt 0) { $icon = [System.Windows.Forms.MessageBoxIcon]::Warning }
-    [System.Windows.Forms.MessageBox]::Show(("验收完成：PASS={0} / WARN={1} / FAIL={2}`r`n当前状态：{3}`r`n`r`n{4}" -f $counts.PASS,$counts.WARN,$counts.FAIL,$snap.HealthText,$out),'最终验收',[System.Windows.Forms.MessageBoxButtons]::OK,$icon) | Out-Null
+    [System.Windows.Forms.MessageBox]::Show(("检测完成：{0}`r`n当前状态：{1}`r`n结果已保存到报告中心。" -f $overall,$snap.HealthText),'检测结果',[System.Windows.Forms.MessageBoxButtons]::OK,$icon) | Out-Null
     $tx=Sync-OpenTransactionState
     if($tx -and $tx.State -notin @('Completed','Failed','NeedsAttention','Cancelled','Observing')){
         $v=Get-StrictTransactionVerification $tx
         if($v.Success){
             Save-TransactionEvidenceAfter $tx $v.Snapshot
             if(Start-TransactionObservation $tx 60){
-                [System.Windows.Forms.MessageBox]::Show('初步严格验收 PASS。已进入 60 秒修复后观察期；期间自动监控新的 Armoury 4xxx / MSI 1603/1618/1721 和服务状态。完成后事务会自动升级为 Completed 或 NeedsAttention。','观察期已启动',[System.Windows.Forms.MessageBoxButtons]::OK,[System.Windows.Forms.MessageBoxIcon]::Information)|Out-Null
+                [System.Windows.Forms.MessageBox]::Show('修复后观察已开始，大约一分钟。完成后这里会自动更新结果。','观察中',[System.Windows.Forms.MessageBoxButtons]::OK,[System.Windows.Forms.MessageBoxIcon]::Information)|Out-Null
             }
         }else{Set-TransactionState $tx 'NeedsAttention' ("严格最终验收未通过："+(@($v.Reasons)-join ' | '))}
     } elseif($tx -and $tx.State -eq 'Observing'){
-        [System.Windows.Forms.MessageBox]::Show('当前事务正在 60 秒观察期。无需重复验收；事务页面会自动刷新最终状态。','观察中')|Out-Null
+        [System.Windows.Forms.MessageBox]::Show('正在观察修复结果，请稍等。','观察中')|Out-Null
     }
     return $out
 }
