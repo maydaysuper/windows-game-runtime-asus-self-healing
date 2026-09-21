@@ -209,9 +209,11 @@ $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
 if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'Microsoft\.ui\.xaml\.dll' -and $workflowRaw -match 'WindowsAppSdkBootstrapInitialize=false' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
 if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'Program.cs')) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot 'StartupGuard.cs'))){Pass 'Custom Main + StartupGuard exist for launch diagnostics'}else{Fail 'Program.cs / StartupGuard.cs missing'}
 $appXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'App.xaml')
-if($appXamlRaw -match 'XamlControlsResources' -and $appXamlRaw -match 'Microsoft\.UI\.Xaml\.Controls'){Pass 'App.xaml merges WinUI XamlControlsResources'}else{Fail 'App.xaml missing XamlControlsResources'}
-$mainXamlRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')
-if($mainXamlRaw -match '<NavigationView' -or $mainXamlRaw -match '\{ThemeResource'){Fail 'MainWindow.xaml must not parse NavigationView/ThemeResource at LoadComponent'}else{Pass 'MainWindow shell is code-built (no NavigationView XAML)'}
+if($appXamlRaw -match 'XamlControlsResources'){Fail 'App.xaml must not merge XamlControlsResources on unpackaged WASDK 2.x'}else{Pass 'App.xaml uses primitive brushes only'}
+if($appXamlRaw -match 'CardStrokeBrush'){Pass 'App.xaml defines fallback card brushes'}else{Fail 'App.xaml missing CardStrokeBrush'}
+if(Test-Path -LiteralPath (Join-Path $ProjectRoot 'MainWindow.xaml')){Fail 'MainWindow.xaml must be removed'}else{Pass 'MainWindow shell is C# only'}
+$mainCs=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.cs')
+if($mainCs -match 'new NavigationView'){Fail 'MainWindow must not construct NavigationView'}else{Pass 'MainWindow does not construct NavigationView'}
 if($csprojRaw -match 'CopyAppPriToResourcesPri'){Pass 'csproj copies AssemblyName.pri to resources.pri'}else{Fail 'csproj missing resources.pri copy target'}
 $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}
@@ -234,9 +236,9 @@ foreach($launcherName in @('一键构建并启动_Win11.cmd','Launch-Win11.cmd',
 }
 
 # 12) v3.4 simplified information architecture, Dump and GPU/ReBAR analysis.
-$mainWindowRaw=(Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml')) + "`n" + (Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.xaml.cs'))
+$mainWindowRaw=Read-Utf8Text (Join-Path $ProjectRoot 'MainWindow.cs')
 foreach($tag in @('overview','asus','runtime','crash','reports')){
-    if($mainWindowRaw -match ('NavItem\("[^"]+",\s*"'+$tag+'"')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
+    if($mainWindowRaw -match ('\("[^"]+",\s*"'+$tag+'"\)')){Pass ("Main navigation contains: "+$tag)}else{Fail ("Main navigation missing: "+$tag)}
 }
 if($mainWindowRaw -notmatch 'Tag\s*=\s*"transactions"' -and $mainWindowRaw -notmatch 'Tag\s*=\s*"settings"'){Pass 'Developer/history pages removed from primary navigation'}else{Fail 'Primary navigation regressed to developer-oriented pages'}
 $dumpRaw=Read-Utf8Text (Join-Path $ProjectRoot 'Services\DumpAnalysisService.cs')

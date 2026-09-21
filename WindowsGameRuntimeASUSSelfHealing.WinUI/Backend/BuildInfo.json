@@ -1,8 +1,8 @@
 {
   "SchemaVersion": 8,
   "Product": "Windows Game Runtime / ASUS Armoury Self-Healing Center",
-  "Version": "3.4.13",
-  "BuildId": "20260922.winui3.19",
+  "Version": "3.4.14",
+  "BuildId": "20260922.winui3.20",
   "Channel": "Stable",
   "Frontend": "WinUI 3",
   "WindowsAppSDK": "2.5.1",
@@ -18,7 +18,7 @@
   "GpuSafeRepairSHA256": "fdc608d9b530a60eb3c6c4653c258473efd4d839b40c54d09c7ba9053cd2f199",
   "AtomicPolicyExecutorSHA256": "0863b4f51edd020ce7c978af453bca550d669eb1eda4db237fa24be59bb079e3",
   "RecipeCatalogSHA256": "7134db5455f9437b75277a20c312f96448b5ba8dc08f498333c15eec54bdc996",
-  "BuildInfoSHA256": "0ec9af34998fb14483423724d0bc8c87df7b00d3bbbd4949e8b05e7e0f6dc97a",
+  "BuildInfoSHA256": "2117464c8f30fa61ce7c9d4a2acf5a194b28d57a6efc7ed35b6d11620bc181dc",
   "LegacyAdapterPolicy": "IMMUTABLE_HASH_LOCK",
   "LegacyAdapterHashes": {
     "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",

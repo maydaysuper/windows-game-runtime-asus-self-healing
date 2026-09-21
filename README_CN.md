@@ -1,6 +1,10 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.13
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.14
 
-## v3.4.13 紧急修复：v3.4.12 仍弹 XamlParseException
+## v3.4.14 紧急修复：v3.4.13 仍闪退
+
+unpackaged WASDK 2.x 上 `NavigationView` / `InfoBar` 会在原生层 FailFast，弹窗都来不及。v3.4.14 启动路径只用 Grid/Button/TextBlock。请卸载 3.4.13 后改装。ASUS hash-lock 未改。
+
+## v3.4.13 紧急修复：主窗口 XAML 解析失败
 
 主窗口 XAML 在 unpackaged WASDK 2.x 上解析 NavigationView 失败。v3.4.13 改成代码构建主壳，并补 `resources.pri`。ASUS hash-lock 未改。请卸载 3.4.12 后改装。
 

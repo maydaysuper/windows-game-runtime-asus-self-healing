@@ -64,8 +64,8 @@ for key,var in [('PV','EmbeddedPV'),('HOLTEK','EmbeddedHoltek'),('ENE','Embedded
     else: fail('embedded payload drift '+key)
 
 # Primary navigation exactly simplified
-main=(PROJ/'MainWindow.xaml').read_text(encoding='utf-8')+(PROJ/'MainWindow.xaml.cs').read_text(encoding='utf-8')
-tags=re.findall(r'NavItem\("[^"]+",\s*"([a-z]+)"',main)
+main=(PROJ/'MainWindow.cs').read_text(encoding='utf-8')
+tags=re.findall(r'\("[^"]+",\s*"([a-z]+)"\)',main)
 if tags==['overview','asus','runtime','crash','reports']: ok('primary navigation exactly 5 simplified entries')
 else: fail('primary navigation tags='+repr(tags))
 
@@ -94,7 +94,7 @@ for cond,msg in [
     ok(msg) if cond else fail(msg)
 
 # v3.4 low-resource UI/lifetime invariants
-maincs=(PROJ/'MainWindow.xaml.cs').read_text(encoding='utf-8')
+maincs=(PROJ/'MainWindow.cs').read_text(encoding='utf-8')
 appcs=(PROJ/'App.xaml.cs').read_text(encoding='utf-8')
 overview=(PROJ/'Pages'/'OverviewPage.xaml.cs').read_text(encoding='utf-8')
 main_pages=[PROJ/'Pages'/x for x in ['OverviewPage.xaml.cs','SafetyPage.xaml.cs','RuntimePage.xaml.cs','CrashPage.xaml.cs','ReportsPage.xaml.cs']]
@@ -202,11 +202,16 @@ else: fail('WindowsAppSdkBootstrapInitialize must be false for self-contained; v
 if '<WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>' in csproj: ok('self-contained unpackaged enables undocked reg-free WinRT')
 else: fail('WindowsAppSdkUndockedRegFreeWinRTInitialize must be true so WinUI XAML types activate')
 app_xaml=(PROJ/'App.xaml').read_text(encoding='utf-8')
-if 'XamlControlsResources' in app_xaml and 'Microsoft.UI.Xaml.Controls' in app_xaml: ok('App.xaml merges WinUI XamlControlsResources')
-else: fail('App.xaml missing XamlControlsResources; NavigationView ThemeResources will XamlParseException')
-main_xaml=(PROJ/'MainWindow.xaml').read_text(encoding='utf-8')
-if '<NavigationView' in main_xaml or '{ThemeResource' in main_xaml: fail('MainWindow.xaml must not contain NavigationView/ThemeResource; v3.4.12 XamlParseException')
-else: ok('MainWindow shell is code-built')
+if 'XamlControlsResources' in app_xaml: fail('App.xaml must not merge XamlControlsResources; unpackaged WASDK 2.x FailFast on templated controls')
+else: ok('App.xaml uses primitive brushes only')
+if 'CardStrokeBrush' in app_xaml and 'MutedTextBrush' in app_xaml: ok('App.xaml defines fallback card/muted brushes')
+else: fail('App.xaml missing CardStrokeBrush/MutedTextBrush')
+if (PROJ/'MainWindow.xaml').exists(): fail('MainWindow.xaml must be removed; LoadComponent NavigationView FailFast')
+else: ok('MainWindow shell is C# only')
+if 'new NavigationView' in (PROJ/'MainWindow.cs').read_text(encoding='utf-8'): fail('MainWindow must not construct NavigationView')
+else: ok('MainWindow does not construct NavigationView')
+if (PROJ/'Controls'/'StatusBanner.cs').exists(): ok('StatusBanner replaces InfoBar')
+else: fail('StatusBanner missing')
 if 'CopyAppPriToResourcesPri' in csproj: ok('csproj copies AssemblyName.pri to resources.pri')
 else: fail('csproj missing resources.pri copy target')
 if 'EnsureResourcesPri' in (PROJ/'StartupGuard.cs').read_text(encoding='utf-8'): ok('startup copies AssemblyName.pri to resources.pri if missing')

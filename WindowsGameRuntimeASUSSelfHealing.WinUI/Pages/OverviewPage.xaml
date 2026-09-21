@@ -1,24 +1,25 @@
 <Page
     x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.Pages.OverviewPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
     <ScrollViewer>
         <StackPanel Padding="28" Spacing="18" MaxWidth="1180" HorizontalAlignment="Stretch">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="系统健康检测" Style="{ThemeResource TitleTextBlockStyle}" />
+                    <TextBlock Text="系统健康检测" FontSize="22" FontWeight="SemiBold" />
                     <TextBlock Text="一眼查看 ASUS、游戏运行库、近期崩溃与系统安全状态" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Button x:Name="RefreshButton" Content="重新体检" Click="RefreshButton_Click" Style="{ThemeResource AccentButtonStyle}"/>
+                    <Button x:Name="RefreshButton" Content="重新体检" Click="RefreshButton_Click"/>
                     <Button x:Name="ReportButton" Content="生成系统报告" Click="ReportButton_Click"/>
                 </StackPanel>
             </Grid>
 
             <Grid ColumnSpacing="20">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Border x:Name="HealthCard" CornerRadius="18" Padding="22" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Border x:Name="HealthCard" CornerRadius="18" Padding="22" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                     <StackPanel HorizontalAlignment="Center" Spacing="10">
                         <Border x:Name="HealthRing" Width="176" Height="176" CornerRadius="88" BorderThickness="12" Padding="12">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -35,24 +36,24 @@
                 <Grid Grid.Column="1" RowSpacing="12" ColumnSpacing="12">
                     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Border x:Name="AsusCard" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Border x:Name="AsusCard" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                         <StackPanel Spacing="6"><TextBlock Text="ASUS 奥创中心" FontWeight="SemiBold" FontSize="17"/><TextBlock x:Name="AsusStatusText" Text="检测中…" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="AsusDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/></StackPanel>
                     </Border>
-                    <Border x:Name="RuntimeCard" Grid.Column="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Border x:Name="RuntimeCard" Grid.Column="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                         <StackPanel Spacing="6"><TextBlock Text="游戏运行库 / C++" FontWeight="SemiBold" FontSize="17"/><TextBlock x:Name="RuntimeStatusText" Text="检测中…" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="RuntimeDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/></StackPanel>
                     </Border>
-                    <Border x:Name="CrashCard" Grid.Row="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Border x:Name="CrashCard" Grid.Row="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                         <StackPanel Spacing="6"><TextBlock Text="游戏崩溃 / Dump" FontWeight="SemiBold" FontSize="17"/><TextBlock x:Name="CrashStatusText" Text="读取缓存…" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="CrashDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/></StackPanel>
                     </Border>
-                    <Border x:Name="SystemCard" Grid.Row="1" Grid.Column="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Border x:Name="SystemCard" Grid.Row="1" Grid.Column="1" CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                         <StackPanel Spacing="6"><TextBlock Text="系统安全" FontWeight="SemiBold" FontSize="17"/><TextBlock x:Name="SystemStatusText" Text="检测中…" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="SystemDetailText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/></StackPanel>
                     </Border>
                 </Grid>
             </Grid>
 
-            <InfoBar x:Name="SummaryInfo" IsOpen="True" Severity="Informational" Title="后台健康检测" Message="诊断运行在后台，界面不会同步执行 PowerShell、WMI 或 Event Log 重任务。" />
+            <ctrl:StatusBanner x:Name="SummaryInfo" IsOpen="True" Severity="Informational" Title="后台健康检测" Message="诊断运行在后台，界面不会同步执行 PowerShell、WMI 或 Event Log 重任务。" />
 
-            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="需要关注" FontSize="17" FontWeight="SemiBold"/>
                     <TextBlock x:Name="IssueText" Text="正在汇总关键问题…" TextWrapping="Wrap"/>

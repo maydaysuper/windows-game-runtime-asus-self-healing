@@ -4,14 +4,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-            </ResourceDictionary.MergedDictionaries>
             <SolidColorBrush x:Key="HealthGoodBrush" Color="#DCFCE7" />
             <SolidColorBrush x:Key="HealthWarnBrush" Color="#FEF3C7" />
             <SolidColorBrush x:Key="HealthBadBrush" Color="#FEE2E2" />
             <SolidColorBrush x:Key="HealthInfoBrush" Color="#DBEAFE" />
             <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B" />
+            <SolidColorBrush x:Key="CardStrokeBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="CardFillBrush" Color="#F8FAFC" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

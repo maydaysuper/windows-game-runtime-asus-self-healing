@@ -26,9 +26,17 @@ public static class Program
             ComWrappersSupport.InitializeComWrappers();
             Application.Start(p =>
             {
-                var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
-                SynchronizationContext.SetSynchronizationContext(context);
-                new App();
+                try
+                {
+                    var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
+                    SynchronizationContext.SetSynchronizationContext(context);
+                    new App();
+                }
+                catch (Exception ex)
+                {
+                    StartupGuard.Write("Application.Start", ex);
+                    StartupGuard.Notify(ex);
+                }
             });
         }
         catch (Exception ex)

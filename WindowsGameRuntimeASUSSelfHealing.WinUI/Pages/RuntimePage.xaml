@@ -2,27 +2,28 @@
     x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.Pages.RuntimePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls"
     xmlns:models="using:WindowsGameRuntimeASUSSelfHealing.WinUI.Models">
     <Grid Padding="26">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid>
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="游戏运行库 / C++" Style="{ThemeResource TitleTextBlockStyle}"/>
+                <TextBlock Text="游戏运行库 / C++" FontSize="22" FontWeight="SemiBold"/>
                 <TextBlock Text="检测并修复 VC++、DirectX 与游戏常用运行组件；下载包必须通过来源与签名校验" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Button x:Name="OnlineButton" Content="联网对比" Click="OnlineButton_Click"/>
                 <Button Content="生成 Dry Run" Click="PlanButton_Click"/>
-                <Button x:Name="RepairButton" Content="安全修复" Click="RepairButton_Click" IsEnabled="False" Style="{ThemeResource AccentButtonStyle}"/>
+                <Button x:Name="RepairButton" Content="安全修复" Click="RepairButton_Click" IsEnabled="False"/>
             </StackPanel>
         </Grid>
 
-        <InfoBar x:Name="RuntimeInfo" Grid.Row="1" Margin="0,18,0,0" IsOpen="True" Title="等待检测" Message="联网下载和签名验证全部在独立后台进程执行。"/>
+        <ctrl:StatusBanner x:Name="RuntimeInfo" Grid.Row="1" Margin="0,18,0,0" IsOpen="True" Title="等待检测" Message="联网下载和签名验证全部在独立后台进程执行。"/>
 
         <Grid Grid.Row="2" Margin="0,18,0,0" RowSpacing="14">
             <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                 <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <TextBlock Text="运行库状态" FontSize="17" FontWeight="SemiBold"/>
                     <ListView x:Name="RuntimeRows" Grid.Row="1" Margin="0,10,0,0" SelectionMode="None">
@@ -42,7 +43,7 @@
                     </ListView>
                 </Grid>
             </Border>
-            <Border Grid.Row="1" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+            <Border Grid.Row="1" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                 <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <TextBlock Text="Microsoft 官方包信任证据" FontSize="17" FontWeight="SemiBold"/>
                     <ListView x:Name="PackageRows" Grid.Row="1" Margin="0,10,0,0" SelectionMode="None">
