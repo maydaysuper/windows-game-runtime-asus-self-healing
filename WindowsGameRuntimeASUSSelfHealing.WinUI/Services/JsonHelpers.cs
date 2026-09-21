@@ -8,7 +8,17 @@ public static class JsonHelpers
         => element.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : "";
 
     public static bool Bool(this JsonElement element, string name)
-        => element.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.True or JsonValueKind.False && v.GetBoolean();
+    {
+        if (!element.TryGetProperty(name, out var v)) return false;
+        return v.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Number => v.TryGetInt64(out var n) && n != 0 || v.TryGetDouble(out var d) && Math.Abs(d) > double.Epsilon,
+            JsonValueKind.String => IsTruthy(v.GetString()),
+            _ => false
+        };
+    }
 
     public static int Int(this JsonElement element, string name, int fallback = 0)
         => element.TryGetProperty(name, out var v) && v.TryGetInt32(out var i) ? i : fallback;
@@ -20,5 +30,13 @@ public static class JsonHelpers
     {
         if (element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array)
             foreach (var item in v.EnumerateArray()) yield return item;
+    }
+
+    private static bool IsTruthy(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        return value.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("yes", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("1", StringComparison.OrdinalIgnoreCase);
     }
 }

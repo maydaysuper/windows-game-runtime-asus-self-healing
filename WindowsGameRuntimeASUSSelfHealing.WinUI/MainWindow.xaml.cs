@@ -66,6 +66,7 @@ public partial class MainWindow : Window
                     "reports" => "报告中心 · 事务、验收与诊断包",
                     _ => "系统健康 · 后台任务按硬件自适应限流"
                 };
+            try { App.Services.SessionLog.Note("Navigate", tag); } catch { }
         }
         catch (Exception ex)
         {

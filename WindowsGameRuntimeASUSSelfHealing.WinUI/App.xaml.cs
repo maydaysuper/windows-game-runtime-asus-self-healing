@@ -20,13 +20,19 @@ public partial class App : Application
         {
             var window = new MainWindow();
             MainWindow = window;
-            window.Closed += (_, _) => Services.Dispose();
+            window.Closed += (_, _) =>
+            {
+                try { Services.SessionLog.Note("SESSION_END", "main window closed"); }
+                catch { }
+                Services.Dispose();
+            };
             window.Show();
             _ = WarmStateStoreAsync();
         }
         catch (Exception ex)
         {
             StartupGuard.Write("OnStartup", ex);
+            try { Services.SessionLog.Bug("OnStartup", ex); } catch { }
             StartupGuard.Notify(ex);
             Shutdown(-1);
         }
@@ -35,6 +41,7 @@ public partial class App : Application
     private static void OnDispatcherUnhandled(object sender, DispatcherUnhandledExceptionEventArgs args)
     {
         StartupGuard.Write("DispatcherUnhandled", args.Exception);
+        try { Services.SessionLog.Bug("DispatcherUnhandled", args.Exception); } catch { }
         args.Handled = true;
         StartupGuard.Notify(args.Exception);
     }
@@ -55,7 +62,12 @@ public partial class App : Application
         {
             await Services.StateStore.InitializeAsync().ConfigureAwait(false);
             await Services.Workflow.InitializeAsync().ConfigureAwait(false);
+            Services.SessionLog.Note("WarmStateStore", "ok");
         }
-        catch (Exception ex) { StartupGuard.Write("WarmStateStore", ex); }
+        catch (Exception ex)
+        {
+            StartupGuard.Write("WarmStateStore", ex);
+            try { Services.SessionLog.Bug("WarmStateStore", ex); } catch { }
+        }
     }
 }

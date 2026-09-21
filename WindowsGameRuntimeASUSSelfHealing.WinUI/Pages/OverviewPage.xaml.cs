@@ -43,7 +43,8 @@ public sealed partial class OverviewPage : Page
             var crashes = await App.Services.StateStore.ReadCrashEventGroupsAsync(7, 120);
             var health = App.Services.HealthScore.Calculate(components, result.Payload.Bool("BrokerValid"), crashes);
             ApplyHealth(health);
-            await App.Services.Workflow.RecordDiagnosedAsync(health.Summary);
+            try { await App.Services.Workflow.RecordDiagnosedAsync(health.Summary); }
+            catch (Exception wf) { App.Services.SessionLog.Bug("Overview.RecordDiagnosed", wf); }
 
             var issues = components
                 .Where(x => x.Status is "FAIL" or "REPAIR" or "WARN" or "UPDATE" or "NEEDS_REPAIR")
@@ -66,6 +67,7 @@ public sealed partial class OverviewPage : Page
             SummaryInfo.Severity = InfoBarSeverity.Error;
             SummaryInfo.Title = "系统体检失败";
             SummaryInfo.Message = ex.Message;
+            App.Services.SessionLog.Bug("Overview.Health", ex);
         }
         finally
         {

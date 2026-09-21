@@ -56,14 +56,20 @@ public sealed partial class RuntimePage : Page
                 _packages.Add(new RuntimePackageItem
                 {
                     Key = e.String("Key"), Version = e.String("Version"), Source = e.String("Source"), Sha256 = e.String("SHA256"),
-                    Signer = e.String("Signer"), FinalUri = e.String("FinalUri"), Success = e.Bool("Success"), TrustComplete = e.Bool("TrustComplete")
+                    Signer = e.String("Signer"), FinalUri = e.String("FinalUri"), Error = e.String("Error"),
+                    Success = e.Bool("Success"), TrustComplete = e.Bool("TrustComplete")
                 });
             var elig = r.Payload.GetProperty("Eligibility");
             _eligible = elig.Bool("Eligible");
             RuntimeInfo.Title = "资格状态：" + elig.String("State");
-            RuntimeInfo.Message = elig.String("Decision");
+            var decision = elig.String("Decision");
+            if (_packages.Count > 0 && _packages.All(p => p.Status != "PASS"))
+                decision += " 官方包卡片为空或 INFO 只表示这次没取到 Microsoft 安装器证据，不代表本机 VC++/DirectX 坏了。";
+            RuntimeInfo.Message = decision;
             RuntimeInfo.Severity = _eligible ? InfoBarSeverity.Success : elig.String("State") == "NO_ACTION_REQUIRED" ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
             RepairButton.IsEnabled = _eligible;
+            foreach (var pkg in _packages.Where(p => p.Status == "WARN" && !string.IsNullOrWhiteSpace(p.Error)))
+                App.Services.SessionLog.Note("Runtime.Package", pkg.Key + ": " + pkg.Error);
         }
         catch (Exception ex)
         {
@@ -72,6 +78,7 @@ public sealed partial class RuntimePage : Page
             RuntimeInfo.Title = "联网检测失败";
             RuntimeInfo.Message = ex.Message;
             RuntimeInfo.Severity = InfoBarSeverity.Error;
+            App.Services.SessionLog.Bug("Runtime.Online", ex);
         }
         finally { OnlineButton.IsEnabled = true; }
     }
@@ -86,13 +93,21 @@ public sealed partial class RuntimePage : Page
             var plan = r.Payload.GetProperty("Plan");
             _eligible = plan.Bool("Eligible");
             RepairButton.IsEnabled = _eligible;
-            await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText);
+            try
+            {
+                await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText);
+            }
+            catch (Exception wf)
+            {
+                App.Services.SessionLog.Bug("Runtime.RecordPlan", wf);
+            }
             await PageHelpers.ShowAsync(this, "VC++ / DirectX Dry Run", _planText);
         }
         catch (Exception ex)
         {
             _eligible = false;
             RepairButton.IsEnabled = false;
+            App.Services.SessionLog.Bug("Runtime.Plan", ex);
             await PageHelpers.ShowAsync(this, "Dry Run 失败", ex.Message);
         }
     }
@@ -115,6 +130,7 @@ public sealed partial class RuntimePage : Page
         }
         catch (Exception ex)
         {
+            App.Services.SessionLog.Bug("Runtime.Repair", ex);
             await App.Services.Workflow.RecordBrokerResultAsync("RUNTIME", "", false, "FAILED", ex.Message);
             await PageHelpers.ShowAsync(this, "修复流程异常", ex.Message);
         }
@@ -128,6 +144,7 @@ public sealed partial class RuntimePage : Page
         _planText = r.Payload.String("Text");
         var plan = r.Payload.GetProperty("Plan");
         _eligible = plan.Bool("Eligible");
-        await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText);
+        try { await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText); }
+        catch (Exception wf) { App.Services.SessionLog.Bug("Runtime.RecordPlan", wf); }
     }
 }

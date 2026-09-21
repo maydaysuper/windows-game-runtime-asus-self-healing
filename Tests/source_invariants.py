@@ -235,8 +235,31 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.1.0': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.1.1': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
+
+if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
+else: fail('App.xaml missing Microsoft YaHei UI font stack')
+coord=(PROJ/'Services'/'RepairWorkflowCoordinator.cs').read_text(encoding='utf-8')
+if 'return TransitionAsync(phase, type, group, eligible, planState, detail, cancellationToken, allowRestart: true);' in coord: ok('RecordPlan allows restart from terminal phases')
+else: fail('RecordPlan must allowRestart so RepairCompleted can start a new Dry Run')
+active=coord.split('IsActiveRepairPhase',1)[1].split('CanTransition',1)[0]
+if 'RepairCompleted' in active: fail('RepairCompleted must not block a new diagnosis cycle')
+else: ok('RepairCompleted is not an active repair phase')
+if 'RepairWorkflowPhase.RepairCompleted => to is RepairWorkflowPhase.VerificationRunning or RepairWorkflowPhase.Observing or RepairWorkflowPhase.Verified or RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible' in coord: ok('RepairCompleted can start a new plan cycle')
+else: fail('RepairCompleted cannot transition to Planned')
+jsonh=(PROJ/'Services'/'JsonHelpers.cs').read_text(encoding='utf-8')
+if 'OrdinalIgnoreCase' in jsonh and 'JsonValueKind.String' in jsonh: ok('JSON bool accepts PowerShell strings')
+else: fail('JsonHelpers.Bool too strict for PowerShell JSON')
+sess=(PROJ/'Services'/'SessionLogService.cs').read_text(encoding='utf-8')
+appservices=(PROJ/'AppServices.cs').read_text(encoding='utf-8')
+if 'session-' in sess and 'Flush()' in sess and 'BUG' in sess: ok('session usage log service')
+else: fail('session log missing')
+if 'SessionLog.Flush' in appservices: ok('session log flushed on close')
+else: fail('session log not flushed on dispose')
+runtime_item=(PROJ/'Models'/'RuntimePackageItem.cs').read_text(encoding='utf-8')
+if 'HasEvidence' in runtime_item and 'INFO' in runtime_item and 'Summary' in runtime_item: ok('runtime package empty evidence is INFO not WARN')
+else: fail('runtime package status still treats empty fetch as WARN')
 
 # No-feature-reduction capability baseline. This is shipped and hash-locked by BuildInfo.
 cap_path=BACK/'CapabilityBaseline.json'

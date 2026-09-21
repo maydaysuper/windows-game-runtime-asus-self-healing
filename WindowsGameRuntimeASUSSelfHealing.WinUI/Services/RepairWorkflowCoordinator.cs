@@ -42,7 +42,7 @@ public sealed class RepairWorkflowCoordinator : IDisposable
             : planState == "NO_ACTION_REQUIRED"
                 ? RepairWorkflowPhase.Planned
                 : RepairWorkflowPhase.Blocked;
-        return TransitionAsync(phase, type, group, eligible, planState, detail, cancellationToken);
+        return TransitionAsync(phase, type, group, eligible, planState, detail, cancellationToken, allowRestart: true);
     }
 
     public Task RecordBrokerStartAsync(string type, string group, CancellationToken cancellationToken = default)
@@ -128,7 +128,12 @@ public sealed class RepairWorkflowCoordinator : IDisposable
         {
             if (preserveActive && IsActiveRepairPhase(_current.Phase)) return;
             if (!allowRestart && !CanTransition(_current.Phase, phase))
-                throw new InvalidOperationException($"非法修复流程跳转：{_current.Phase} -> {phase}");
+            {
+                if (IsNewCyclePhase(phase))
+                    allowRestart = true;
+                else
+                    throw new InvalidOperationException($"非法修复流程跳转：{_current.Phase} -> {phase}");
+            }
 
             _current = new RepairWorkflowSnapshot(
                 phase,
@@ -146,12 +151,16 @@ public sealed class RepairWorkflowCoordinator : IDisposable
         }
     }
 
+    private static bool IsNewCyclePhase(RepairWorkflowPhase phase)
+        => phase is RepairWorkflowPhase.Diagnosed
+            or RepairWorkflowPhase.Planned
+            or RepairWorkflowPhase.Eligible
+            or RepairWorkflowPhase.Blocked;
+
     private static bool IsActiveRepairPhase(RepairWorkflowPhase phase)
         => phase is RepairWorkflowPhase.BrokerRunning
             or RepairWorkflowPhase.AwaitingReboot
-            or RepairWorkflowPhase.RepairCompleted
-            or RepairWorkflowPhase.VerificationRunning
-            or RepairWorkflowPhase.Observing;
+            or RepairWorkflowPhase.VerificationRunning;
 
     private static bool CanTransition(RepairWorkflowPhase from, RepairWorkflowPhase to)
     {
@@ -165,9 +174,9 @@ public sealed class RepairWorkflowCoordinator : IDisposable
             RepairWorkflowPhase.Eligible => to == RepairWorkflowPhase.BrokerRunning,
             RepairWorkflowPhase.BrokerRunning => to is RepairWorkflowPhase.AwaitingReboot or RepairWorkflowPhase.RepairCompleted or RepairWorkflowPhase.Observing or RepairWorkflowPhase.Verified,
             RepairWorkflowPhase.AwaitingReboot => to is RepairWorkflowPhase.BrokerRunning or RepairWorkflowPhase.RepairCompleted or RepairWorkflowPhase.VerificationRunning,
-            RepairWorkflowPhase.RepairCompleted => to is RepairWorkflowPhase.VerificationRunning or RepairWorkflowPhase.Observing or RepairWorkflowPhase.Verified,
+            RepairWorkflowPhase.RepairCompleted => to is RepairWorkflowPhase.VerificationRunning or RepairWorkflowPhase.Observing or RepairWorkflowPhase.Verified or RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible,
             RepairWorkflowPhase.VerificationRunning => to is RepairWorkflowPhase.Observing or RepairWorkflowPhase.Verified,
-            RepairWorkflowPhase.Observing => to is RepairWorkflowPhase.Verified,
+            RepairWorkflowPhase.Observing => to is RepairWorkflowPhase.Verified or RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible,
             RepairWorkflowPhase.Verified => to is RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible,
             RepairWorkflowPhase.Blocked => to is RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible,
             RepairWorkflowPhase.Failed => to is RepairWorkflowPhase.Diagnosed or RepairWorkflowPhase.Planned or RepairWorkflowPhase.Eligible,
@@ -188,6 +197,8 @@ public sealed class RepairWorkflowCoordinator : IDisposable
             "COMPLETED" or "VERIFIED" => RepairWorkflowPhase.Verified,
             "SUCCESSPENDINGVERIFICATION" or "SUCCESS_PENDING_VERIFICATION" or "NEEDSVERIFICATION" or "NEEDS_VERIFICATION" => RepairWorkflowPhase.RepairCompleted,
             "POSTREBOOTSTARTED" or "POST_REBOOT_STARTED" or "MODULEEXECUTING" or "MODULE_EXECUTING" or "REPAIRSTARTED" or "REPAIR_STARTED" => RepairWorkflowPhase.BrokerRunning,
+            "NO_ACTION_REQUIRED" or "DIAGNOSED" or "IDLE" or "PLANNED" or "UNKNOWN" => RepairWorkflowPhase.Planned,
+            "ELIGIBLE" => RepairWorkflowPhase.Eligible,
             _ => RepairWorkflowPhase.RepairCompleted
         };
     }

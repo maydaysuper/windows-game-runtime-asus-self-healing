@@ -70,7 +70,7 @@ internal static class StartupGuard
         throw new FileNotFoundException(
             "安装目录缺少 WPF 运行库（" + string.Join("、", missing) +
             "）。dllCount=" + dllCount +
-            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载全部 3.4.x 后改装 v4.1.0 Setup，从开始菜单打开。" +
+            "。不要双击本地编译/publish 目录里的孤立 EXE。请卸载全部 3.4.x 后改装 v4.1.1 Setup，从开始菜单打开。" +
             "目录: " + HostDirectory);
     }
 

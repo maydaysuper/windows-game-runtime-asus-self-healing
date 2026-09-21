@@ -4,6 +4,7 @@ namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
 
 public sealed class AppServices : IDisposable
 {
+    public SessionLogService SessionLog { get; }
     public AdaptiveResourceGovernor Resources { get; }
     public BackendService Backend { get; }
     public StateStoreService StateStore { get; }
@@ -19,6 +20,7 @@ public sealed class AppServices : IDisposable
 
     public AppServices()
     {
+        SessionLog = new SessionLogService();
         Resources = new AdaptiveResourceGovernor();
         StateStore = new StateStoreService();
         Backend = new BackendService(Resources);
@@ -35,11 +37,12 @@ public sealed class AppServices : IDisposable
 
     public void Dispose()
     {
-        CrashTelemetry.Dispose();
-        GpuDiagnostics.Dispose();
-        Broker.Dispose();
-        Backend.Dispose();
-        StateStore.Dispose();
-        Resources.Dispose();
+        try { CrashTelemetry.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.CrashTelemetry", ex); }
+        try { GpuDiagnostics.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.GpuDiagnostics", ex); }
+        try { Broker.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.Broker", ex); }
+        try { Backend.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.Backend", ex); }
+        try { StateStore.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.StateStore", ex); }
+        try { Resources.Dispose(); } catch (Exception ex) { SessionLog.Bug("Dispose.Resources", ex); }
+        SessionLog.Flush();
     }
 }

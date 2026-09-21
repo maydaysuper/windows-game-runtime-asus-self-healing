@@ -36,25 +36,25 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
                         <Border CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="ReBAR" FontWeight="SemiBold"/><TextBlock x:Name="RebarText" Text="UNKNOWN" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="1" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="Dedicated / Shared GPU Memory" FontWeight="SemiBold"/><TextBlock x:Name="GpuMemoryText" Text="等待采样" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="2" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="TDR / WHEA / Power" FontWeight="SemiBold"/><TextBlock x:Name="GpuEventText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
-                        <Border Grid.Column="3" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="最近 Dump" FontWeight="SemiBold"/><TextBlock x:Name="GpuDumpText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="2" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="Dedicated / Shared GPU Memory" FontWeight="SemiBold"/><TextBlock x:Name="GpuMemoryText" Text="等待采样" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="4" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="TDR / WHEA / Power" FontWeight="SemiBold"/><TextBlock x:Name="GpuEventText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
+                        <Border Grid.Column="6" CornerRadius="10" Padding="12" Background="{StaticResource CardFillBrush}"><StackPanel><TextBlock Text="最近 Dump" FontWeight="SemiBold"/><TextBlock x:Name="GpuDumpText" Text="等待读取" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel></Border>
                     </Grid>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
                         <StackPanel><TextBlock Text="证据链" FontWeight="SemiBold"/><TextBox x:Name="GpuEvidenceText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
-                        <StackPanel Grid.Column="1"><TextBlock Text="处理 / 自动修复策略" FontWeight="SemiBold"/><TextBox x:Name="GpuRepairPlanText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="处理 / 自动修复策略" FontWeight="SemiBold"/><TextBox x:Name="GpuRepairPlanText" Margin="0,6,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="145" ScrollViewer.VerticalScrollBarVisibility="Auto"/></StackPanel>
                     </Grid>
                 </StackPanel>
             </Border>
 
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -69,28 +69,37 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="1" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+                <Border Grid.Column="2" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="GPU / PnP" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="GPU / PnP" FontSize="16" FontWeight="SemiBold"/>
                         <TextBox x:Name="GpuText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="210" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                     </StackPanel>
                 </Border>
             </Grid>
 
-            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,16,0,0">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <TextBlock Text="近 7 天崩溃事件" FontSize="17" FontWeight="SemiBold"/>
-                    <ListView x:Name="CrashList" Grid.Row="1" Margin="0,10,0,0" Height="300" SelectionMode="Single">
+                    <TextBlock Text="近 7 天崩溃事件" FontSize="16" FontWeight="SemiBold"/>
+                    <ListView x:Name="CrashList" Grid.Row="1" Margin="0,8,0,0" Height="300" SelectionMode="Single">
                         <ListView.ItemTemplate>
                             <DataTemplate DataType="{x:Type models:CrashEventItem}">
-                                <Border CornerRadius="10" Padding="12" Margin="0,0,0,7" Background="{Binding StatusBrush}">
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="2.6*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Time}" VerticalAlignment="Center" FontSize="12"/>
-                                        <StackPanel Grid.Column="1"><TextBlock Text="{Binding Category}" FontWeight="SemiBold"/><TextBlock Text="{Binding Process}" FontSize="12" Opacity="0.8"/></StackPanel>
-                                        <TextBlock Grid.Column="2" Text="{Binding ProviderText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="3" CornerRadius="8" Padding="8,3" Background="White" VerticalAlignment="Center"><TextBlock Text="{Binding CountText}" FontWeight="SemiBold"/></Border>
-                                        <TextBlock Grid.Column="4" Text="{Binding Message}" TextWrapping="Wrap"/>
+                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Category}" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="{Binding Time}" FontSize="12" Opacity="0.75" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding Process}" FontSize="12" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding ProviderText}" FontSize="12" Opacity="0.75" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0" Opacity="0.86"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="8" Padding="8,3" Background="White" VerticalAlignment="Top">
+                                            <TextBlock Text="{Binding CountText}" FontWeight="SemiBold"/>
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -99,9 +108,9 @@
                 </Grid>
             </Border>
 
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
                         <TextBlock Text="WER 自动 Dump" FontSize="17" FontWeight="SemiBold"/>
                         <TextBlock Text="只对指定游戏 EXE 开启，默认保留 3 个 full dump。" Foreground="{StaticResource MutedTextBrush}"/>
@@ -110,9 +119,9 @@
                         <TextBox x:Name="WerText" IsReadOnly="True" AcceptsReturn="True" Height="100" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
+                <Border Grid.Column="2" CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <StackPanel>
-                        <TextBlock Text="最近 Dump 分析" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="最近 Dump 分析" FontSize="16" FontWeight="SemiBold"/>
                         <ListView x:Name="DumpHistoryList" Height="170" SelectionMode="Single">
                             <ListView.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:DumpAnalysisResult}">

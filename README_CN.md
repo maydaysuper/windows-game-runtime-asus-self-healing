@@ -1,15 +1,17 @@
-# Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.0
+# Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.1
 
-## v4.1.0 底层重铸：WPF 可启动
+## v4.1.1：能打开之后的热修
 
-WinUI 3 unpackaged 从 3.4.9 到 3.4.14 都无法在本机打开窗口。v4.1.0 前端是 WPF / .NET 10 自包含：
+WinUI 3 unpackaged 从 3.4.9 到 3.4.14 都无法在本机打开窗口。v4.1.0 换成 WPF 后窗口已能开。v4.1.1 修：
 
-- 不再引用 Windows App SDK / WinUI / PRI / NavigationView
-- 主窗口 XAML 失败时用纯 C# 构建同一套五入口壳
-- 五个一级页面实例缓存
-- ASUS 4151/4152 修复引擎、Recipe、PV/HOLTEK/ENE hash-lock **未改**
+- `RepairCompleted -> Planned` 非法跳转，Dry Run / ASUS 方案可以反复生成
+- 官方包卡片没取到安装器时不再一律 WARN
+- 中文排版（微软雅黑 UI、卡片间距、列表不再叠字）
+- 退出时写 `%LocalAppData%\WindowsGameRuntimeASUSSelfHealing\Logs\session-*.log`
 
-请卸载全部 3.4.x 后安装 4.1.0。
+ASUS 4151/4152 修复引擎、Recipe、PV/HOLTEK/ENE hash-lock **未改**。
+
+请卸载全部 3.4.x 后安装 4.1.1。已装 4.1.0 可直接覆盖。
 
 ## 主界面
 

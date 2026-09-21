@@ -13,6 +13,18 @@ public sealed class ComponentItem
     public string Status { get; init; } = "INFO";
     public string Detail { get; init; } = "";
     public string Group { get; init; } = "";
+
+    public string VersionLine
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Target) || string.Equals(Installed, Target, StringComparison.OrdinalIgnoreCase))
+                return Installed;
+            if (string.IsNullOrWhiteSpace(Installed)) return Target;
+            return Installed + "  →  " + Target;
+        }
+    }
+
     public Brush StatusBrush => StatusPalette.Brush(Status);
     public Brush StatusForeground => StatusPalette.Foreground(Status);
 }

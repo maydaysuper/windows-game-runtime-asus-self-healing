@@ -43,6 +43,7 @@ public sealed partial class SafetyPage : Page
             PlanInfo.Title = "环境预检失败";
             PlanInfo.Severity = InfoBarSeverity.Error;
             PlanInfo.Message = ex.Message;
+            App.Services.SessionLog.Bug("ASUS.Preflight", ex);
         }
     }
 
@@ -67,9 +68,20 @@ public sealed partial class SafetyPage : Page
             _eligible = plan.ValueKind == System.Text.Json.JsonValueKind.Object && plan.Bool("Eligible");
             var state = plan.ValueKind == System.Text.Json.JsonValueKind.Object ? plan.String("PlanState") : "NO_ACTION_REQUIRED";
             UpdatePlanInfo(state, _eligible);
-            await App.Services.Workflow.RecordPlanAsync(_planType, _planGroup, state, _eligible, PlanText.Text);
+            try
+            {
+                await App.Services.Workflow.RecordPlanAsync(_planType, _planGroup, state, _eligible, PlanText.Text);
+            }
+            catch (Exception wf)
+            {
+                App.Services.SessionLog.Bug("ASUS.RecordPlan", wf);
+            }
         }
-        catch (Exception ex) { SetPlanFailure(ex.Message); }
+        catch (Exception ex)
+        {
+            App.Services.SessionLog.Bug("ASUS.Plan", ex);
+            SetPlanFailure(ex.Message);
+        }
     }
 
     private void UpdatePlanInfo(string state, bool eligible)
@@ -106,6 +118,7 @@ public sealed partial class SafetyPage : Page
         }
         catch (Exception ex)
         {
+            App.Services.SessionLog.Bug("ASUS.Repair", ex);
             await App.Services.Workflow.RecordBrokerResultAsync(_planType, _planGroup, false, "FAILED", ex.Message);
             await PageHelpers.ShowAsync(this, "Broker 错误", ex.Message);
         }
