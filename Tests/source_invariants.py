@@ -157,6 +157,13 @@ for xaml in PROJ.rglob('*.xaml'):
         invalid_scroll.append(str(xaml.relative_to(ROOT)))
 if not invalid_scroll: ok('WinUI TextBox scrollbar members use ScrollViewer attached properties')
 else: fail('invalid direct TextBox ScrollBarVisibility members: '+','.join(invalid_scroll))
+invalid_panel_padding=[]
+for xaml in PROJ.rglob('*.xaml'):
+    raw=xaml.read_text(encoding='utf-8')
+    if re.search(r'<(?:Grid|StackPanel|DockPanel|WrapPanel|Canvas|UniformGrid|Page)\b[^>]*\sPadding\s*=',raw):
+        invalid_panel_padding.append(str(xaml.relative_to(ROOT)))
+if not invalid_panel_padding: ok('WPF panels do not use WinUI Padding')
+else: fail('WPF-invalid Padding on Grid/StackPanel/Page: '+','.join(invalid_panel_padding))
 installer=ROOT/'Installer'/'WindowsGameRuntimeASUSSelfHealing.iss'
 if installer.exists():
     raw=installer.read_text(encoding='utf-8')

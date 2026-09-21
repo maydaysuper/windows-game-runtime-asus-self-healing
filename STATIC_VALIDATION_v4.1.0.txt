@@ -1,5 +1,5 @@
 Windows Game Runtime / ASUS Armoury Self-Healing Center v4.1.0
-Local source-invariant validation: 226 PASS / 0 FAIL
+Local source-invariant validation: 227 PASS / 0 FAIL
 
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/App.xaml
 PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/MainWindow.xaml
@@ -104,6 +104,7 @@ PASS: GPU safe repair is rollback-oriented and non-destructive
 PASS: GPU diagnosis/safe repair user accessible
 PASS: GPU diagnosis auto-analyzes newest local LiveKernel dump best-effort
 PASS: WinUI TextBox scrollbar members use ScrollViewer attached properties
+PASS: WPF panels do not use WinUI Padding
 PASS: Setup installer packages complete Win11 x64 runtime per-user
 PASS: published payload verifier covers x64 + backend + legacy hash chain
 PASS: installer builder verifies payload and supports Inno 7/6

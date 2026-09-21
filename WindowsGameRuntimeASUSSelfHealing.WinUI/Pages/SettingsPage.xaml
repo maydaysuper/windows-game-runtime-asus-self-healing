@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
     <ScrollViewer>
-        <StackPanel Padding="28" MaxWidth="1120" HorizontalAlignment="Stretch">
+        <StackPanel Margin="28" MaxWidth="1120" HorizontalAlignment="Stretch">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel>
                 <TextBlock Text="高级设置" FontSize="22" FontWeight="SemiBold"/>
                 <TextBlock Text="本地状态缓存、性能预算与安全边界。修复权限仍只由 Elevated Broker 获取。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>

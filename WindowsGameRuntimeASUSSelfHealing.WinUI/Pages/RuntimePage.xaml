@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls"
     xmlns:models="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Models">
-    <Grid Padding="26">
+    <Grid Margin="26">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid>
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

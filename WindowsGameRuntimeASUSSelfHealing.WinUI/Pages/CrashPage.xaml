@@ -5,7 +5,7 @@
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls"
     xmlns:models="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Models">
     <ScrollViewer>
-        <StackPanel Padding="26">
+        <StackPanel Margin="26">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>

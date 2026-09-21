@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:WindowsGameRuntimeASUSSelfHealing.WinUI.Controls">
     <ScrollViewer>
-        <StackPanel Padding="28" MaxWidth="1180" HorizontalAlignment="Stretch">
+        <StackPanel Margin="28" MaxWidth="1180" HorizontalAlignment="Stretch">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
