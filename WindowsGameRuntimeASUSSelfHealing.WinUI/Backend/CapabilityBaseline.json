@@ -1,0 +1,132 @@
+{
+  "SchemaVersion": 2,
+  "Baseline": "v3.4.0-core-capabilities",
+  "Policy": "NO_FEATURE_REDUCTION",
+  "AsusCore": {
+    "Priority": "CORE",
+    "BridgeActions": [
+      "DASHBOARD",
+      "PREFLIGHT",
+      "PLAN_ASUS",
+      "TRANSACTIONS",
+      "VERIFY",
+      "EXPORT_REPORT",
+      "BROKER_PREPARE_ASUS_REPAIR"
+    ],
+    "BrokerActions": [
+      "ASUS_REPAIR",
+      "CONTINUE"
+    ],
+    "EngineFunctions": [
+      "Get-ASUSRepairEligibility",
+      "New-RepairPlan",
+      "Invoke-SafeRepairGroup",
+      "Invoke-ASUSRepairHeadless",
+      "Continue-PendingRepair",
+      "Run-FinalVerification",
+      "Start-TransactionObservation",
+      "Get-CorrelatedIncidents",
+      "Get-PnpRelatedInventory",
+      "Get-GPUHealthRows"
+    ],
+    "Recipes": {
+      "PV": "ASUS.PV.4151.v1",
+      "HOLTEK": "ASUS.HOLTEK.4151.v1",
+      "ENE": "ASUS.ENE.4152.v1"
+    },
+    "LegacyHashes": {
+      "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",
+      "HOLTEK": "9217d88ee0632d3c36cc96e6c8edcaf5f156ab555da521511705f91dab6d2674",
+      "ENE": "b90eb3aba023d1fc73116b3400f7b4e66a4b2ead73799f9365096a4b3a5e9637"
+    }
+  },
+  "Runtime": {
+    "BridgeActions": [
+      "RUNTIME_ONLINE",
+      "PLAN_RUNTIME",
+      "BROKER_PREPARE_RUNTIME_REPAIR"
+    ],
+    "BrokerActions": [
+      "RUNTIME_REPAIR"
+    ],
+    "EngineFunctions": [
+      "Get-RuntimeRepairEligibility",
+      "Invoke-RuntimeAutoRepair",
+      "Invoke-RuntimeRepairHeadless",
+      "Invoke-VCRuntimeLoadSmokeTest",
+      "Invoke-DirectXAPISmokeTest",
+      "Invoke-GameRuntimeDeepTest"
+    ]
+  },
+  "CrashDump": {
+    "BridgeActions": [
+      "CRASH_DELTA",
+      "GPU_DIAGNOSTICS",
+      "BROKER_PREPARE_WER_ENABLE",
+      "BROKER_PREPARE_WER_DISABLE",
+      "BROKER_PREPARE_GPU_SAFE_REPAIR"
+    ],
+    "BrokerActions": [
+      "WER_ENABLE",
+      "WER_DISABLE",
+      "GPU_SAFE_REPAIR"
+    ],
+    "Services": [
+      "CrashTelemetryService",
+      "DumpAnalysisService",
+      "GpuMemoryTelemetryService",
+      "GpuDiagnosticsService"
+    ],
+    "EngineFunctions": [
+      "Get-GameCrashTelemetry",
+      "Get-CrashHealthRows",
+      "Get-WerLocalDumpStatus",
+      "Set-WerLocalDumpConfiguration"
+    ],
+    "GpuRootCauseCategories": [
+      "REBAR_COMPATIBILITY_SUSPECTED",
+      "TRUE_VRAM_PRESSURE",
+      "DRIVER_TDR",
+      "PCIE_LINK",
+      "POWER_DELIVERY_SUSPECTED",
+      "EVIDENCE_INSUFFICIENT"
+    ],
+    "Safety": {
+      "BiosWrites": false,
+      "AutomaticRebarToggle": false,
+      "AutomaticDDU": false,
+      "DriverRemoval": false,
+      "TdrRegistryWrites": false,
+      "BlindDriverStoreDeletion": false,
+      "PowerPlanWrites": false
+    }
+  },
+  "ReportsAdvanced": {
+    "Services": [
+      "ReportService",
+      "StateStoreService",
+      "RepairWorkflowCoordinator"
+    ],
+    "Pages": [
+      "ReportsPage",
+      "SettingsPage",
+      "DeepTestPage",
+      "IdentityPage",
+      "ArchitecturePage"
+    ],
+    "Requirements": [
+      "TransactionId",
+      "重启后续跑",
+      "GenerateSystemHealthReportAsync",
+      "GenerateRepairReportAsync",
+      "CreateDumpAnalysisReportAsync",
+      "CreateGpuDiagnosisReportAsync"
+    ]
+  },
+  "Safety": {
+    "UnknownAsusVersionBehavior": "DIAGNOSE_ONLY",
+    "AutomaticDDU": false,
+    "BlindDriverRemoval": false,
+    "RequireLegacyAdapterHashLock": true
+  }
+}

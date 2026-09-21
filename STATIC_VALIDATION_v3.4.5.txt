@@ -1,0 +1,171 @@
+Windows Game Runtime / ASUS Armoury Self-Healing Center v3.4.5
+Local source-invariant validation: 168 PASS / 0 FAIL
+
+PASS: XML Directory.Build.props
+PASS: XML Directory.Packages.props
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/App.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/MainWindow.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/ArchitecturePage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/CrashPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/DeepTestPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/IdentityPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/OverviewPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/ReportsPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/RuntimePage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/SafetyPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/Pages/SettingsPage.xaml
+PASS: XML WindowsGameRuntimeASUSSelfHealing.WinUI/WindowsGameRuntimeASUSSelfHealing.WinUI.csproj
+PASS: event MainWindow.xaml:NavView_SelectionChanged
+PASS: event ArchitecturePage.xaml:RefreshButton_Click
+PASS: event CrashPage.xaml:AnalyzeDump_Click
+PASS: event CrashPage.xaml:DisableDump_Click
+PASS: event CrashPage.xaml:EnableDump_Click
+PASS: event CrashPage.xaml:GpuDiagnosisButton_Click
+PASS: event CrashPage.xaml:GpuSafeRepairButton_Click
+PASS: event CrashPage.xaml:OpenDumpReport_Click
+PASS: event CrashPage.xaml:OpenGpuReportButton_Click
+PASS: event CrashPage.xaml:RefreshButton_Click
+PASS: event DeepTestPage.xaml:RunButton_Click
+PASS: event IdentityPage.xaml:RefreshButton_Click
+PASS: event OverviewPage.xaml:RefreshButton_Click
+PASS: event OverviewPage.xaml:ReportButton_Click
+PASS: event ReportsPage.xaml:ContinueButton_Click
+PASS: event ReportsPage.xaml:DiagnosticZip_Click
+PASS: event ReportsPage.xaml:OpenFolder_Click
+PASS: event ReportsPage.xaml:OpenSelected_Click
+PASS: event ReportsPage.xaml:OpenSettings_Click
+PASS: event ReportsPage.xaml:RefreshButton_Click
+PASS: event ReportsPage.xaml:RepairReport_Click
+PASS: event ReportsPage.xaml:SystemReport_Click
+PASS: event ReportsPage.xaml:VerifyButton_Click
+PASS: event RuntimePage.xaml:OnlineButton_Click
+PASS: event RuntimePage.xaml:PlanButton_Click
+PASS: event RuntimePage.xaml:RepairButton_Click
+PASS: event SafetyPage.xaml:AsusPlan_Click
+PASS: event SafetyPage.xaml:ExecuteButton_Click
+PASS: event SettingsPage.xaml:BackToReports_Click
+PASS: event SettingsPage.xaml:ClearCacheButton_Click
+PASS: event SettingsPage.xaml:OpenArchitecture_Click
+PASS: event SettingsPage.xaml:OpenDeepTest_Click
+PASS: event SettingsPage.xaml:OpenIdentity_Click
+PASS: event SettingsPage.xaml:RefreshButton_Click
+PASS: version 3.4.5
+PASS: build id 20260921.winui3.11
+PASS: state schema 3 metadata
+PASS: hash RepairCenter.ps1
+PASS: hash ElevatedBroker.ps1
+PASS: hash Bootstrap.ps1
+PASS: hash UiBridge.ps1
+PASS: hash IncrementalEventReader.ps1
+PASS: hash GpuDiagnosticsReader.ps1
+PASS: hash GpuSafeRepair.ps1
+PASS: hash AtomicPolicyExecutor.ps1
+PASS: hash RecipeCatalog.psd1
+PASS: hash BuildInfo.psd1
+PASS: capability baseline hash-lock
+PASS: legacy source PV
+PASS: engine lock PV
+PASS: embedded payload PV
+PASS: legacy source HOLTEK
+PASS: engine lock HOLTEK
+PASS: embedded payload HOLTEK
+PASS: legacy source ENE
+PASS: engine lock ENE
+PASS: embedded payload ENE
+PASS: publish invariant <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+PASS: publish invariant <Platforms>x64</Platforms>
+PASS: publish invariant <Platform>x64</Platform>
+PASS: publish invariant <PlatformTarget>x64</PlatformTarget>
+PASS: publish invariant <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+PASS: publish invariant <WindowsPackageType>None</WindowsPackageType>
+PASS: publish invariant <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+PASS: publish invariant <SelfContained>true</SelfContained>
+PASS: publish invariant <EnableMsixTooling>true</EnableMsixTooling>
+PASS: publish invariant <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+PASS: publish invariant <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+PASS: publish invariant <PublishSingleFile>true</PublishSingleFile>
+PASS: publish invariant <PublishTrimmed>false</PublishTrimmed>
+PASS: publish invariant <PublishReadyToRun>false</PublishReadyToRun>
+PASS: package invariant <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+PASS: package invariant <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+PASS: package invariant Microsoft.WindowsAppSDK" Version="2.5.1
+PASS: package invariant Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.6.1
+PASS: package invariant Microsoft.Data.Sqlite" Version="10.0.12
+PASS: build invariant <LangVersion>14.0</LangVersion>
+PASS: build invariant <EnableNETAnalyzers>true</EnableNETAnalyzers>
+PASS: build invariant <AnalysisLevel>latest</AnalysisLevel>
+PASS: build invariant <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+PASS: build invariant <NuGetAudit>true</NuGetAudit>
+PASS: build invariant <NuGetAuditMode>all</NuGetAuditMode>
+PASS: OneClick version
+PASS: OneClick x64 restore/publish
+PASS: OneClick restore text log
+PASS: OneClick restore binlog
+PASS: OneClick publish text log
+PASS: OneClick publish binlog
+PASS: OneClick MSBuild file logger
+PASS: OneClick MSBuild binary logger
+PASS: OneClick Microsoft dotnet installer
+PASS: OneClick WinGet source handling
+PASS: OneClick static tests
+PASS: OneClick pins Platform=x64 for restore and publish
+PASS: OneClick avoids destructive winget source reset
+PASS: launcher BOM-free 一键构建并启动_Win11.cmd
+PASS: launcher ASCII-only 一键构建并启动_Win11.cmd
+PASS: launcher CRLF 一键构建并启动_Win11.cmd
+PASS: launcher BOM-free Launch-Win11.cmd
+PASS: launcher ASCII-only Launch-Win11.cmd
+PASS: launcher CRLF Launch-Win11.cmd
+PASS: launcher BOM-free Build-WinUI3.cmd
+PASS: launcher ASCII-only Build-WinUI3.cmd
+PASS: launcher CRLF Build-WinUI3.cmd
+PASS: no sync-over-async patterns
+PASS: ASUS capability baseline marked core/non-reducible
+PASS: bridge capability DASHBOARD
+PASS: bridge capability PREFLIGHT
+PASS: bridge capability PLAN_ASUS
+PASS: bridge capability PLAN_RUNTIME
+PASS: bridge capability RUNTIME_ONLINE
+PASS: bridge capability TRANSACTIONS
+PASS: bridge capability VERIFY
+PASS: bridge capability EXPORT_REPORT
+PASS: bridge capability CRASH_DELTA
+PASS: bridge capability GPU_DIAGNOSTICS
+PASS: broker capability ASUS_REPAIR
+PASS: broker capability RUNTIME_REPAIR
+PASS: broker capability CONTINUE
+PASS: broker capability WER_ENABLE
+PASS: broker capability WER_DISABLE
+PASS: broker capability GPU_SAFE_REPAIR
+PASS: engine capability Get-ASUSRepairEligibility
+PASS: engine capability New-RepairPlan
+PASS: engine capability Invoke-SafeRepairGroup
+PASS: engine capability Invoke-ASUSRepairHeadless
+PASS: engine capability Continue-PendingRepair
+PASS: engine capability Run-FinalVerification
+PASS: engine capability Start-TransactionObservation
+PASS: engine capability Get-RuntimeRepairEligibility
+PASS: engine capability Invoke-RuntimeRepairHeadless
+PASS: engine capability Invoke-GameRuntimeDeepTest
+PASS: engine capability Get-GameCrashTelemetry
+PASS: engine capability Set-WerLocalDumpConfiguration
+PASS: GPU classifier REBAR_COMPATIBILITY_SUSPECTED
+PASS: GPU classifier TRUE_VRAM_PRESSURE
+PASS: GPU classifier DRIVER_TDR
+PASS: GPU classifier PCIE_LINK
+PASS: GPU classifier POWER_DELIVERY_SUSPECTED
+PASS: primary navigation overview
+PASS: primary navigation asus
+PASS: primary navigation runtime
+PASS: primary navigation crash
+PASS: primary navigation reports
+PASS: developer/history pages not primary nav
+PASS: core parity RepairCenter.ps1
+PASS: core parity ElevatedBroker.ps1
+PASS: core parity AtomicPolicyExecutor.ps1
+PASS: core parity RecipeCatalog.psd1
+PASS: core parity module_pv.ps1
+PASS: core parity module_holtek.ps1
+PASS: core parity module_ene.ps1
+PASS: core parity GpuDiagnosticsReader.ps1
+PASS: core parity GpuSafeRepair.ps1

@@ -1,0 +1,12 @@
+.vs/
+bin/
+obj/
+publish/
+publish-win11-x64/
+artifacts/
+BuildLogs/
+*.user
+*.suo
+*.pdb
+*.binlog
+.DS_Store
