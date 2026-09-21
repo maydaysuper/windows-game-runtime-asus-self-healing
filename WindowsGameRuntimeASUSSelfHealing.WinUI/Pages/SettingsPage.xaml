@@ -1,0 +1,64 @@
+<Page
+    x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel Padding="28" Spacing="18" MaxWidth="1120" HorizontalAlignment="Stretch">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel>
+                <TextBlock Text="高级设置" Style="{ThemeResource TitleTextBlockStyle}"/>
+                <TextBlock Text="本地状态缓存、性能预算与安全边界。修复权限仍只由 Elevated Broker 获取。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
+            </StackPanel><Button Grid.Column="1" Content="返回报告中心" Click="BackToReports_Click" VerticalAlignment="Top"/></Grid>
+
+            <InfoBar x:Name="Info" IsOpen="True" Severity="Informational" Title="本地状态数据库" Message="正在读取 SQLite 状态。"/>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Grid RowSpacing="10" ColumnSpacing="18">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="数据库" FontWeight="SemiBold"/><TextBlock x:Name="DbPathText" Grid.Column="1" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                    <TextBlock Grid.Row="1" Text="SQLite 模式"/><TextBlock x:Name="DbModeText" Grid.Row="1" Grid.Column="1"/>
+                    <TextBlock Grid.Row="2" Text="缓存统计"/><TextBlock x:Name="DbCountText" Grid.Row="2" Grid.Column="1" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="3" Text="数据库占用"/><TextBlock x:Name="DbSizeText" Grid.Row="3" Grid.Column="1"/>
+                    <TextBlock Grid.Row="4" Text="事件增量同步"/><TextBlock x:Name="EventSyncText" Grid.Row="4" Grid.Column="1" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="5" Text="修复流程"/><TextBlock x:Name="WorkflowText" Grid.Row="5" Grid.Column="1"/>
+                    <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                        <Button x:Name="RefreshButton" Content="刷新状态" Click="RefreshButton_Click"/>
+                        <Button Content="清理易失缓存" Click="ClearCacheButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="性能预算" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="启动到主框架：目标 &lt; 1.5 s；主页面切换优先复用缓存；SQLite 缓存读取目标 &lt; 150 ms；Event Log 只做增量；空闲 CPU 目标 &lt; 0.5%；后台并发会依据 CPU/内存自动限制。" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="PerfText" FontFamily="Consolas" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="高级诊断工具" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="这些页面保留完整诊断能力，但不占用日常主导航。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="系统深度检查" Click="OpenDeepTest_Click"/>
+                        <Button Content="组件身份诊断" Click="OpenIdentity_Click"/>
+                        <Button Content="安全 / 架构信息" Click="OpenArchitecture_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="7">
+                    <TextBlock Text="安全边界" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="• 不自动运行 DDU，不盲目卸载 GPU/芯片组驱动。"/>
+                    <TextBlock Text="• 未知 ASUS 新版本只诊断，不套用旧 4151/4152 Recipe。"/>
+                    <TextBlock Text="• Legacy ASUS Adapter 继续由固定 SHA256 + Eligibility + Broker 二次校验保护。" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 清理易失缓存只删除事件游标/事件缓存/组件快照，不删除修复事务与 Incident 历史。" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

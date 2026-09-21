@@ -1,0 +1,14 @@
+<Application
+    x:Class="WindowsGameRuntimeASUSSelfHealing.WinUI.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="HealthGoodBrush" Color="#DCFCE7" />
+            <SolidColorBrush x:Key="HealthWarnBrush" Color="#FEF3C7" />
+            <SolidColorBrush x:Key="HealthBadBrush" Color="#FEE2E2" />
+            <SolidColorBrush x:Key="HealthInfoBrush" Color="#DBEAFE" />
+            <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

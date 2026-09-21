@@ -1,0 +1,19 @@
+{
+  "SchemaVersion": 1,
+  "Policy": "IMMUTABLE_HASH_LOCK",
+  "Description": "Verified ASUS 4151/4152 legacy adapters. Do not alter without a separate re-validation release.",
+  "Modules": {
+    "PV": {
+      "File": "WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/module_pv.ps1",
+      "SHA256": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04"
+    },
+    "HOLTEK": {
+      "File": "WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/module_holtek.ps1",
+      "SHA256": "9217d88ee0632d3c36cc96e6c8edcaf5f156ab555da521511705f91dab6d2674"
+    },
+    "ENE": {
+      "File": "WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/module_ene.ps1",
+      "SHA256": "b90eb3aba023d1fc73116b3400f7b4e66a4b2ead73799f9365096a4b3a5e9637"
+    }
+  }
+}

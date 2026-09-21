@@ -1,0 +1,159 @@
+name: windows-ci
+
+on:
+  push:
+    branches: [ main, master, 'feature/**', 'release/**' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  winui-x64:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PROJECT: WindowsGameRuntimeASUSSelfHealing.WinUI/WindowsGameRuntimeASUSSelfHealing.WinUI.csproj
+      RUNTIME: win-x64
+      CONFIGURATION: Release
+      PLATFORM: x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Source capability / no-regression invariants
+        shell: powershell
+        run: python ./Tests/source_invariants.py
+
+      - name: PowerShell parser, architecture and hash-lock tests
+        shell: powershell
+        run: ./Tests/Architecture.Tests.ps1
+
+      - name: Restore
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path BuildLogs -Force | Out-Null
+          dotnet restore $env:PROJECT -r $env:RUNTIME --nologo -p:Platform=$env:PLATFORM `
+            "-flp:logfile=BuildLogs/Restore_${{ github.run_id }}.log;verbosity=normal" `
+            -bl:BuildLogs/Restore_${{ github.run_id }}.binlog
+
+      - name: Build WinUI 3
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path BuildLogs -Force | Out-Null
+          dotnet build $env:PROJECT -c $env:CONFIGURATION -r $env:RUNTIME --no-restore --nologo `
+            -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
+            "-flp:logfile=BuildLogs/Build_${{ github.run_id }}.log;verbosity=normal" `
+            -bl:BuildLogs/Build_${{ github.run_id }}.binlog
+
+      - name: Publish self-contained WinUI 3
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path BuildLogs -Force | Out-Null
+          dotnet publish $env:PROJECT -c $env:CONFIGURATION -r $env:RUNTIME `
+            -o artifacts/publish --self-contained true --no-restore --nologo `
+            -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
+            -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true `
+            -p:SelfContained=true -p:PublishSingleFile=true `
+            -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableMsixTooling=true -p:PublishTrimmed=false -p:PublishReadyToRun=false `
+            "-flp:logfile=BuildLogs/Publish_${{ github.run_id }}.log;verbosity=normal" `
+            -bl:BuildLogs/Publish_${{ github.run_id }}.binlog
+
+      - name: Show MSBuild compiler errors
+        if: failure()
+        shell: powershell
+        run: ./Tests/Show-MsBuildErrors.ps1 -LogRoot BuildLogs
+
+      - name: Validate published runtime
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe='artifacts/publish/WindowsGameRuntimeASUSSelfHealing.WinUI.exe'
+          if(-not (Test-Path -LiteralPath $exe)) { throw "Published EXE missing: $exe" }
+          foreach($required in @(
+            'artifacts/publish/Backend/RepairCenter.ps1',
+            'artifacts/publish/Backend/ElevatedBroker.ps1',
+            'artifacts/publish/Backend/CapabilityBaseline.json'
+          )) {
+            if(-not (Test-Path -LiteralPath $required)) { throw "Published backend file missing: $required" }
+          }
+
+      - name: Verify published payload trust chain
+        shell: powershell
+        run: ./Installer/Verify-PublishPayload.ps1 -PublishRoot artifacts/publish
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $winget=Get-Command winget.exe -ErrorAction SilentlyContinue
+          if($winget -and $winget.Source -and (Test-Path -LiteralPath $winget.Source)) {
+            & $winget.Source install --id JRSoftware.InnoSetup.7 --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+          }
+          $iscc7="$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+          if(-not (Test-Path -LiteralPath $iscc7)) {
+            choco install innosetup --no-progress -y
+          }
+          $found=@(
+            "$env:ProgramFiles\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if(-not $found) { throw 'ISCC not found after Inno Setup install.' }
+          Write-Host "ISCC: $found"
+
+      - name: Build release artifacts (Portable + Setup + SHA256)
+        id: package
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          ./Build-Release.ps1 -PublishRoot artifacts/publish -ReleaseDir artifacts/release
+          $utf8=New-Object System.Text.UTF8Encoding($false,$true)
+          $build=([IO.File]::ReadAllText((Resolve-Path 'WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/BuildInfo.json'),$utf8) | ConvertFrom-Json)
+          "version=$($build.Version)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WGR-ASUS-SelfHealing-v${{ steps.package.outputs.version }}-win-x64
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package.outputs.version }}
+          name: Windows Game Runtime / ASUS Self-Healing v${{ steps.package.outputs.version }}
+          files: artifacts/release/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          make_latest: true
+
+      - name: Upload publish diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WGR-ASUS-SelfHealing-build-diagnostics
+          path: |
+            **/*.binlog
+            **/BuildLogs/**
+          if-no-files-found: ignore
+          retention-days: 7
