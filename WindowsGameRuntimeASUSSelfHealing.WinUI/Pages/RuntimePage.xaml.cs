@@ -9,178 +9,69 @@ namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Pages;
 public sealed partial class RuntimePage : Page
 {
     private readonly BackendService _backend = App.Services.Backend;
-    private readonly BrokerService _broker = App.Services.Broker;
     private readonly ObservableCollection<ComponentItem> _rows = new();
-    private readonly ObservableCollection<RuntimePackageItem> _packages = new();
-    private bool _eligible;
-    private string _planText = "";
     private bool _loaded;
 
     public RuntimePage()
     {
         InitializeComponent();
         RuntimeRows.ItemsSource = _rows;
-        PackageRows.ItemsSource = _packages;
         Loaded += async (_, _) =>
         {
             if (_loaded) return;
             _loaded = true;
             var cached = await App.Services.StateStore.ReadComponentStatesAsync("RUNTIME");
             foreach (var row in cached) _rows.Add(row);
-            if (cached.Count > 0)
-            {
-                RuntimeInfo.Title = "已加载本机检测缓存";
-                RuntimeInfo.Message = "来自主页最近一次健康检测；需要核对 Microsoft 最新官方包时再点击“联网对比”。";
-                RuntimeInfo.Severity = cached.Any(x => x.Status is "FAIL" or "REPAIR" or "WARN" or "UPDATE") ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
-            }
-            SetPackageVerdict();
+            if (cached.Count > 0) ApplyLocalVerdict("已加载本机检测缓存");
+            else await RefreshLocalAsync(false);
         };
     }
 
-    private async void OnlineButton_Click(object sender, RoutedEventArgs e) => await LoadOnlineAsync(true);
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await RefreshLocalAsync(true);
 
-    private async Task LoadOnlineAsync(bool force)
+    private async Task RefreshLocalAsync(bool force)
     {
-        OnlineButton.IsEnabled = false;
-        RuntimeInfo.Title = "联网检测中";
-        RuntimeInfo.Message = "正在核对 Microsoft HTTPS 重定向链、最终域、Authenticode、SHA256 与版本…";
+        RefreshButton.IsEnabled = false;
+        RuntimeInfo.Title = "本机检测中";
+        RuntimeInfo.Message = "只读本机 VC++ / DirectX 文件与注册表，不下载 Microsoft 官方安装器。";
         RuntimeInfo.Severity = InfoBarSeverity.Informational;
         try
         {
-            using var r = await _backend.RunAsync("RUNTIME_ONLINE", force: force, timeout: TimeSpan.FromMinutes(5));
+            using var r = await _backend.RunAsync("DASHBOARD", force: force, timeout: TimeSpan.FromMinutes(2));
             if (!r.Success) throw new InvalidOperationException(r.Error);
             _rows.Clear();
-            foreach (var e in r.Payload.Array("Rows")) _rows.Add(PageHelpers.ToComponent(e));
+            foreach (var e in r.Payload.Array("Components"))
+            {
+                var row = PageHelpers.ToComponent(e);
+                if (row.Group.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase))
+                    _rows.Add(row);
+            }
             await App.Services.StateStore.UpsertComponentStatesAsync(_rows);
-            _packages.Clear();
-            foreach (var e in r.Payload.Array("Packages"))
-                _packages.Add(new RuntimePackageItem
-                {
-                    Key = e.String("Key"), Version = e.String("Version"), Source = e.String("Source"), Sha256 = e.String("SHA256"),
-                    Signer = e.String("Signer"), FinalUri = e.String("FinalUri"), Error = e.String("Error"),
-                    Success = e.Bool("Success"), TrustComplete = e.Bool("TrustComplete")
-                });
-            var elig = r.Payload.GetProperty("Eligibility");
-            _eligible = elig.Bool("Eligible");
-            var localBad = _rows.Any(x => x.Status is "FAIL" or "REPAIR" or "NEEDS_REPAIR");
-            if (_eligible)
-            {
-                RuntimeInfo.Title = "结论：可以安全修复";
-                RuntimeInfo.Message = elig.String("Decision");
-                RuntimeInfo.Severity = InfoBarSeverity.Success;
-            }
-            else if (localBad)
-            {
-                RuntimeInfo.Title = "结论：本机运行库需要关注";
-                RuntimeInfo.Message = elig.String("Decision");
-                RuntimeInfo.Severity = InfoBarSeverity.Warning;
-            }
-            else
-            {
-                RuntimeInfo.Title = "结论：不必修复";
-                RuntimeInfo.Message = elig.String("Decision") + " 官方包卡片即使是 INFO，也不代表本机 VC++ / DirectX 坏了。";
-                RuntimeInfo.Severity = InfoBarSeverity.Success;
-            }
-            RepairButton.IsEnabled = _eligible;
-            SetPackageVerdict();
-            foreach (var pkg in _packages.Where(p => p.Status == "WARN" && !string.IsNullOrWhiteSpace(p.Error)))
-                App.Services.SessionLog.Note("Runtime.Package", pkg.Key + ": " + pkg.Error);
+            ApplyLocalVerdict("本机检测完成");
         }
         catch (Exception ex)
         {
-            _eligible = false;
-            RepairButton.IsEnabled = false;
-            RuntimeInfo.Title = "联网检测失败";
+            RuntimeInfo.Title = "本机检测失败";
             RuntimeInfo.Message = ex.Message;
             RuntimeInfo.Severity = InfoBarSeverity.Error;
-            App.Services.SessionLog.Bug("Runtime.Online", ex);
+            App.Services.SessionLog.Bug("Runtime.Local", ex);
         }
-        finally { OnlineButton.IsEnabled = true; }
+        finally { RefreshButton.IsEnabled = true; }
     }
 
-    private void SetPackageVerdict()
+    private void ApplyLocalVerdict(string title)
     {
-        if (PackageVerdict == null) return;
-        if (_packages.Count == 0)
+        var broken = _rows.Any(x => x.Status is "FAIL" or "REPAIR" or "NEEDS_REPAIR");
+        RuntimeInfo.Title = title;
+        if (broken)
         {
-            PackageVerdict.Text = "尚未联网对比";
-            PackageVerdict.Foreground = StatusPalette.Foreground("INFO");
-            return;
+            RuntimeInfo.Message = "本机运行库文件异常。本工具不再下载 Microsoft 官方安装器，请自行安装 Visual C++ Redistributable 或 DirectX End-User Runtime。";
+            RuntimeInfo.Severity = InfoBarSeverity.Warning;
         }
-
-        if (_packages.Any(p => p.Verdict == "需要关注"))
+        else
         {
-            PackageVerdict.Text = "结论：官方包需要关注";
-            PackageVerdict.Foreground = StatusPalette.Foreground("WARN");
-            return;
+            RuntimeInfo.Message = "本机 VC++ / DirectX 可用。已停用官方包对比和自动修复，最终验收不再因此标 WARN。";
+            RuntimeInfo.Severity = InfoBarSeverity.Success;
         }
-
-        PackageVerdict.Text = "结论：不必修复";
-        PackageVerdict.Foreground = StatusPalette.Foreground("PASS");
-    }
-
-    private async void PlanButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            using var r = await _backend.RunAsync("PLAN_RUNTIME", force: true, timeout: TimeSpan.FromMinutes(5));
-            if (!r.Success) throw new InvalidOperationException(r.Error);
-            _planText = r.Payload.String("Text");
-            var plan = r.Payload.GetProperty("Plan");
-            _eligible = plan.Bool("Eligible");
-            RepairButton.IsEnabled = _eligible;
-            try
-            {
-                await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText);
-            }
-            catch (Exception wf)
-            {
-                App.Services.SessionLog.Bug("Runtime.RecordPlan", wf);
-            }
-            await PageHelpers.ShowAsync(this, _eligible ? "Dry Run：可以修复" : "Dry Run：不必修复", _planText);
-        }
-        catch (Exception ex)
-        {
-            _eligible = false;
-            RepairButton.IsEnabled = false;
-            App.Services.SessionLog.Bug("Runtime.Plan", ex);
-            await PageHelpers.ShowAsync(this, "Dry Run 失败", ex.Message);
-        }
-    }
-
-    private async void RepairButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_eligible) { await PageHelpers.ShowAsync(this, "不能执行", "当前没有通过 Repair Eligibility。"); return; }
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_planText)) await PlanButtonInternalAsync();
-            if (!_eligible) return;
-            if (!await PageHelpers.ConfirmAsync(this, "确认运行库修复", _planText, "通过 UAC 修复")) return;
-
-            RepairButton.IsEnabled = false;
-            await App.Services.Workflow.RecordBrokerStartAsync("RUNTIME", "");
-            var result = await _broker.ExecuteAsync("RUNTIME_REPAIR");
-            await App.Services.Workflow.RecordBrokerResultAsync("RUNTIME", "", result.Success, result.State, result.Detail);
-            await PageHelpers.ShowAsync(this, result.Success ? "修复流程已提交" : "修复未完成", result.Detail);
-            await LoadOnlineAsync(true);
-        }
-        catch (Exception ex)
-        {
-            App.Services.SessionLog.Bug("Runtime.Repair", ex);
-            await App.Services.Workflow.RecordBrokerResultAsync("RUNTIME", "", false, "FAILED", ex.Message);
-            await PageHelpers.ShowAsync(this, "修复流程异常", ex.Message);
-        }
-        finally { RepairButton.IsEnabled = _eligible; }
-    }
-
-    private async Task PlanButtonInternalAsync()
-    {
-        using var r = await _backend.RunAsync("PLAN_RUNTIME", force: true, timeout: TimeSpan.FromMinutes(5));
-        if (!r.Success) { _eligible = false; return; }
-        _planText = r.Payload.String("Text");
-        var plan = r.Payload.GetProperty("Plan");
-        _eligible = plan.Bool("Eligible");
-        try { await App.Services.Workflow.RecordPlanAsync("RUNTIME", "", plan.String("PlanState"), _eligible, _planText); }
-        catch (Exception wf) { App.Services.SessionLog.Bug("Runtime.RecordPlan", wf); }
     }
 }

@@ -64,7 +64,7 @@ public partial class MainWindow : Window
                 StatusText.Text = tag switch
                 {
                     "asus" => "ASUS 奥创中心 · 只查奥创更新错误，不重复首页体检",
-                    "runtime" => "游戏运行库 · Microsoft 官方包签名校验",
+                    "runtime" => "游戏运行库 · 只检测本机，不再下载 Microsoft 官方安装器",
                     "crash" => "崩溃 / GPU / ReBAR / Dump · 全部本机分析",
                     "reports" => "报告中心 · 事务、验收与诊断包",
                     _ => "系统健康 · 后台任务按硬件自适应限流"

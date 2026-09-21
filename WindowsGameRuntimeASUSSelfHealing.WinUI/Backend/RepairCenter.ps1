@@ -499,19 +499,13 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
         $detail = ''
         if (-not $reg.Installed -or -not $reg.Version) {
             $status = 'REPAIR'
-            $detail = '未检测到受支持的 Microsoft Visual C++ v14 Redistributable；可从 Microsoft 官方源直接安装最新版本'
+            $detail = '未检测到 Microsoft Visual C++ v14 Redistributable。请自行安装官方运行库，本工具不再下载或修复。'
         } elseif ($healthyFiles -lt $files.Count) {
             $status = 'REPAIR'
-            $detail = "关键运行库 DLL 缺失或 Microsoft 签名异常：$healthyFiles/$($files.Count) 正常；建议官方安装器 Repair/Install"
-        } elseif ($target -and (Compare-VersionSafe $target $reg.Version) -gt 0) {
-            $status = 'UPDATE'
-            $detail = "Microsoft 官方最新版本 $target 高于本机 $($reg.Version)，可直接更新"
-        } elseif ($target) {
-            $status = 'PASS'
-            $detail = '已与 Microsoft 官方最新 v14 Redistributable 对比，版本与关键 DLL 状态正常'
+            $detail = "关键运行库 DLL 缺失或签名异常：$healthyFiles/$($files.Count) 正常。请自行安装 Visual C++ Redistributable，本工具不再下载官方安装器。"
         } else {
-            $status = 'INFO'
-            $detail = '本地 VC++ v14 关键 DLL 正常；点击一键诊断/运行库联网检测后会与 Microsoft 官方最新版本比较'
+            $status = 'PASS'
+            $detail = "本机 VC++ v14 $($reg.Version) 关键 DLL 正常。已停用 Microsoft 官方安装器对比。"
         }
         if ($evidence.Count -gt 0 -and $status -eq 'PASS') {
             $status = 'WARN'
@@ -541,13 +535,10 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
     }
 
     $legacyStatus = 'PASS'
-    $legacyDetail = 'Legacy DirectX side-by-side 组件完整（D3DX/XInput/XAudio）'
+    $legacyDetail = '本机 Legacy DirectX 组件完整（D3DX/XInput/XAudio）。已停用官方安装器对比。'
     if (-not $legacy.Healthy) {
         $legacyStatus = 'REPAIR'
-        $legacyDetail = "Legacy DirectX 组件缺失=$($legacy.Missing.Count)，签名异常=$($legacy.BadSignature.Count)；可从 Microsoft 官方 DirectX End-User Runtime 联网补齐"
-    } elseif (-not $dxOnline) {
-        $legacyStatus = 'INFO'
-        $legacyDetail = '本地 Legacy DirectX 组件完整；联网检测后会验证 Microsoft 官方安装器'
+        $legacyDetail = "Legacy DirectX 组件缺失=$($legacy.Missing.Count)，签名异常=$($legacy.BadSignature.Count)。请自行安装 DirectX End-User Runtime，本工具不再下载官方安装器。"
     }
     $rows += [PSCustomObject]@{
         Key='DirectXLegacy';Name='DirectX Legacy Runtime';Installed='本地组件';Target=$dxTarget;Runtime=("缺失={0};签名异常={1}" -f $legacy.Missing.Count,$legacy.BadSignature.Count);ErrorCode='';Status=$legacyStatus;Detail=$legacyDetail;Group='RUNTIME'
@@ -1498,10 +1489,10 @@ function Get-ASUSRepairEligibility([string]$Group,[object]$Snap) {
 
 function Get-RuntimeRepairEligibility([object]$Snap) {
     $pre=Get-EnvironmentPreflight 'Runtime' '';$reasons=@();$warnings=@();foreach($x in @($pre.Rows)){if($x.Blocking){$reasons += "$($x.Name): $($x.Detail)"}elseif($x.Status -eq 'WARN'){$warnings += "$($x.Name): $($x.Detail)"}}
-    $todo=@($Snap.Rows|Where-Object{$_.Group -eq 'RUNTIME' -and $_.Status -in @('REPAIR','UPDATE','WARN')});$trustBlocking=@()
-    if($todo.Count -gt 0){$needOnline=@($todo|Where-Object{$_.Key -match '^VC_' -or $_.Key -eq 'DirectXLegacy'});if($needOnline.Count -gt 0 -and -not (Test-RuntimeOnlineInfoFresh 30)){$trustBlocking += 'Microsoft 官方安装包信息尚未完成联网验证或已过期'}elseif($needOnline.Count -gt 0){foreach($r in $needOnline){$key=[string]$r.Key;if(-not $script:RuntimeOnlineInfo.Contains($key)){$trustBlocking += "$key 缺少 Microsoft 官方包身份结果";continue};$pkg=$script:RuntimeOnlineInfo[$key];if(-not $pkg.Success){$trustBlocking += "$key 官方包下载/签名验证失败：$($pkg.Error)";continue};if(-not [bool]$pkg.TrustComplete){$trustBlocking += "$key Microsoft 下载信任证据不完整（必须包含最终 HTTPS URL/host + Authenticode + SHA256）"};if(-not [string]$pkg.SHA256 -or -not [string]$pkg.Signer){$trustBlocking += "$key 官方包缺少 SHA256/Signer 证据"}}}};$reasons += $trustBlocking
-    $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons);if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()};$eligible=($stateInfo.State -eq 'ELIGIBLE' -and $reasons.Count -eq 0)
-    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$stateInfo.Decision;EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
+    $todo=@($Snap.Rows|Where-Object{$_.Group -eq 'RUNTIME' -and $_.Status -eq 'REPAIR'})
+    if($todo.Count -gt 0){$reasons += 'VC++ / DirectX 官方安装器对比与自动修复已停用。本机文件异常时请自行安装 Microsoft Visual C++ Redistributable 或 DirectX End-User Runtime。'}
+    $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons);if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()};$eligible=$false
+    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$(if($todo.Count -gt 0){'本机运行库文件异常，但本工具不再下载 Microsoft 官方安装器或自动修复。'}else{$stateInfo.Decision});EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
 }
 
 function Convert-PlanRows([object[]]$Rows) {
@@ -2663,7 +2654,7 @@ function Run-FinalVerification {
         if ($r.Status -eq 'PASS') { AddV 'PASS' "$($r.Name) installed=$($r.Installed) runtime=$($r.Runtime)" }
         elseif ($r.Status -eq 'REPAIR') { AddV 'FAIL' "$($r.Name) 仍命中已验证故障状态：$($r.Detail)" }
         elseif ($r.Status -eq 'UPDATE') { AddV 'WARN' "$($r.Name) 有正常更新目标：installed=$($r.Installed) target=$($r.Target)" }
-        elseif ($r.Status -eq 'N/A') { AddV 'PASS' "$($r.Name) 未检测到（N/A，已跳过，不影响健康评分）" }
+        elseif ($r.Status -in @('N/A','INFO')) { AddV 'PASS' "$($r.Name) installed=$($r.Installed) runtime=$($r.Runtime)" }
         else { AddV 'WARN' "$($r.Name) installed=$($r.Installed) target=$($r.Target) detail=$($r.Detail)" }
     }
 

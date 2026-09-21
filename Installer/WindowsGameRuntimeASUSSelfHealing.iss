@@ -1,7 +1,7 @@
 #define MyAppName "Windows Game Runtime - ASUS Armoury Self-Healing Center"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.1.2"
+  #define MyAppVersion "4.1.3"
 #endif
 #ifndef SourceRoot
   #define SourceRoot "..\\artifacts\\publish"

@@ -10,16 +10,12 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,20,0">
                     <TextBlock Text="游戏运行库 / C++" FontSize="22" FontWeight="SemiBold"/>
-                    <TextBlock Text="先看本机 VC++ / DirectX 是否正常，再核对 Microsoft 官方包。官方包取不到时，不会把本机已正常的运行库标成要修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="只检测本机 VC++ / DirectX 是否可用。已停用 Microsoft 官方安装器下载、版本对比和自动修复。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
-                <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
-                    <Button x:Name="OnlineButton" Content="联网对比" Click="OnlineButton_Click"/>
-                    <Button Content="生成 Dry Run" Click="PlanButton_Click"/>
-                    <Button x:Name="RepairButton" Content="安全修复" Click="RepairButton_Click" IsEnabled="False" Margin="0"/>
-                </WrapPanel>
+                <Button x:Name="RefreshButton" Grid.Column="1" Content="重新检测本机" Click="RefreshButton_Click" VerticalAlignment="Top"/>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="RuntimeInfo" Margin="0,16,0,0" IsOpen="True" Title="等待检测" Message="联网下载和签名验证全部在独立后台进程执行。"/>
+            <ctrl:StatusBanner x:Name="RuntimeInfo" Margin="0,16,0,0" IsOpen="True" Title="本机检测" Message="不再访问 aka.ms / download.microsoft.com。本机 DLL 正常即通过。"/>
 
             <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,16,0,0">
                 <StackPanel>
@@ -39,38 +35,6 @@
                                             <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12" Opacity="0.82"/>
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="12" VerticalAlignment="Top"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,12,0,0">
-                <StackPanel>
-                    <DockPanel>
-                        <TextBlock Text="Microsoft 官方包信任证据" FontSize="16" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="PackageVerdict" DockPanel.Dock="Right" FontWeight="SemiBold" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                    </DockPanel>
-                    <ItemsControl x:Name="PackageRows" Margin="0,10,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type models:RuntimePackageItem}">
-                                <Border CornerRadius="10" Padding="14,12" Background="{Binding StatusBrush}" Margin="0,0,0,8">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,16,0">
-                                            <DockPanel>
-                                                <TextBlock Text="{Binding Key}" FontWeight="SemiBold" FontSize="14"/>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Verdict}" FontWeight="SemiBold" FontSize="12" Foreground="{Binding StatusForeground}" HorizontalAlignment="Right"/>
-                                            </DockPanel>
-                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12" Opacity="0.86"/>
-                                            <TextBlock Text="{Binding FinalUri}" TextTrimming="CharacterEllipsis" FontSize="11" Opacity="0.62" Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusForeground}" FontWeight="Bold" FontSize="12" VerticalAlignment="Top" Margin="12,0,0,0"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>

@@ -2,7 +2,7 @@
 
 Windows 11 x64 **WPF** tool for game runtime repair and **ASUS Armoury Crate 4151/4152** self-healing.
 
-WinUI 3 unpackaged builds (v3.4.x) do not start on the target PC. v4.1.2 is WPF / .NET 10 self-contained.
+WinUI 3 unpackaged builds (v3.4.x) do not start on the target PC. v4.1.3 is WPF / .NET 10 self-contained.
 
 **End users: do not compile this repo.** Download the latest GitHub Release:
 
@@ -13,7 +13,7 @@ Uninstall every 3.4.x build first. Setup installs per-user under LocalAppData. U
 
 ## Current version
 
-v4.1.2 · .NET 10 · C# 14 · WPF · self-contained win-x64 folder deploy
+v4.1.3 · .NET 10 · C# 14 · WPF · self-contained win-x64 folder deploy
 
 ## What it does
 
