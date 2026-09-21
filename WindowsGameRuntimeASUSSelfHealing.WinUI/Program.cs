@@ -14,11 +14,11 @@ public static class Program
         {
             StartupGuard.ProbeNativeRuntime();
             ComWrappersSupport.InitializeComWrappers();
-            Application.Start(_ =>
+            Application.Start(p =>
             {
                 var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
                 SynchronizationContext.SetSynchronizationContext(context);
-                _ = new App();
+                new App();
             });
         }
         catch (Exception ex)
