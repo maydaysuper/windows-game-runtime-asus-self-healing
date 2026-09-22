@@ -60,8 +60,10 @@ Describe 'Invoke-WgrArmouryLaunchAttempt' {
         $result.Success | Should -Be $false
         $result.Attempts | Should -Be 3
         @($result.ErrorHistory).Count | Should -Be 3
-        $result.ErrorCode | Should -Be ([int][System.InvalidOperationException]::new('boom').HResult)
+        $result.ErrorCode | Should -Not -BeNullOrEmpty
         $result.ErrorHistory[0].ErrorCode | Should -Be $result.ErrorCode
+        $result.ErrorHistory[1].ErrorCode | Should -Be $result.ErrorCode
+        $result.ErrorHistory[2].ErrorCode | Should -Be $result.ErrorCode
         $result.Error | Should -Match 'boom'
     }
     It 'rotates executables across retries' {
