@@ -20,6 +20,8 @@ $map = [ordered]@{
     ArmouryCrateSafeRepairSHA256 = 'ArmouryCrateSafeRepair.ps1'
     AtomicPolicyExecutorSHA256 = 'AtomicPolicyExecutor.ps1'
     RecipeCatalogSHA256 = 'RecipeCatalog.psd1'
+    RuntimeEngineSHA256 = 'RuntimeEngine.ps1'
+    SnapshotEngineSHA256 = 'SnapshotEngine.ps1'
 }
 
 function Hash([string]$Path){

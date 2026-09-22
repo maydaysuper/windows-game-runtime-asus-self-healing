@@ -26,3 +26,10 @@ Invoke-Pester -Path Tests/Unit
 ```powershell
 ./tools/Update-HashLock.ps1
 ```
+
+
+发布布局：
+
+```powershell
+./Tests/E2E/Verify-ReleaseLayout.ps1 -ReleaseDir artifacts/release
+```

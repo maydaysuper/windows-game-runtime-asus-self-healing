@@ -79,6 +79,8 @@ $hashMap=@{
     ArmouryCrateSafeRepairSHA256='ArmouryCrateSafeRepair.ps1'
     AtomicPolicyExecutorSHA256='AtomicPolicyExecutor.ps1'
     RecipeCatalogSHA256='RecipeCatalog.psd1'
+    RuntimeEngineSHA256='RuntimeEngine.ps1'
+    SnapshotEngineSHA256='SnapshotEngine.ps1'
 }
 foreach($key in $hashMap.Keys){
     $actual=Hash (Join-Path $Backend $hashMap[$key])
@@ -189,18 +191,18 @@ foreach($required in @('<LangVersion>14.0</LangVersion>','<NuGetAudit>true</NuGe
 }
 if([string]$buildJson.WindowsAppSDK -eq 'WPF' -and [string]$buildJson.DotNet -eq '10.0' -and [string]$buildJson.Language -eq 'C# 14'){Pass 'BuildInfo current stable technology metadata'}else{Fail 'BuildInfo technology metadata mismatch'}
 
-# 11) One-click package version must match BuildInfo.
+# 11) One-click delegates packaging to Build-Release; version comes from BuildInfo.json.
 $oneClickRaw=Read-Utf8Text (Join-Path $Root 'OneClick-Win11.ps1')
-if($oneClickRaw -match 'publish 目录缺少 Backend' -and $oneClickRaw -match '孤立 EXE' -and $oneClickRaw -notmatch '\$DesktopExe'){Pass 'OneClick never ships bare EXE without Backend'}else{Fail 'OneClick bare-EXE delivery regression'}
-if($oneClickRaw -match 'Materialize hash-locked Backend' -and $oneClickRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI\\Backend'){Pass 'OneClick materializes hash-locked Backend beside published EXE'}else{Fail 'OneClick no longer copies Backend beside published EXE'}
-if($oneClickRaw -match "-p:PublishSingleFile=false" -and $oneClickRaw -match 'wpfgfx_cor3.dll' -and $oneClickRaw -match '安装后无法打开'){Pass 'OneClick forbids WPF PublishSingleFile payload'}else{Fail 'OneClick must refuse PublishSingleFile WPF payloads'}
-$versionPattern=("(?m)^\s*"+[regex]::Escape('$Version')+"\s*=\s*'"+[regex]::Escape([string]$buildJson.Version)+"'\s*$")
-if($oneClickRaw -match $versionPattern){Pass 'OneClick version matches BuildInfo'}else{Fail 'OneClick version does not match BuildInfo'}
+$releaseRaw=Read-Utf8Text (Join-Path $Root 'Build-Release.ps1')
+if($oneClickRaw -match 'Build-Release\.ps1' -and $oneClickRaw -match '-BuildProject' -and $oneClickRaw -notmatch '\$DesktopExe'){Pass 'OneClick uses Build-Release as the single package entry'}else{Fail 'OneClick is not delegated to Build-Release'}
+if($releaseRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI\\Backend' -and $releaseRaw -match 'RuntimeEngine\.ps1' -and $releaseRaw -match 'SnapshotEngine\.ps1'){Pass 'Build-Release materializes split engine modules'}else{Fail 'Build-Release missing Runtime/Snapshot engine materialize'}
+if($releaseRaw -match "-p:PublishSingleFile=false"){Pass 'Build-Release forbids WPF PublishSingleFile payload'}else{Fail 'Build-Release must refuse PublishSingleFile WPF payloads'}
+if($oneClickRaw -match 'BuildInfo.json' -and $oneClickRaw -match '\.Version'){Pass 'OneClick version is read from BuildInfo'}else{Fail 'OneClick version is not sourced from BuildInfo'}
 if($oneClickRaw -match 'Architecture\.Tests\.ps1'){Pass 'OneClick runs architecture static tests before publish'}else{Fail 'OneClick no longer runs architecture static tests'}
 if($oneClickRaw -match 'https://dot\.net/v1/dotnet-install\.ps1' -and $oneClickRaw -match "Install-DotNet10SdkLocal" -and $oneClickRaw -match "'-Channel','10\.0'" -and $oneClickRaw -match "'-Quality','GA'" -and $oneClickRaw -match 'dotnet-install.ps1 SHA256'){Pass 'OneClick has Microsoft dotnet-install local SDK fallback'}else{Fail 'OneClick local .NET 10 SDK fallback missing'}
 if($oneClickRaw -match 'source update --name winget' -and $oneClickRaw -match '0x8A15000F'){Pass 'OneClick handles missing WinGet source data'}else{Fail 'OneClick WinGet source recovery missing'}
 if($oneClickRaw -notmatch 'source reset'){Pass 'OneClick does not destructively reset WinGet sources'}else{Fail 'OneClick must not automatically reset WinGet sources'}
-if($oneClickRaw -match "'-p:Platform=x64'" -and $oneClickRaw -match 'Publish_\{0\}\.log' -and $oneClickRaw -match '-bl:'){Pass 'OneClick pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'OneClick x64 publish/logging contract missing'}
+if($releaseRaw -match "'-p:Platform=x64'" -and $releaseRaw -match 'Publish_\{0\}\.log' -and $releaseRaw -match '-bl:'){Pass 'Build-Release pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'Build-Release x64 publish/logging contract missing'}
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
 if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'wpfgfx_cor3.dll' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
 $issRaw=Read-Utf8Text (Join-Path $Root 'Installer\WindowsGameRuntimeASUSSelfHealing.iss')

@@ -4,7 +4,7 @@ Frontend is **WPF / .NET 10 self-contained win-x64**. Windows App SDK is not loa
 
 The shell keeps five primary entries and caches page instances so switching tabs does not re-run PowerShell. If `MainWindow` XAML fails to load, the same chrome is built in C#.
 
-PowerShell Backend, ASUS RepairCenter, Elevated Broker, RecipeCatalog and PV/HOLTEK/ENE hash-locks are unchanged from v3.4.8.
+PowerShell Backend is split: `RepairCenter.ps1` orchestrates hash-locked modules (`RuntimeEngine.ps1` for VC++/DirectX, `SnapshotEngine.ps1` for snapshot/report, `ArmouryCrateSafeRepair.ps1` for 501/launch). Elevated Broker, RecipeCatalog and PV/HOLTEK/ENE hash-locks remain.
 
 # v4.0 / v3.4 architecture
 

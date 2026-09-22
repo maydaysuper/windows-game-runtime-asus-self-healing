@@ -1,5 +1,12 @@
 # 更新说明
 
+## v4.6.0
+
+- 引擎拆成 RuntimeEngine（C++/DirectX）和 SnapshotEngine（快照/报告），RepairCenter 只做编排和哈希锁导入。
+- OneClick 只负责环境/SDK，打包统一走 Build-Release。
+- 发布包 E2E 核对照：ZIP 布局 + SHA256。
+- 根目录文档收到 docs/。
+
 ## v4.5.2
 
 - 后台脚本先按 RemoteSigned 跑，只有策略拦截才降到 Bypass。
