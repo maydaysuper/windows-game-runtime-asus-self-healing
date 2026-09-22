@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = '奥创修复中心'
-    Version = '4.6.1'
-    BuildId = '20260922.wpf.19'
+    Version = '4.6.2'
+    BuildId = '20260923.wpf.20'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4
@@ -14,7 +14,7 @@
     PackageManagement = 'NuGet Central Package Management'
     CapabilityBaseline = 'CapabilityBaseline.json'
     CapabilityBaselineSHA256 = 'c9dea8070e8fe4ddb381673fdb83dd8343cdba831bfb59fcbb9dc20239fd41ae'
-    EngineSHA256 = '04918d02fef93295c83e2ed469663100ea572a7e8cad6f24a9da6785e3c295d9'
+    EngineSHA256 = 'ca75948296ca829958e978676341302dec43da6cb896c39f35b243c876aa775f'
     BrokerSHA256 = 'b766c6d6078fdebb038d8dd13cc520a8784301ada3c655e19ac2c1ad11a15abf'
     BootstrapSHA256 = '571477cdfee70df36a64e1f4e6854d9f92ef1586f60e108c8063b4614a0be130'
     UiBridgeSHA256 = 'ef53bfa8e0aa44a3bfbf8bdfb4a64807b9cf5aa87c90f9b82eac454d895072c6'
