@@ -63,12 +63,13 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="注册表清理" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="只删指向已经不存在文件的残留：卸载项、启动项、程序路径。不动奥创中心、显卡驱动、微软运行库和系统服务。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock Text="只删指向已经不存在文件的残留：卸载项、启动项、程序路径。清理前自动备份，可以一键还原。不动奥创中心、显卡驱动、微软运行库和系统服务。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         <TextBlock x:Name="RegistryText" Text="正在扫描…" TextWrapping="Wrap" Margin="0,10,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" VerticalAlignment="Top">
                         <Button x:Name="ScanRegistryButton" Content="重新扫描" Click="ScanRegistry_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
-                        <Button x:Name="CleanRegistryButton" Content="立即清理" Click="CleanRegistry_Click" Background="#0F172A" Foreground="White" Margin="0" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="CleanRegistryButton" Content="立即清理" Click="CleanRegistry_Click" Background="#0F172A" Foreground="White" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="RestoreRegistryButton" Content="还原上次备份" Click="RestoreRegistry_Click" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </Grid>
             </Border>

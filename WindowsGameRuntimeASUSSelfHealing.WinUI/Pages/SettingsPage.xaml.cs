@@ -82,10 +82,11 @@ public sealed partial class SettingsPage : Page
 
     private async void CleanRegistry_Click(object sender, RoutedEventArgs e)
     {
-        if (!await PageHelpers.ConfirmAsync(this, "清理注册表残留", "只删除指向已经不存在文件的残留项。不会改驱动、奥创中心、微软运行库和系统服务。无权修改的系统项会自动跳过。", "立即清理"))
+        if (!await PageHelpers.ConfirmAsync(this, "清理注册表残留", "先备份，再删除指向已经不存在文件的残留项。不会改驱动、奥创中心、微软运行库和系统服务。无权修改的系统项会自动跳过。可随时点还原上次备份。", "立即清理"))
             return;
         ScanRegistryButton.IsEnabled = false;
         CleanRegistryButton.IsEnabled = false;
+        RestoreRegistryButton.IsEnabled = false;
         try
         {
             var result = await App.Services.Maintenance.CleanRegistryAsync();
@@ -105,6 +106,37 @@ public sealed partial class SettingsPage : Page
         {
             ScanRegistryButton.IsEnabled = true;
             CleanRegistryButton.IsEnabled = true;
+            RestoreRegistryButton.IsEnabled = true;
+        }
+    }
+
+    private async void RestoreRegistry_Click(object sender, RoutedEventArgs e)
+    {
+        if (!await PageHelpers.ConfirmAsync(this, "还原注册表备份", "会把最近一次清理前的备份写回去。只还原这次软件清过的残留项。", "立即还原"))
+            return;
+        ScanRegistryButton.IsEnabled = false;
+        CleanRegistryButton.IsEnabled = false;
+        RestoreRegistryButton.IsEnabled = false;
+        try
+        {
+            var message = await App.Services.Maintenance.RestoreLatestRegistryBackupAsync();
+            Info.Title = "注册表已还原";
+            Info.Message = message;
+            Info.Severity = InfoBarSeverity.Success;
+            App.Services.SessionLog.Note("RegistryRestore", message);
+            await ScanRegistryAsync();
+        }
+        catch (Exception ex)
+        {
+            Info.Title = "注册表还原失败";
+            Info.Message = ex.Message;
+            Info.Severity = InfoBarSeverity.Error;
+        }
+        finally
+        {
+            ScanRegistryButton.IsEnabled = true;
+            CleanRegistryButton.IsEnabled = true;
+            RestoreRegistryButton.IsEnabled = true;
         }
     }
 
