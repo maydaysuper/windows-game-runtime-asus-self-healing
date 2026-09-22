@@ -30,12 +30,12 @@ public sealed partial class OverviewPage : Page
         RefreshButton.IsEnabled = false;
         SummaryInfo.Severity = InfoBarSeverity.Informational;
         SummaryInfo.Title = "正在体检";
-        SummaryInfo.Message = "正在查看奥创、运行库和近期崩溃。";
+        SummaryInfo.Message = "正在联网对比官方运行库，并查看奥创和崩溃。";
         try
         {
             using var result = await App.Services.Performance.MeasureAsync(
                 "Home.HealthCheck",
-                () => _backend.RunAsync("DASHBOARD", force: force, timeout: TimeSpan.FromMinutes(2)));
+                () => _backend.RunAsync("DASHBOARD", force: force, timeout: TimeSpan.FromMinutes(4)));
             if (!result.Success) throw new InvalidOperationException(result.Error);
 
             var components = result.Payload.Array("Components").Select(PageHelpers.ToComponent).ToArray();

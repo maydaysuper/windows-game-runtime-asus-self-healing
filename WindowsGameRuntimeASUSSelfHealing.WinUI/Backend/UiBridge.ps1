@@ -154,12 +154,13 @@ try {
             Write-BridgeResult $true ([PSCustomObject]@{Transactions=@($list|Select-Object TransactionId,Type,Group,Label,State,StartedAt,UpdatedAt,LastDetail);Open=(Get-LatestOpenTransaction)})
         }
         'RUNTIME_ONLINE' {
-            $script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
+            $online=Update-RuntimeOnlineInfo -Force:$Force
             $snap=Get-SystemSnapshot -Force
             $elig=Get-RuntimeRepairEligibility $snap
-            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;Packages=@();Retired=$true;Message='本机运行库检测完成。需要修复时走「修复运行库」，检测本身不下载微软安装包。'})
+            Write-BridgeResult $true ([PSCustomObject]@{Rows=@($snap.Rows|Where-Object{$_.Group -eq 'RUNTIME'}|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group);Eligibility=$elig;OfficialVersion=[string]$script:RuntimeOfficialVC14;Compared=[bool]$online.Success;Message=[string]$script:RuntimeStatusMessage})
         }
         'PLAN_RUNTIME' {
+            if(-not (Test-RuntimeOnlineInfoFresh 30) -or -not $script:RuntimeOfficialVC14){[void](Update-RuntimeOnlineInfo)}
             $snap=Get-SystemSnapshot -Force
             $plan=New-RepairPlan 'RUNTIME' '' $snap
             Write-BridgeResult $true ([PSCustomObject]@{Plan=$plan;Text=(Format-RepairPlan $plan)})
