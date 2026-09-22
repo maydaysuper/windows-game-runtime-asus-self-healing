@@ -1,7 +1,7 @@
 ﻿#define MyAppName "奥创修复中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.3.1"
+  #define MyAppVersion "4.4.0"
 #endif
 #ifndef SourceRoot
   #define SourceRoot "..\\artifacts\\package"

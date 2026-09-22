@@ -239,7 +239,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.3.1': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.4.0': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -268,8 +268,8 @@ if "$host='" in engine_text or 'try{$host=' in engine_text: fail('RepairCenter m
 else: ok('RepairCenter does not clobber $Host')
 if '$finalHost' in engine_text: ok('Microsoft trust result uses $finalHost')
 else: fail('Microsoft trust result still uses $host')
-if '已停用 Microsoft 官方安装器对比' in engine_text: ok('local-healthy VC++ is PASS without Microsoft installer compare')
-else: fail('VC++ diagnostic still depends on Microsoft official installer compare')
+if 'function Get-WingetVCRedistVersion' in engine_text and "Source='Online'" in engine_text: ok('runtime detection compares official VC++ version')
+else: fail('runtime detection no longer compares official VC++ version')
 if '点击一键诊断/运行库联网检测后会与 Microsoft 官方最新版本比较' in engine_text: fail('VC++ still WARNs waiting for online compare')
 else: ok('VC++ no longer asks the user to online-compare for health')
 if "Status -in @('N/A','INFO')" in engine_text or 'Status -in @(\'N/A\',\'INFO\')' in engine_text or "$r.Status -in @('N/A','INFO')" in engine_text: ok('final verification treats INFO as PASS')
@@ -284,13 +284,41 @@ if 'Get-LocalVCRedistInstaller' in engine_text and 'Invoke-VCRedistWinget' in en
 else:
     fail('VC++ local-first repair path missing')
 online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-OfficialVC14Target',1)[0]
-if 'Get-VCRedistOnlinePackage' in online_fn or 'Get-DirectXWebInstaller' in online_fn or 'Invoke-OfficialMicrosoftDownload' in online_fn: fail('Update-RuntimeOnlineInfo still downloads Microsoft installers')
-else: ok('Update-RuntimeOnlineInfo is a retired no-download stub')
+if 'Get-WingetVCRedistVersion' in online_fn: ok('Update-RuntimeOnlineInfo queries official version first')
+else: fail('Update-RuntimeOnlineInfo does not query official version')
 if 'function Get-OfficialVC14Target' in engine_text and '14.42.0.0' in engine_text: ok('VC++ keeps offline official-baseline comparison')
 else: fail('VC++ offline version comparison missing')
+if 'function Get-VCRuntimeLocalState' in engine_text and 'msvcp140_1.dll' in engine_text and 'msvcp140_atomic_wait.dll' in engine_text and 'vccorlib140.dll' in engine_text:
+    ok('VC++ detection inventories the full CRT DLL set')
+else:
+    fail('VC++ detection still checks only 2-3 CRT DLLs')
+if 'function Update-WingetVCRedistVersions' in engine_text and 'AddSeconds(12)' in engine_text:
+    ok('official VC++ lookup is parallel with a short timeout')
+else:
+    fail('official VC++ lookup is still serial/slow')
+if 'function Test-VCRuntimeRepaired' in engine_text and 'Test-VCRuntimeRepaired' in engine_text.split('function Invoke-VCRedistRepair',1)[1].split('function Get-LocalDirectXLegacyInstaller',1)[0]:
+    ok('VC++ repair re-checks local files after each method')
+else:
+    fail('VC++ repair does not verify files after install')
+if '-Depth 2' in engine_text and 'VC_redist.' in engine_text:
+    ok('Package Cache scan is depth-limited')
+else:
+    fail('Package Cache scan is unbounded recurse')
+if 'Test-RuntimeOnlineInfoFresh $freshMinutes' in engine_text:
+    ok('runtime online compare coalesces duplicate Force queries')
+else:
+    fail('runtime online compare still double-queries on Force')
+if 'function Test-VCRuntimeInProcessLoad' in engine_text and 'LoadLibraryW' in engine_text:
+    ok('VC++ detection load-tests core CRT DLLs')
+else:
+    fail('VC++ detection does not load-test CRT DLLs')
+if 'function Read-RuntimeOfficialCache' in engine_text and 'official-vc14.json' in engine_text:
+    ok('official VC++ version is cached for offline compare')
+else:
+    fail('official VC++ disk cache missing')
 diag_fn=engine_text.split('function Get-RuntimeDiagnosticRows',1)[1].split('function Write-RuntimeOnlineWorker',1)[0]
-if 'RuntimeOnlineInfo' in diag_fn or '建议执行修复安装' in diag_fn: fail('runtime diagnostics still compare official packages or WARN on SideBySide')
-else: ok('runtime diagnostics are local-only and do not WARN for official compare')
+if '低于官方' in diag_fn and "Source -eq 'Online'" in diag_fn: ok('runtime diagnostics mark UPDATE when below official')
+else: fail('runtime diagnostics do not UPDATE on official mismatch')
 if 'C++ 运行库' in diag_fn and '游戏 DirectX' in diag_fn and '老游戏兼容组件' in diag_fn: ok('runtime diagnostics use customer-facing names')
 else: fail('runtime diagnostic names are still jargon')
 plan_fn=engine_text.split('function Format-RepairPlan',1)[1].split('function Save-Transaction',1)[0]
@@ -300,13 +328,13 @@ verify_fn=engine_text.split('function Run-FinalVerification',1)[1].split('functi
 if 'installed=' in verify_fn or 'runtime=' in verify_fn: fail('final verification still prints installed=/runtime= jargon')
 else: ok('final verification prints customer results')
 headless_fn=engine_text.split('function Invoke-RuntimeRepairHeadless',1)[1].split('function Invoke-ContinuePendingRepairHeadless',1)[0]
-if 'Invoke-RuntimeAutoRepair' in headless_fn and 'Update-RuntimeOnlineInfo' not in headless_fn:
-    ok('runtime repair headless uses local-first auto-repair without dashboard download')
+if 'Invoke-RuntimeAutoRepair' in headless_fn and 'Update-RuntimeOnlineInfo' in headless_fn:
+    ok('runtime repair headless compares official version then repairs')
 else:
-    fail('runtime repair headless missing local-first auto-repair')
+    fail('runtime repair headless missing official compare before repair')
 bridge_text=(BACK/'UiBridge.ps1').read_text(encoding='utf-8')
-if "[void](Update-RuntimeOnlineInfo" in bridge_text: fail('UiBridge still runs Microsoft online compare')
-else: ok('UiBridge RUNTIME_ONLINE/PLAN_RUNTIME no longer download Microsoft installers')
+if 'Update-RuntimeOnlineInfo' in bridge_text: ok('UiBridge RUNTIME_ONLINE compares official version')
+else: fail('UiBridge RUNTIME_ONLINE does not compare official version')
 if 'ApplicationIcon' in csproj and r'Assets\app.ico' in csproj: ok('application icon is embedded')
 else: fail('csproj missing ApplicationIcon')
 if not (PROJ/'Assets'/'app.ico').exists(): fail('app.ico missing')
@@ -325,8 +353,25 @@ if '<ScrollViewer>' in runtime_xaml and 'ItemsControl' in runtime_xaml: ok('runt
 else: fail('runtime page still traps wheel inside nested ListView')
 if '修复运行库' not in runtime_xaml: fail('runtime page missing 修复运行库 button')
 else: ok('runtime page exposes 修复运行库')
-if '联网对比' in runtime_xaml or '官方包信任证据' in runtime_xaml: fail('runtime Microsoft compare UI must stay removed')
-else: ok('runtime page has no Microsoft compare UI')
+if '联网对比' not in runtime_xaml: fail('runtime page missing official compare copy')
+else: ok('runtime page explains official compare')
+runtime_cs=(PROJ/'Pages'/'RuntimePage.xaml.cs').read_text(encoding='utf-8')
+if 'await RefreshOnlineAsync(true)' in runtime_cs and 'NeedsAutoRepair()' in runtime_cs and 'promptRepair && eligible && NeedsAutoRepair()' in runtime_cs:
+    ok('runtime detection auto-starts repair on official mismatch')
+else:
+    fail('runtime detection does not auto-repair on mismatch')
+snap_fn=engine_text.split('function Get-SystemSnapshot',1)[1].split('\nfunction ',1)[0]
+if 'Update-RuntimeOnlineInfo -Force:$Force' in snap_fn:
+    ok('dashboard snapshot online-compares VC++ on every detect')
+else:
+    fail('dashboard snapshot does not refresh official VC++ compare')
+overview_cs=(PROJ/'Pages'/'OverviewPage.xaml.cs').read_text(encoding='utf-8')
+if 'TimeSpan.FromMinutes(4)' in overview_cs and '联网对比官方运行库' in overview_cs:
+    ok('overview health check online-compares runtimes')
+else:
+    fail('overview health check is still local-only or too short')
+if '官方包信任证据' in runtime_xaml: fail('runtime page still dumps trust evidence')
+else: ok('runtime page has no trust-evidence dump')
 if 'DisplayName' in runtime_xaml and 'DisplayStatus' in runtime_xaml and 'ResultLine' in runtime_xaml: ok('runtime cards show customer-facing result labels')
 else: fail('runtime cards still bind raw Name/Status/Detail jargon')
 if '奥创更新错误' in safety_xaml: ok('ASUS page is update-error focused')
@@ -387,7 +432,7 @@ for page in cap['ReportsAdvanced']['Pages']:
 # User-accessible parity with the v3.1 stable UI operations after navigation consolidation.
 ui_contracts={
     'Pages/SafetyPage.xaml.cs':['RunAsync("PLAN_ASUS"','ASUS_REPAIR'],
-    'Pages/RuntimePage.xaml.cs':['ReadComponentStatesAsync("RUNTIME"','RunAsync("DASHBOARD"','RunAsync("PLAN_RUNTIME"','RUNTIME_REPAIR'],
+    'Pages/RuntimePage.xaml.cs':['ReadComponentStatesAsync("RUNTIME"','RunAsync("RUNTIME_ONLINE"','RunAsync("PLAN_RUNTIME"','RUNTIME_REPAIR'],
     'Pages/CrashPage.xaml.cs':['AnalyzeDump_Click','WER_ENABLE','WER_DISABLE','RunGpuDiagnosisAsync','GPU_SAFE_REPAIR'],
     'Pages/ReportsPage.xaml.cs':['RunAsync("TRANSACTIONS"','RunAsync("VERIFY"','RunAsync("EXPORT_REPORT"','CONTINUE','GenerateSystemHealthReportAsync','GenerateRepairReportAsync'],
     'Pages/SettingsPage.xaml.cs':['DeepTestPage','IdentityPage','ArchitecturePage'],

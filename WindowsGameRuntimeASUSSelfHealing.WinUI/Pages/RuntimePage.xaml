@@ -10,7 +10,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,20,0">
                     <TextBlock Text="游戏运行库" FontSize="22" FontWeight="SemiBold"/>
-                    <TextBlock Text="看 C++ 运行库和 DirectX 能不能玩游戏。不完整时点「修复运行库」可以自动修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="先检查本机 C++ 文件，再联网对比官方版本。不完整或低于官方就修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
                     <Button x:Name="RefreshButton" Content="重新检测" Click="RefreshButton_Click"/>
@@ -18,7 +18,7 @@
                 </WrapPanel>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="RuntimeInfo" Margin="0,16,0,0" IsOpen="True" Title="等待检测" Message="点「重新检测」看要不要修。不完整时再点「修复运行库」。"/>
+            <ctrl:StatusBanner x:Name="RuntimeInfo" Margin="0,16,0,0" IsOpen="True" Title="等待检测" Message="点「重新检测」会检查本机文件并联网对比官方版本。不一样就修复。"/>
 
             <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,16,0,0">
                 <StackPanel>

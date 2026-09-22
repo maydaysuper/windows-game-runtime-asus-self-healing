@@ -71,6 +71,11 @@ try { $script:BuildInfoSHA256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $Bu
 New-Item -ItemType Directory -Force -Path $WorkRoot,$ModuleRoot,$RuntimeCacheRoot,$TransactionRoot,$PlanRoot,$DeepTestRoot,$FingerprintRoot,$RecoveryRoot,$RulePackRoot,$ObservationRoot,$BrokerRequestRoot,$CrashRoot,$CrashDumpRoot,$PolicyRoot | Out-Null
 
 $VCRedistUrls = @{
+    x86='https://aka.ms/vs/17/release/vc_redist.x86.exe'
+    x64='https://aka.ms/vs/17/release/vc_redist.x64.exe'
+    arm64='https://aka.ms/vs/17/release/vc_redist.arm64.exe'
+}
+$VCRedistFallbackUrls = @{
     x86='https://aka.ms/vc14/vc_redist.x86.exe'
     x64='https://aka.ms/vc14/vc_redist.x64.exe'
     arm64='https://aka.ms/vc14/vc_redist.arm64.exe'
@@ -81,7 +86,11 @@ $DirectXOfflinePage = 'https://www.microsoft.com/en-us/download/details.aspx?id=
 $DirectXOfflineInstallerUrl = 'https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe'
 $script:RuntimeOnlineInfo = $null
 $script:RuntimeOnlineCheckedAt = [datetime]::MinValue
-$script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
+$script:RuntimeOfficialVC14 = ''
+$script:WingetVCVersionCache = @{}
+$script:WingetVCVersionCacheAt = [datetime]::MinValue
+$script:VCLoadTypeReady = $false
+$script:RuntimeStatusMessage = '尚未对比官方运行库'
 $RuntimeRepairStampPath = Join-Path $WorkRoot 'RuntimeLastRepair.txt'
 $script:DxDiagVersionCache = ''
 $script:DxDiagCheckedAt = [datetime]::MinValue
@@ -182,10 +191,23 @@ function Get-RlsTargetVersion([object]$Def) {
 }
 
 function Compare-VersionSafe([string]$A,[string]$B) {
-    try { return ([version]$A).CompareTo([version]$B) }
-    catch { return [string]::Compare($A,$B,$true) }
+    $na = Normalize-VersionText $A
+    $nb = Normalize-VersionText $B
+    if (-not $na -and -not $nb) { return 0 }
+    if (-not $na) { return -1 }
+    if (-not $nb) { return 1 }
+    try {
+        $pa = [System.Collections.Generic.List[string]]::new()
+        $pb = [System.Collections.Generic.List[string]]::new()
+        foreach ($x in @($na.Split('.'))) { if ($pa.Count -lt 4) { [void]$pa.Add($x) } }
+        foreach ($x in @($nb.Split('.'))) { if ($pb.Count -lt 4) { [void]$pb.Add($x) } }
+        while ($pa.Count -lt 4) { [void]$pa.Add('0') }
+        while ($pb.Count -lt 4) { [void]$pb.Add('0') }
+        return ([version]($pa -join '.')).CompareTo([version]($pb -join '.'))
+    } catch {
+        return [string]::Compare($na,$nb,$true)
+    }
 }
-
 
 function Normalize-VersionText([string]$VersionText) {
     if (-not $VersionText) { return '' }
@@ -245,10 +267,36 @@ function Get-VCRuntimeRegistryState([string]$Arch) {
                 Installed=([int]$e.Installed -eq 1)
                 Version=$version
                 Path=$p
+                Source='Runtimes'
             }
         } catch {}
     }
-    return [PSCustomObject]@{Arch=$Arch;Installed=$false;Version='';Path=''}
+    $label = switch ($Arch) { 'x86' { 'x86' } 'arm64' { 'ARM64' } default { 'x64' } }
+    foreach ($root in @(
+        'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+        'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+    )) {
+        try {
+            $hits = @(Get-ItemProperty $root -ErrorAction SilentlyContinue |
+                Where-Object {
+                    $_.DisplayName -match '(?i)Microsoft Visual C\+\+ 2015-\d+ Redistributable' -and
+                    $_.DisplayName -match [regex]::Escape('(' + $label + ')')
+                })
+            foreach ($h in $hits) {
+                $version = Normalize-VersionText ([string]$h.DisplayVersion)
+                if ($version) {
+                    return [PSCustomObject]@{
+                        Arch=$Arch
+                        Installed=$true
+                        Version=$version
+                        Path=[string]$h.PSPath
+                        Source='Uninstall'
+                    }
+                }
+            }
+        } catch {}
+    }
+    return [PSCustomObject]@{Arch=$Arch;Installed=$false;Version='';Path='';Source=''}
 }
 
 function Get-VCRuntimeFileRoot([string]$Arch) {
@@ -256,10 +304,24 @@ function Get-VCRuntimeFileRoot([string]$Arch) {
     return (Join-Path $env:WINDIR 'System32')
 }
 
+function Get-VCRuntimeDllNames([string]$Arch) {
+    $names = @(
+        'vcruntime140.dll',
+        'msvcp140.dll',
+        'msvcp140_1.dll',
+        'msvcp140_2.dll',
+        'msvcp140_atomic_wait.dll',
+        'msvcp140_codecvt_ids.dll',
+        'concrt140.dll',
+        'vccorlib140.dll'
+    )
+    if ($Arch -ne 'x86') { $names += 'vcruntime140_1.dll' }
+    return $names
+}
+
 function Get-VCRuntimeFileState([string]$Arch,[switch]$Deep) {
     $root = Get-VCRuntimeFileRoot $Arch
-    $names = @('vcruntime140.dll','msvcp140.dll')
-    if ($Arch -ne 'x86') { $names += 'vcruntime140_1.dll' }
+    $names = @(Get-VCRuntimeDllNames $Arch)
     $rows = @()
     foreach ($n in $names) {
         $p = Join-Path $root $n
@@ -269,6 +331,93 @@ function Get-VCRuntimeFileState([string]$Arch,[switch]$Deep) {
         }
     }
     return $rows
+}
+
+function Initialize-VCLoadType {
+    if ($script:VCLoadTypeReady) { return $true }
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class VCLoad {
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    public static extern IntPtr LoadLibraryW(string p);
+    [DllImport("kernel32.dll")]
+    public static extern bool FreeLibrary(IntPtr h);
+}
+'@ -ErrorAction Stop | Out-Null
+        $script:VCLoadTypeReady = $true
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Test-VCRuntimeInProcessLoad([string]$Arch,[object[]]$Files) {
+    $result = [PSCustomObject]@{Ran=$false;Success=$true;Failed=@()}
+    if ($Arch -eq 'x86' -and [Environment]::Is64BitOperatingSystem) { return $result }
+    if ($Arch -eq 'arm64' -and $env:PROCESSOR_ARCHITECTURE -notmatch '(?i)ARM64') { return $result }
+    if (-not (Initialize-VCLoadType)) { return $result }
+    $core = @('vcruntime140.dll','msvcp140.dll','vcruntime140_1.dll')
+    $result.Ran = $true
+    foreach ($f in @($Files)) {
+        $name = [string]$f.Name
+        if ($core -notcontains $name) { continue }
+        if (-not $f.Exists) { $result.Success = $false; $result.Failed += $name; continue }
+        try {
+            $h = [VCLoad]::LoadLibraryW([string]$f.Path)
+            if ($h -eq [IntPtr]::Zero) {
+                $result.Success = $false
+                $result.Failed += $name
+            } else {
+                [void][VCLoad]::FreeLibrary($h)
+            }
+        } catch {
+            $result.Success = $false
+            $result.Failed += $name
+        }
+    }
+    return $result
+}
+
+function Get-VCRuntimeLocalState([string]$Arch,[switch]$Deep) {
+    $reg = Get-VCRuntimeRegistryState $Arch
+    $files = @(Get-VCRuntimeFileState $Arch -Deep:$Deep)
+    $missing = @($files | Where-Object { -not $_.Exists })
+    $bad = @($files | Where-Object { $_.Exists -and -not $_.SignatureOK })
+    $ok = @($files | Where-Object { $_.Exists -and $_.SignatureOK })
+    $versions = @($ok | ForEach-Object { Normalize-VersionText ([string]$_.Version) } | Where-Object { $_ })
+    $fileVersion = ''
+    $inconsistent = $false
+    if ($versions.Count -gt 0) {
+        $fileVersion = $versions[0]
+        foreach ($v in $versions) {
+            if ((Compare-VersionSafe $v $fileVersion) -lt 0) { $fileVersion = $v }
+        }
+        foreach ($v in $versions) {
+            if ((Compare-VersionSafe $v $fileVersion) -ne 0) { $inconsistent = $true; break }
+        }
+    }
+    $effective = $fileVersion
+    if (-not $effective) { $effective = [string]$reg.Version }
+    $complete = ($missing.Count -eq 0 -and $bad.Count -eq 0 -and $ok.Count -eq $files.Count)
+    $load = Test-VCRuntimeInProcessLoad $Arch $files
+    $healthy = $complete -and -not $inconsistent -and (-not $load.Ran -or $load.Success)
+    return [PSCustomObject]@{
+        Arch=$Arch
+        Registry=$reg
+        Files=$files
+        MissingCount=$missing.Count
+        BadCount=$bad.Count
+        FileVersion=$fileVersion
+        EffectiveVersion=$effective
+        Inconsistent=$inconsistent
+        Complete=$complete
+        LoadRan=[bool]$load.Ran
+        LoadOk=[bool]$load.Success
+        Healthy=$healthy
+        InstalledFlag=[bool]$reg.Installed
+    }
 }
 
 function Get-VCRuntimeErrorEvidence([int]$Hours=24) {
@@ -359,7 +508,18 @@ function Invoke-OfficialMicrosoftDownload([string]$Url,[string]$Destination,[int
 
 function Get-VCRedistOnlinePackage([string]$Arch,[switch]$Force) {
     if(-not $VCRedistUrls.ContainsKey($Arch)){return [PSCustomObject]@{Success=$false;TrustComplete=$false;Arch=$Arch;Path='';Version='';SHA256='';Error='Unsupported architecture'}}
-    $dest=Join-Path $RuntimeCacheRoot ("vc_redist_$Arch.exe");$age=if($Force){0}else{24};$r=Invoke-OfficialMicrosoftDownload ([string]$VCRedistUrls[$Arch]) $dest $age;$r|Add-Member -NotePropertyName Arch -NotePropertyValue $Arch -Force;return $r
+    $dest=Join-Path $RuntimeCacheRoot ("vc_redist_$Arch.exe");$age=if($Force){0}else{24}
+    $urls=@([string]$VCRedistUrls[$Arch])
+    if($VCRedistFallbackUrls.ContainsKey($Arch)){$fb=[string]$VCRedistFallbackUrls[$Arch];if($fb -and $urls -notcontains $fb){$urls += $fb}}
+    $last=$null
+    foreach($url in $urls){
+        $r=Invoke-OfficialMicrosoftDownload $url $dest $age
+        $r|Add-Member -NotePropertyName Arch -NotePropertyValue $Arch -Force
+        if($r.Success){return $r}
+        $last=$r
+    }
+    if($last){return $last}
+    return [PSCustomObject]@{Success=$false;TrustComplete=$false;Arch=$Arch;Path='';Version='';SHA256='';Error='官方安装包不可用'}
 }
 
 function Get-DirectXWebInstaller([switch]$Force) {
@@ -465,52 +625,228 @@ function Get-LegacyVCRedistInventory {
     return @($out | Sort-Object DisplayName,DisplayVersion -Unique)
 }
 
-function Update-RuntimeOnlineInfo([switch]$Force) {
-    $script:RuntimeOnlineInfo = [ordered]@{}
-    $script:RuntimeOnlineCheckedAt = Get-Date
-    $script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
-    return [PSCustomObject]@{Success=$true;Info=$script:RuntimeOnlineInfo;Errors=@();Retired=$true}
+function Get-CachedVCRedistVersion([string]$Arch) {
+    $dest=Join-Path $RuntimeCacheRoot ("vc_redist_$Arch.exe")
+    if(-not (Test-Path -LiteralPath $dest)){return ''}
+    try{
+        $check=Test-MicrosoftSignedFile $dest
+        if($check.Valid){
+            $v=Normalize-VersionText ([string]$check.ProductVersion)
+            if(-not $v){$v=Normalize-VersionText ([string]$check.FileVersion)}
+            return $v
+        }
+    }catch{}
+    return ''
 }
 
-function Get-OfficialVC14Target {
-    # Offline Microsoft VC++ 2015-2022 baseline. Live installer download is retired.
-    # This still lets local version comparison work without aka.ms / dxwebsetup.
-    return [PSCustomObject]@{Version='14.42.0.0';Minimum='14.30.0.0';Source='BuiltIn'}
+function Read-RuntimeOfficialCache {
+    $p = Join-Path $RuntimeCacheRoot 'official-vc14.json'
+    if (-not (Test-Path -LiteralPath $p)) { return $null }
+    try {
+        $o = Get-Content -LiteralPath $p -Raw -ErrorAction Stop | ConvertFrom-Json
+        $at = [datetime]::MinValue
+        if (-not [datetime]::TryParse([string]$o.CheckedAt, [ref]$at)) { return $null }
+        if (((Get-Date) - $at).TotalHours -gt 24) { return $null }
+        return $o
+    } catch {
+        return $null
+    }
+}
+
+function Write-RuntimeOfficialCache([object]$Info,[string]$Best) {
+    if (-not $Best) { return }
+    $p = Join-Path $RuntimeCacheRoot 'official-vc14.json'
+    try {
+        $obj = [PSCustomObject]@{
+            SchemaVersion=1
+            CheckedAt=(Get-Date).ToString('o')
+            OfficialVC14=$Best
+            Info=$Info
+        }
+        $tmp = $p + '.tmp'
+        $obj | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $tmp -Encoding UTF8
+        Move-Item -LiteralPath $tmp -Destination $p -Force
+    } catch {}
+}
+
+function Update-WingetVCRedistVersions([string[]]$ArchList) {
+    $ids = @{ x64='Microsoft.VCRedist.2015+.x64'; x86='Microsoft.VCRedist.2015+.x86'; arm64='Microsoft.VCRedist.2015+.arm64' }
+    if (-not $script:WingetVCVersionCache) { $script:WingetVCVersionCache = @{} }
+    $wg = Get-WingetPath
+    if (-not $wg) { return }
+    $procs = @()
+    foreach ($arch in @($ArchList)) {
+        if (-not $ids.ContainsKey($arch)) { continue }
+        $out = Join-Path $WorkRoot ('winget-vc-' + $arch + '.txt')
+        $err = Join-Path $WorkRoot ('winget-vc-' + $arch + '.err.txt')
+        try {
+            Remove-Item -LiteralPath $out,$err -Force -ErrorAction SilentlyContinue
+            $p = Start-Process -FilePath $wg -ArgumentList @('show','--id',$ids[$arch],'-e','--accept-source-agreements','--disable-interactivity') -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err
+            $procs += [PSCustomObject]@{Arch=$arch;Proc=$p;Out=$out;Err=$err}
+        } catch {}
+    }
+    $deadline = (Get-Date).AddSeconds(12)
+    foreach ($x in $procs) {
+        while ($x.Proc -and -not $x.Proc.HasExited -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Milliseconds 150
+            try { $x.Proc.Refresh() } catch {}
+        }
+        if ($x.Proc -and -not $x.Proc.HasExited) { try { $x.Proc.Kill() } catch {} }
+        $text = ''
+        if (Test-Path -LiteralPath $x.Out) { $text += [string](Get-Content -LiteralPath $x.Out -Raw -ErrorAction SilentlyContinue) }
+        if (Test-Path -LiteralPath $x.Err) { $text += [string](Get-Content -LiteralPath $x.Err -Raw -ErrorAction SilentlyContinue) }
+        if ($text -match '(?im)^\s*Version:\s*([0-9.]+)') {
+            $script:WingetVCVersionCache[$x.Arch] = (Normalize-VersionText $matches[1])
+        }
+    }
+    $script:WingetVCVersionCacheAt = Get-Date
+}
+
+function Get-WingetVCRedistVersion([string]$Arch) {
+    if ($script:WingetVCVersionCache -and $script:WingetVCVersionCache.ContainsKey($Arch) -and $script:WingetVCVersionCacheAt -and (((Get-Date) - $script:WingetVCVersionCacheAt).TotalMinutes -lt 5)) {
+        return [string]$script:WingetVCVersionCache[$Arch]
+    }
+    [void](Update-WingetVCRedistVersions @($Arch))
+    if ($script:WingetVCVersionCache -and $script:WingetVCVersionCache.ContainsKey($Arch)) {
+        return [string]$script:WingetVCVersionCache[$Arch]
+    }
+    return ''
+}
+
+function Update-RuntimeOnlineInfo([switch]$Force) {
+    $freshMinutes = if ($Force) { 1 } else { 30 }
+    if ((Test-RuntimeOnlineInfoFresh $freshMinutes) -and $script:RuntimeOfficialVC14) {
+        return [PSCustomObject]@{Success=$true;Info=$script:RuntimeOnlineInfo;Errors=@();Cached=$true}
+    }
+    $info = [ordered]@{}; $errors = @(); $best = ''
+    $archs = @(Get-RequiredVCRedistArchitectures)
+    [void](Update-WingetVCRedistVersions $archs)
+    foreach ($arch in $archs) {
+        $ver = Get-WingetVCRedistVersion $arch
+        $source = 'Winget'
+        if (-not $ver) { $ver = Get-CachedVCRedistVersion $arch; if ($ver) { $source = 'Cache' } }
+        if (-not $ver -and $Force) {
+            try {
+                $pkg = Get-VCRedistOnlinePackage $arch -Force:$false
+                if ($pkg -and $pkg.Success) {
+                    $ver = Normalize-VersionText ([string]$pkg.ProductVersion)
+                    if (-not $ver) { $ver = Normalize-VersionText ([string]$pkg.FileVersion) }
+                    if (-not $ver) { $ver = Normalize-VersionText ([string]$pkg.Version) }
+                    if ($ver) { $source = 'OfficialPackage' }
+                }
+            } catch {}
+        }
+        $ok = [bool]$ver
+        $info["VC_$arch"] = [PSCustomObject]@{Success=$ok;Arch=$arch;Version=$ver;Source=$source;TrustComplete=$ok}
+        if ($ok) {
+            if (-not $best -or (Compare-VersionSafe $ver $best) -gt 0) { $best = $ver }
+        } else {
+            $errors += ("C++ 运行库（$arch）没连上官方源")
+        }
+    }
+    if (-not $best) {
+        $disk = Read-RuntimeOfficialCache
+        if ($disk -and [string]$disk.OfficialVC14) {
+            $best = Normalize-VersionText ([string]$disk.OfficialVC14)
+            try {
+                foreach ($prop in @($disk.Info.PSObject.Properties)) {
+                    $pv = Normalize-VersionText ([string]$prop.Value.Version)
+                    if ($pv) {
+                        $info[$prop.Name] = [PSCustomObject]@{Success=$true;Arch=[string]$prop.Value.Arch;Version=$pv;Source='DiskCache';TrustComplete=$true}
+                    }
+                }
+            } catch {}
+            if ($best) { $errors = @(); $script:RuntimeStatusMessage = '已对比官方 C++ 运行库' }
+        }
+    }
+    $script:RuntimeOnlineInfo = $info
+    $script:RuntimeOnlineCheckedAt = Get-Date
+    $script:RuntimeOfficialVC14 = $best
+    if ($best) {
+        $script:RuntimeStatusMessage = '已对比官方 C++ 运行库'
+        if ($info.Values | Where-Object { $_.Source -in @('Winget','OfficialPackage','Cache') }) {
+            Write-RuntimeOfficialCache $info $best
+        }
+    } else {
+        $script:RuntimeStatusMessage = '这次没连上官方源，无法对比'
+    }
+    return [PSCustomObject]@{Success=([bool]$best);Info=$info;Errors=$errors;Cached=$false}
+}
+
+function Get-OfficialVC14Target([string]$Arch='') {
+    if ($Arch -and $script:RuntimeOnlineInfo) {
+        $key = 'VC_' + $Arch
+        try {
+            $row = $script:RuntimeOnlineInfo[$key]
+            $pv = Normalize-VersionText ([string]$row.Version)
+            if ($pv) { return [PSCustomObject]@{Version=$pv;Minimum='14.30.0.0';Source='Online';Arch=$Arch} }
+        } catch {}
+    }
+    $v = Normalize-VersionText ([string]$script:RuntimeOfficialVC14)
+    if (-not $v -and $script:RuntimeOnlineInfo) {
+        foreach ($key in @($script:RuntimeOnlineInfo.Keys)) {
+            if ($key -notlike 'VC_*') { continue }
+            $pv = Normalize-VersionText ([string]$script:RuntimeOnlineInfo[$key].Version)
+            if ($pv -and (-not $v -or (Compare-VersionSafe $pv $v) -gt 0)) { $v = $pv }
+        }
+    }
+    if ($v) { return [PSCustomObject]@{Version=$v;Minimum='14.30.0.0';Source='Online';Arch=$Arch} }
+    return [PSCustomObject]@{Version='14.42.0.0';Minimum='14.30.0.0';Source='BuiltIn';Arch=$Arch}
 }
 
 function Get-RuntimeDiagnosticRows([switch]$Deep) {
     $rows = @()
-    $vcTarget = Get-OfficialVC14Target
     $archName = @{ x64='64位'; x86='32位'; arm64='ARM' }
+    $vcErrors = @()
+    try { $vcErrors = @(Get-VCRuntimeErrorEvidence 24) } catch { $vcErrors = @() }
+    $recentFail = ($vcErrors.Count -gt 0)
     foreach ($arch in @(Get-RequiredVCRedistArchitectures)) {
-        $reg = Get-VCRuntimeRegistryState $arch
-        $files = @(Get-VCRuntimeFileState $arch -Deep:$Deep)
-        $healthyFiles = @($files | Where-Object { $_.Exists -and $_.SignatureOK }).Count
-        $label = 'C++ 运行库（' + $(if($archName.ContainsKey($arch)){$archName[$arch]}else{$arch}) + '）'
-        $installed = [string]$reg.Version
+        $st = Get-VCRuntimeLocalState $arch -Deep:$Deep
+        $vcTarget = Get-OfficialVC14Target $arch
+        $label = 'C++ 运行库（' + $(if ($archName.ContainsKey($arch)) { $archName[$arch] } else { $arch }) + '）'
+        $installed = [string]$st.EffectiveVersion
         $target = [string]$vcTarget.Version
+        $online = ([string]$vcTarget.Source -eq 'Online' -and $target)
         $status = 'PASS'
         $runtime = '本机可用'
         $detail = '正常，可以运行游戏。'
-        if (-not $reg.Installed -or -not $reg.Version -or $healthyFiles -lt $files.Count) {
+        if (-not $st.Complete -or $st.Inconsistent -or ($st.LoadRan -and -not $st.LoadOk)) {
             $status = 'REPAIR'
             $runtime = '未安装'
-            $detail = '没有完整的 C++ 运行库，部分游戏会打不开。点「修复运行库」可以自动修。'
+            if ($st.Inconsistent) {
+                $detail = 'C++ 运行库文件版本不一致，部分游戏会打不开。点「修复运行库」可以自动修。'
+            } elseif ($st.LoadRan -and -not $st.LoadOk) {
+                $detail = 'C++ 运行库文件没法正常加载。点「修复运行库」可以自动修。'
+            } else {
+                $detail = '没有完整的 C++ 运行库，部分游戏会打不开。点「修复运行库」可以自动修。'
+            }
+        } elseif ($online) {
+            $cmp = Compare-VersionSafe $installed $target
+            if ($cmp -lt 0) {
+                $status = 'UPDATE'
+                $runtime = '低于官方'
+                $detail = '和官方版本不一样。点「修复运行库」会更新到官方版本。'
+            } else {
+                $runtime = '已和官方一致'
+                $detail = '正常，已和官方版本一致。'
+                if ($recentFail) {
+                    $status = 'WARN'
+                    $runtime = '建议再修'
+                    $detail = '文件是齐的，但最近有游戏打不开运行库。点「修复运行库」可以再修一次。'
+                }
+            }
         } else {
             $cmpMin = Compare-VersionSafe $installed $vcTarget.Minimum
             if ($cmpMin -lt 0) {
                 $status = 'WARN'
                 $runtime = '版本偏低'
-                $detail = '已经能用，但版本偏低，部分新游戏可能打不开。点「修复运行库」可以更新。'
+                $detail = '已经能用，但版本偏低。这次没连上官方源。点「修复运行库」可以更新。'
+            } elseif ($recentFail) {
+                $status = 'WARN'
+                $runtime = '建议再修'
+                $detail = '本机可用。最近有游戏打不开运行库。点「修复运行库」可以再修一次。'
             } else {
-                $cmpRec = Compare-VersionSafe $installed $vcTarget.Version
-                if ($cmpRec -ge 0) {
-                    $runtime = '已达到建议版本'
-                    $detail = '正常，已达到当前建议版本。'
-                } else {
-                    $runtime = '本机可用'
-                    $detail = '正常，可以运行游戏。'
-                }
+                $detail = '本机可用。这次没连上官方源，无法确认是否最新。'
             }
         }
         $rows += [PSCustomObject]@{
@@ -548,7 +884,6 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
     return $rows
 }
 
-
 function Write-RuntimeOnlineWorker {
     $worker=@'
 param([Parameter(Mandatory=$true)][string]$ResultPath,[Parameter(Mandatory=$true)][string]$CacheRoot,[Parameter(Mandatory=$true)][string]$EnginePath,[switch]$Force)
@@ -581,9 +916,9 @@ function Import-RuntimeWorkerResult {
 }
 
 function Start-RuntimeOnlineProbeAsync([switch]$Force,[string]$Reason='手动') {
-    $script:RuntimeStatusMessage = '已停用 Microsoft 官方安装器对比与自动修复'
-    LogUI '已停用 VC++ / DirectX 官方安装器联网对比，不再下载 Microsoft 安装器。' -Force
-    return $false
+    $r=Update-RuntimeOnlineInfo -Force:$Force
+    LogUI $script:RuntimeStatusMessage -Force
+    return [bool]$r.Success
 }
 
 function Test-RuntimeOnlineInfoFresh([int]$Minutes=30) {
@@ -644,7 +979,7 @@ function Get-LocalVCRedistInstaller([string]$Arch) {
         try {
             $hits += Get-ItemProperty $root -ErrorAction SilentlyContinue |
                 Where-Object {
-                    $_.DisplayName -match '(?i)Microsoft Visual C\+\+ 2015-2022 Redistributable' -and
+                    $_.DisplayName -match '(?i)Microsoft Visual C\+\+ 2015-\d+ Redistributable' -and
                     $_.DisplayName -match [regex]::Escape('(' + $label + ')')
                 }
         } catch {}
@@ -662,9 +997,9 @@ function Get-LocalVCRedistInstaller([string]$Arch) {
     $cache = Join-Path $env:ProgramData 'Package Cache'
     if (Test-Path -LiteralPath $cache) {
         try {
-            Get-ChildItem -LiteralPath $cache -Filter ("VC_redist.$Arch.exe") -Recurse -ErrorAction SilentlyContinue |
+            Get-ChildItem -LiteralPath $cache -Filter ("VC_redist.$Arch.exe") -Recurse -Depth 2 -ErrorAction SilentlyContinue |
                 Sort-Object LastWriteTime -Descending |
-                Select-Object -First 6 |
+                Select-Object -First 8 |
                 ForEach-Object { [void]$paths.Add($_.FullName) }
         } catch {}
     }
@@ -673,9 +1008,9 @@ function Get-LocalVCRedistInstaller([string]$Arch) {
     foreach ($p in @($paths | Select-Object -Unique)) {
         if (-not (Test-Path -LiteralPath $p)) { continue }
         $sig = Test-MicrosoftSignedFile $p
-        if ($sig.Valid) { return [PSCustomObject]@{Success=$true;Path=$p;Source='Local'} }
+        if ($sig.Valid) { return [PSCustomObject]@{Success=$true;Path=$p;Source='Local';Version=[string]$sig.Version} }
     }
-    return [PSCustomObject]@{Success=$false;Path='';Source=''}
+    return [PSCustomObject]@{Success=$false;Path='';Source='';Version=''}
 }
 
 function Invoke-SignedRedistExe([string]$Path,[string]$Args,[string]$OkText,[string]$FailText) {
@@ -708,29 +1043,52 @@ function Invoke-VCRedistWinget([string]$Arch) {
     }
 }
 
+function Test-VCRuntimeRepaired([string]$Arch,[string]$Target,[bool]$NeedUpdate) {
+    $st = Get-VCRuntimeLocalState $Arch
+    if (-not $st.Healthy) { return $false }
+    if ($NeedUpdate -and $Target) {
+        if ((Compare-VersionSafe $st.EffectiveVersion $Target) -lt 0) { return $false }
+    }
+    return $true
+}
+
 function Invoke-VCRedistRepair([string]$Arch,[object]$Row) {
     $archName = @{ x64='64位'; x86='32位'; arm64='ARM' }
-    $label = 'C++ 运行库（' + $(if($archName.ContainsKey($Arch)){$archName[$Arch]}else{$Arch}) + '）'
+    $label = 'C++ 运行库（' + $(if ($archName.ContainsKey($Arch)) { $archName[$Arch] } else { $Arch }) + '）'
     $okText = $label + '已修好。'
     $failText = $label + '没法自动修好。'
+    $upgrade = ($Row -and $Row.Status -in @('UPDATE','WARN'))
+    $target = [string](Get-OfficialVC14Target $Arch).Version
+    $tryNext = $true
+
     $local = Get-LocalVCRedistInstaller $Arch
     if ($local.Success) {
-        $args = '/install /quiet /norestart'
-        if ($Row -and $Row.Installed -and ($Row.Status -in @('WARN','REPAIR','UPDATE'))) {
-            $args = '/repair /quiet /norestart'
+        $useLocal = $true
+        if ($upgrade -and $target) {
+            $localVer = Normalize-VersionText ([string]$local.Version)
+            if (-not $localVer) {
+                try { $localVer = Normalize-VersionText ([string](Test-MicrosoftSignedFile ([string]$local.Path)).Version) } catch {}
+            }
+            if ($localVer -and (Compare-VersionSafe $localVer $target) -lt 0) { $useLocal = $false }
         }
-        $r = Invoke-SignedRedistExe ([string]$local.Path) $args $okText $failText
-        if ($r.Success) { return $r }
+        if ($useLocal) {
+            $args = if ($upgrade) { '/install /quiet /norestart' } elseif ($Row -and $Row.Installed) { '/repair /quiet /norestart' } else { '/install /quiet /norestart' }
+            $r = Invoke-SignedRedistExe ([string]$local.Path) $args $okText $failText
+            if ($r.Success -and (Test-VCRuntimeRepaired $Arch $target $upgrade)) { return $r }
+            if ($r.Success) { $tryNext = $true } else { $tryNext = $true }
+        }
     }
     $wg = Invoke-VCRedistWinget $Arch
-    if ($wg.Success) { $wg.Message = $okText; return $wg }
+    if ($wg.Success -and (Test-VCRuntimeRepaired $Arch $target $upgrade)) { $wg.Message = $okText; return $wg }
     $online = $null
     try { $online = Get-VCRedistOnlinePackage $Arch -Force } catch { $online = $null }
     if ($online -and $online.Success -and [string]$online.Path) {
-        $args = '/install /quiet /norestart'
-        if ($Row -and $Row.Installed) { $args = '/repair /quiet /norestart' }
-        $r = Invoke-SignedRedistExe ([string]$online.Path) $args $okText $failText
+        $r = Invoke-SignedRedistExe ([string]$online.Path) '/install /quiet /norestart' $okText $failText
+        if ($r.Success -and (Test-VCRuntimeRepaired $Arch $target $upgrade)) { return $r }
         if ($r.Success) { return $r }
+    }
+    if (Test-VCRuntimeRepaired $Arch $target $false) {
+        return [PSCustomObject]@{Success=$true;Reboot=$false;Message=$okText}
     }
     return [PSCustomObject]@{Success=$false;Reboot=$false;Message=$failText}
 }
@@ -749,10 +1107,10 @@ function Get-LocalDirectXLegacyInstaller {
     )) {
         if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
         try {
-            Get-ChildItem -LiteralPath $root -Filter 'DXSETUP.exe' -Recurse -ErrorAction SilentlyContinue |
+            Get-ChildItem -LiteralPath $root -Filter 'DXSETUP.exe' -Recurse -Depth 3 -ErrorAction SilentlyContinue |
                 Select-Object -First 4 |
                 ForEach-Object { [void]$paths.Add($_.FullName) }
-            Get-ChildItem -LiteralPath $root -Filter 'dxwebsetup.exe' -Recurse -ErrorAction SilentlyContinue |
+            Get-ChildItem -LiteralPath $root -Filter 'dxwebsetup.exe' -Recurse -Depth 3 -ErrorAction SilentlyContinue |
                 Select-Object -First 2 |
                 ForEach-Object { [void]$paths.Add($_.FullName) }
         } catch {}
@@ -850,7 +1208,7 @@ function Invoke-DirectXCoreRepair {
 }
 
 function Invoke-RuntimeAutoRepair {
-    $rows = @(Get-RuntimeDiagnosticRows -Deep)
+    $rows = @(Get-RuntimeDiagnosticRows)
     $todo = @($rows | Where-Object { $_.Status -in @('REPAIR','UPDATE','WARN') })
     if ($todo.Count -eq 0) {
         return [PSCustomObject]@{Success=$true;Reboot=$false;Messages=@('C++ 运行库和 DirectX 都正常，不必修复。')}
@@ -880,7 +1238,7 @@ function Invoke-RuntimeAutoRepair {
         try { (Get-Date).ToString('o') | Set-Content -LiteralPath $RuntimeRepairStampPath -Encoding ASCII } catch {}
     }
     $script:SnapshotCacheTime = [datetime]::MinValue
-    $post = @(Get-RuntimeDiagnosticRows -Deep)
+    $post = @(Get-RuntimeDiagnosticRows)
     $remaining = @($post | Where-Object { $_.Status -in @('REPAIR','UPDATE') })
     if ($remaining.Count -gt 0) {
         $success = $false
@@ -891,8 +1249,6 @@ function Invoke-RuntimeAutoRepair {
     return [PSCustomObject]@{Success=$success;Reboot=$reboot;Messages=$messages}
 }
 
-
-# ---------- Formal safety / transaction / deep-test architecture ----------
 function Get-AdminState {
     try {
         $id=[Security.Principal.WindowsIdentity]::GetCurrent()
@@ -1595,7 +1951,9 @@ function Get-RuntimeRepairEligibility([object]$Snap) {
     $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons)
     if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()}
     $eligible=($stateInfo.State -eq 'ELIGIBLE' -and $reasons.Count -eq 0)
-    $decision=if($todo.Count -gt 0){'运行库不完整或版本偏低，可以自动修复。'}else{'运行库正常，不必修复。'}
+    $broken=@($todo|Where-Object{$_.Status -eq 'REPAIR'}).Count
+    $update=@($todo|Where-Object{$_.Status -eq 'UPDATE'}).Count
+    $decision=if($broken -gt 0){'运行库不完整，可以自动修复。'}elseif($update -gt 0){'和官方版本不一样，可以更新到官方版本。'}elseif($todo.Count -gt 0){'运行库版本偏低。这次没连上官方源，仍可更新。'}else{'运行库已和官方一致，或本机可用，不必修复。'}
     return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$decision;EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
 }
 
@@ -1610,7 +1968,7 @@ function Convert-PlanRows([object[]]$Rows) {
 
 function New-RepairPlan([ValidateSet('ASUS','RUNTIME')][string]$Type,[string]$Group,[object]$Snap) {
     $id='PLAN-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+([guid]::NewGuid().ToString('N').Substring(0,6));$actions=@();$recovery=@();$risk='LOW';$elig=$null;$label='';$moduleIdentity=$null;$runtimePackages=@()
-    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('确认奥创组件身份','按已验证步骤修复','修完后再看有没有新的更新错误');$recovery=@('用本工具生成的恢复包还原','需要时使用系统还原点');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='游戏运行库';$actions=@('检测本机 C++ 运行库和 DirectX','能修的项目自动修','优先用本机安装包，没有再尝试安装','修完后再检测一次');$recovery=@('需要时再自行安装官方运行库');$risk='LOW'}
+    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('确认奥创组件身份','按已验证步骤修复','修完后再看有没有新的更新错误');$recovery=@('用本工具生成的恢复包还原','需要时使用系统还原点');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='游戏运行库';$actions=@('联网对比官方 C++ 运行库','和官方不一样就更新','缺失的 DirectX 用系统修复','修完后再检测一次');$recovery=@('需要时再自行安装官方运行库');$risk='LOW'}
     $plan=[PSCustomObject]@{SchemaVersion=2;PlanId=$id;AppVersion=$AppVersion;BuildId=$BuildId;EngineSHA256=$script:EngineSHA256;CreatedAt=(Get-Date).ToString('o');Type=$Type;Group=$Group;Label=$label;PlanState=[string]$elig.State;EnvironmentStates=@($elig.EnvironmentStates);Decision=[string]$elig.Decision;Eligible=[bool]$elig.Eligible;BlockingReasons=@($elig.Reasons);Warnings=@($elig.Warnings);Risk=$risk;Actions=$actions;Recovery=$recovery;TargetRows=Convert-PlanRows $elig.TargetRows;Fingerprints=$(if($Type -eq 'ASUS'){@($elig.Fingerprints)}else{@()});Policy=$(if($Type -eq 'ASUS'){$elig.Policy}else{$null});RepairModuleIdentity=$moduleIdentity;RuntimePackageIdentities=@($runtimePackages)}
     $path=Join-Path $PlanRoot ($id+'.json');try{[void](Write-JsonAtomic $path $plan 16)}catch{};$script:CurrentPlan=$plan;return $plan
 }
@@ -1870,7 +2228,7 @@ Add-Type -TypeDefinition @"
 using System;using System.Runtime.InteropServices;public static class L{[DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]public static extern IntPtr LoadLibraryW(string p);[DllImport("kernel32.dll",CharSet=CharSet.Ansi,SetLastError=true)]public static extern IntPtr GetProcAddress(IntPtr h,string n);[DllImport("kernel32.dll")]public static extern bool FreeLibrary(IntPtr h);}
 "@
 $root=Join-Path $env:WINDIR $(if($Arch -eq 'x86' -and [Environment]::Is64BitOperatingSystem){'SysWOW64'}else{'System32'})
-$names=@('vcruntime140.dll','msvcp140.dll');if($Arch -ne 'x86'){$names+='vcruntime140_1.dll'}
+$names=@('vcruntime140.dll','msvcp140.dll','msvcp140_1.dll');if($Arch -ne 'x86'){$names+='vcruntime140_1.dll'}
 $rows=@();$ok=$true
 foreach($n in $names){$path=Join-Path $root $n;$h=[IntPtr]::Zero;$err=0;if(Test-Path -LiteralPath $path){$h=[L]::LoadLibraryW($path);if($h -eq [IntPtr]::Zero){$err=[Runtime.InteropServices.Marshal]::GetLastWin32Error();$ok=$false}else{$probe=$true;if($n -ieq 'vcruntime140.dll'){$gp=[L]::GetProcAddress($h,'memcpy');if($gp -eq [IntPtr]::Zero){$probe=$false;$ok=$false;$err=[Runtime.InteropServices.Marshal]::GetLastWin32Error()}};[void][L]::FreeLibrary($h)}}else{$ok=$false;$err=2};$rows+=[pscustomobject]@{File=$path;Loaded=($h -ne [IntPtr]::Zero);Win32Error=$err}}
 [pscustomobject]@{Arch=$Arch;Success=$ok;Rows=$rows}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $OutPath -Encoding UTF8
@@ -2488,6 +2846,7 @@ function Get-SystemSnapshot([switch]$Force) {
     if (-not $Force -and $script:SnapshotCache -and (($now - $script:SnapshotCacheTime).TotalSeconds -lt 15)) {
         return $script:SnapshotCache
     }
+    try { [void](Update-RuntimeOnlineInfo -Force:$Force) } catch {}
 
     $activeWindow = 15
     $historyWindow = 180
@@ -3129,6 +3488,7 @@ function Invoke-ASUSRepairHeadless([string]$Group) {
 function Invoke-RuntimeRepairHeadless {
     if(-not (Get-AdminState)){throw 'Elevated broker required'}
     $script:SnapshotCacheTime=[datetime]::MinValue
+    try { [void](Update-RuntimeOnlineInfo -Force) } catch {}
     $snap=Get-SystemSnapshot -Force
     $elig=Get-RuntimeRepairEligibility $snap
     if(-not $elig.Eligible){throw ('现在不能自动修运行库：'+(@($elig.Reasons)-join '；'))}
