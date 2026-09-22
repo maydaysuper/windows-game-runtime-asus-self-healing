@@ -1,24 +1,106 @@
-# 奥创修复中心
+<p align="center">
+  <img src="WindowsGameRuntimeASUSSelfHealing.WinUI/Assets/app.png" width="96" height="96" alt="奥创修复中心">
+</p>
 
-Windows 11 x64 **WPF** tool for game runtime repair, **ASUS Armoury Crate 4151/4152** healing, plus safe cache/memory cleanup.
+<h1 align="center">奥创修复中心</h1>
 
-WinUI 3 unpackaged builds (v3.4.x) do not start on the target PC. v4.4.0 is WPF / .NET 10 self-contained.
+<p align="center">
+  <strong>先检测，再修复。</strong><br>
+  Windows 11 游戏运行库 · 华硕 Armoury Crate 更新错误 · 不乱装、不降级、不拷散 DLL
+</p>
 
-**End users: do not compile this repo.** Download the latest GitHub Release:
+<p align="center">
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest"><img src="https://img.shields.io/github/v/release/maydaysuper/windows-game-runtime-asus-self-healing?label=最新版&color=c41e3a" alt="release"></a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases"><img src="https://img.shields.io/github/downloads/maydaysuper/windows-game-runtime-asus-self-healing/total?label=下载&color=111" alt="downloads"></a>
+  <img src="https://img.shields.io/badge/Windows%2011-x64-0078D4" alt="Windows 11 x64">
+  <img src="https://img.shields.io/badge/license-MIT-2ea44f" alt="MIT">
+</p>
 
-- [Setup installer (recommended)](https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest)
-- Portable ZIP is attached on the same release page
+<p align="center">
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.0/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.4.0_x64.exe"><strong>下载安装包</strong></a>
+  ·
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.0/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.4.0_win-x64.zip">便携版 ZIP</a>
+  ·
+  <a href="README_CN.md">中文说明</a>
+  ·
+  <a href="#english">English</a>
+</p>
 
-Uninstall every 3.4.x build first. Setup installs per-user under LocalAppData and puts **奥创修复中心** on the desktop. It does not add a Start Menu shortcut. Double-click the desktop icon, or unzip the portable folder and double-click `SelfHealingCenter.exe`. UAC appears only when an elevated ASUS / GPU repair actually runs.
+---
 
-## Current version
+市面上的运行库工具大多是「一键全装」。奥创修复中心反过来：**先看本机真实文件，再联网对比微软官方版本，不一样才修，修完立刻再验一次。**
 
-v4.4.0 · .NET 10 · C# 14 · WPF · desktop launcher + App folder
+华硕玩家多出来的那一块也覆盖了：Armoury Crate 更新失败（4151 / 4152），只查现在有没有错，不把旧方案乱套上去。
 
-## What it does
+## 直接用，不要编译
 
-1. System health
-2. ASUS Armoury Crate (core)
-3. VC++ / DirectX game runtimes
-4. Crash / GPU diagnosis
-5. Report center + system tools (cache / memory cleanup)
+普通用户**不要从源码编译**。到 [Releases](https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest) 下载 GitHub Actions 打出来的官方包。
+
+| 包 | 给谁 |
+|---|---|
+| `Setup_v4.4.0_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
+| `Portable_v4.4.0_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
+
+- 请先卸载全部 **3.4.x**（WinUI 版在部分机器上无法启动）
+- 已装 4.1 / 4.2 / 4.3 可直接覆盖
+- 不往开始菜单塞快捷方式
+- 只有真正需要提权的修复才会弹出 UAC
+
+当前版本：**v4.4.0** · .NET 10 · WPF · Windows 11 x64
+
+## 五个页面，一眼看懂结果
+
+1. **系统健康** — 正不正常，一句话
+2. **奥创中心** — 只查现在有没有更新错误
+3. **游戏运行库** — 本机 C++ 文件 vs 微软官方；不一样就问你要不要修
+4. **游戏崩溃** — 看为什么崩，不乱卸显卡驱动
+5. **报告中心** — 再检查一遍、诊断包、缓存 / 内存清理（不结束正在运行的程序，不动显卡着色器缓存）
+
+## 和合集包、DirectX Repair 的差别
+
+| | 奥创修复中心 | VC++ AIO 合集 | DirectX Repair |
+|---|---|---|---|
+| 策略 | 先检测，再按需修 | 2005–2026 全装 | 一键补 DX / C++ |
+| C++ 依据 | 真实文件 + 能否加载 + 官方版本 | 安装器清单 | 本地组件包 |
+| 官方对比 | 联网对比微软当前版本 | 装到包内版本 | 基本不比 |
+| 降级 | 已经新于官方就不动 | 可能重装 | 可能重装 |
+| 散 DLL 拷进系统目录 | 不做 | 不做（正规 AIO） | 部分流程会补文件 |
+| 华硕 4151 / 4152 | 有 | 无 | 无 |
+| 修完再验 | 立刻再看文件 | 无 | 无 |
+
+适合：游戏报缺 `VCRUNTIME140` / `MSVCP140`、奥创中心更新失败、想确认「现在到底要不要修」。
+
+不替代：刚重装系统、什么库都没有时，可以先用微软官方安装器或正规 AIO 打底，再用奥创盯着。
+
+## 不会做什么
+
+- 不把零散 DLL 拷进 `System32`
+- 不降级已经新于官方的运行库
+- 不卸载显卡驱动、不改主板 / BIOS
+- 不结束正在运行的游戏和软件
+- 不清理显卡着色器缓存
+
+修复 C++ 只用微软签名的官方安装器（本机缓存 / `winget` / 官方下载），不是网盘合集。
+
+## 源码与校验
+
+引擎文件有哈希锁定。安装包附带 `RELEASE_SHA256.txt`。Issue 请尽量带报告中心导出的诊断包。
+
+```text
+maydaysuper/windows-game-runtime-asus-self-healing
+MIT License · 2026
+```
+
+---
+
+<a id="english"></a>
+
+## English
+
+**Ultron Repair Center** is a Windows 11 x64 tool that **detects first, then repairs**.
+
+It checks real Visual C++ files on disk (not just registry), compares them with Microsoft’s current official version, and only then runs the official installer. After repair it re-checks immediately. It also inspects **ASUS Armoury Crate 4151/4152** update failures — current errors only, no leftover “old recipe” repair.
+
+Download the GitHub Actions build from [Releases](https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest). Do not compile this repo unless you are developing it. Uninstall every 3.4.x build first.
+
+It does **not** copy loose DLLs into System32, does **not** downgrade a newer runtime, and does **not** uninstall GPU drivers.
