@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Product = '奥创修复中心'
-$Version = '4.5.1'
+$Version = '4.5.2'
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -125,6 +125,13 @@ function Download-MicrosoftDotNetInstallScript {
     if($length -lt 10000) {
         throw ("Microsoft dotnet-install.ps1 文件异常过小：{0} bytes" -f $length)
     }
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
+    Write-Host ("dotnet-install.ps1 SHA256=$hash")
+    $raw = [IO.File]::ReadAllText($installer)
+    if($raw -notmatch 'Microsoft' -or $raw -notmatch '(?i)dotnet-install|Install-Dotnet') {
+        throw 'Microsoft dotnet-install.ps1 内容校验失败，已拒绝执行。'
+    }
+    try { Unblock-File -LiteralPath $installer -ErrorAction SilentlyContinue } catch {}
     return $installer
 }
 

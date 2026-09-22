@@ -1,3 +1,4 @@
+using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
@@ -22,7 +23,7 @@ public sealed class AppServices : IDisposable
     public AppServices()
     {
         SessionLog = new SessionLogService();
-        Resources = new AdaptiveResourceGovernor();
+        Resources = new AdaptiveResourceGovernor(ResourceGovernorOptions.Load());
         StateStore = new StateStoreService();
         Backend = new BackendService(Resources);
         Broker = new BrokerService(Backend);

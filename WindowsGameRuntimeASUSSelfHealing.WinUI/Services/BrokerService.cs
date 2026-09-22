@@ -44,7 +44,7 @@ public sealed class BrokerService : IDisposable
             var psi = new ProcessStartInfo
             {
                 FileName = ps,
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{brokerPath}\" -RequestPath \"{requestPath}\" -EnginePath \"{enginePath}\"",
+                Arguments = $"-NoProfile -ExecutionPolicy RemoteSigned -File \"{brokerPath}\" -RequestPath \"{requestPath}\" -EnginePath \"{enginePath}\"",
                 Verb = "runas",
                 UseShellExecute = true,
                 WindowStyle = ProcessWindowStyle.Hidden

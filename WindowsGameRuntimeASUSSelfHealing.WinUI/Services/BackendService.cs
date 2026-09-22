@@ -92,54 +92,62 @@ public sealed class BackendService : IBackendClient, IDisposable
         {
             resourceLease = await _resources.EnterBackgroundWorkAsync(cancellationToken).ConfigureAwait(false);
             EnsureBackendPresent(telemetryOnly ? BackendTrustScope.Telemetry : BackendTrustScope.Engine);
-            var psi = new ProcessStartInfo
+            string stderr = "";
+            var exitCode = -1;
+            foreach (var policy in new[] { "RemoteSigned", "Bypass" })
             {
-                FileName = PowerShellExe(),
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true
-            };
-            AddArg(psi, "-NoProfile");
-            AddArg(psi, "-NonInteractive");
-            AddArg(psi, "-ExecutionPolicy"); AddArg(psi, "Bypass");
-            AddArg(psi, "-WindowStyle"); AddArg(psi, "Hidden");
-            AddArg(psi, "-File"); AddArg(psi, _bridgePath);
-            AddArg(psi, "-Action"); AddArg(psi, action);
-            AddArg(psi, "-ResultPath"); AddArg(psi, resultPath);
-            AddArg(psi, "-EnginePath"); AddArg(psi, _enginePath);
-            if (!string.IsNullOrWhiteSpace(group)) { AddArg(psi, "-Group"); AddArg(psi, group); }
-            if (!string.IsNullOrWhiteSpace(exeName)) { AddArg(psi, "-ExeName"); AddArg(psi, exeName); }
-            if (!string.IsNullOrWhiteSpace(sinceUtc)) { AddArg(psi, "-SinceUtc"); AddArg(psi, sinceUtc); }
-            if (force) AddArg(psi, "-Force");
+                var psi = new ProcessStartInfo
+                {
+                    FileName = PowerShellExe(),
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                };
+                AddArg(psi, "-NoProfile");
+                AddArg(psi, "-NonInteractive");
+                AddArg(psi, "-ExecutionPolicy"); AddArg(psi, policy);
+                AddArg(psi, "-WindowStyle"); AddArg(psi, "Hidden");
+                AddArg(psi, "-File"); AddArg(psi, _bridgePath);
+                AddArg(psi, "-Action"); AddArg(psi, action);
+                AddArg(psi, "-ResultPath"); AddArg(psi, resultPath);
+                AddArg(psi, "-EnginePath"); AddArg(psi, _enginePath);
+                if (!string.IsNullOrWhiteSpace(group)) { AddArg(psi, "-Group"); AddArg(psi, group); }
+                if (!string.IsNullOrWhiteSpace(exeName)) { AddArg(psi, "-ExeName"); AddArg(psi, exeName); }
+                if (!string.IsNullOrWhiteSpace(sinceUtc)) { AddArg(psi, "-SinceUtc"); AddArg(psi, sinceUtc); }
+                if (force) AddArg(psi, "-Force");
 
-            using var process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 PowerShell backend worker。");
-            _resources.TuneChildProcess(process, telemetryOnly);
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(timeout ?? TimeSpan.FromMinutes(3));
-            try
-            {
-                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                TryKill(process);
-                throw new TimeoutException($"后台任务 {action} 超时。任务已终止，WinUI 主线程未被阻塞。");
-            }
-            catch (OperationCanceledException)
-            {
-                // RunAsync only hosts read-only/plan/preparation workers. Destructive repair work is
-                // isolated in ElevatedBroker and is intentionally never killed by this cancellation path.
-                TryKill(process);
-                throw;
-            }
+                using var process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 PowerShell backend worker。");
+                _resources.TuneChildProcess(process, telemetryOnly);
+                var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(timeout ?? TimeSpan.FromMinutes(3));
+                try
+                {
+                    await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    TryKill(process);
+                    throw new TimeoutException($"后台任务 {action} 超时。任务已终止，WinUI 主线程未被阻塞。");
+                }
+                catch (OperationCanceledException)
+                {
+                    // RunAsync only hosts read-only/plan/preparation workers. Destructive repair work is
+                    // isolated in ElevatedBroker and is intentionally never killed by this cancellation path.
+                    TryKill(process);
+                    throw;
+                }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            var stderr = await stderrTask.ConfigureAwait(false);
-            _ = await stdoutTask.ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                stderr = await stderrTask.ConfigureAwait(false);
+                _ = await stdoutTask.ConfigureAwait(false);
+                exitCode = process.ExitCode;
+                if (File.Exists(resultPath) || policy == "Bypass" || !LooksLikeExecutionPolicyFailure(stderr))
+                    break;
+            }
             if (!File.Exists(resultPath))
             {
                 var detail = string.IsNullOrWhiteSpace(stderr) ? "无 stderr" : stderr.Trim();
@@ -147,7 +155,7 @@ public sealed class BackendService : IBackendClient, IDisposable
                 {
                     Success = false,
                     Action = action,
-                    Error = $"后台任务未生成结果文件，ExitCode={process.ExitCode}; {detail}"
+                    Error = $"后台任务未生成结果文件，ExitCode={exitCode}; {detail}"
                 };
             }
 
@@ -209,6 +217,14 @@ public sealed class BackendService : IBackendClient, IDisposable
     }
 
     private static void AddArg(ProcessStartInfo info, string value) => info.ArgumentList.Add(value);
+
+    private static bool LooksLikeExecutionPolicyFailure(string? stderr)
+    {
+        if (string.IsNullOrWhiteSpace(stderr)) return false;
+        return stderr.Contains("execution of scripts is disabled", StringComparison.OrdinalIgnoreCase)
+            || stderr.Contains("running scripts is disabled", StringComparison.OrdinalIgnoreCase)
+            || stderr.Contains("ExecutionPolicy", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string PowerShellExe()
         => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
