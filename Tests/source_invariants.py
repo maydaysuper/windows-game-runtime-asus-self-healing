@@ -449,6 +449,11 @@ if 'BackupFileNameResolver' in maint and 'ForceBackupAppendFailure' in maint and
 else: fail('registry backup-failure test hooks missing')
 if (ROOT/'docs'/'ARCHITECTURE.md').exists() and (ROOT/'docs'/'CHANGELOG.md').exists() and (ROOT/'docs'/'README_CN.md').exists() and (ROOT/'docs'/'TESTING.md').exists(): ok('docs live under docs/')
 else: fail('root docs were not moved into docs/')
+arch=(ROOT/'docs'/'ARCHITECTURE.md').read_text(encoding='utf-8')
+if 'Non-splittable boundary: RepairCenter embedded HAL payloads' in arch and '禁止将载荷拆分为独立 `.psm1` 文件' in arch and 'LEGACY_ADAPTER_LOCK.json' in arch and 'EngineSHA256' in arch:
+    ok('architecture records HAL payload non-split boundary')
+else:
+    fail('ARCHITECTURE.md missing RepairCenter embedded-payload non-split boundary')
 if (ROOT/'ARCHITECTURE.md').exists() or (ROOT/'CHANGELOG.md').exists() or (ROOT/'README_CN.md').exists(): fail('root still has docs that belong in docs/')
 else: ok('repository root no longer duplicates architecture/changelog/cn readme')
 backend_cs=(PROJ/'Services'/'BackendService.cs').read_text(encoding='utf-8')
