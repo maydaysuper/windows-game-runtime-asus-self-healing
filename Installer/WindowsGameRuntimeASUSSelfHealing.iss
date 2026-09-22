@@ -1,4 +1,4 @@
-﻿﻿#define MyAppName "奥创修复中心"
+﻿#define MyAppName "奥创修复中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
   #define MyAppVersion "4.3.1"
