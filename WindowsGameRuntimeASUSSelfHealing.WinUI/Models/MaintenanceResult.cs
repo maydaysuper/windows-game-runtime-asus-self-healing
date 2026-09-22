@@ -90,3 +90,21 @@ public sealed class CacheCleanResult
         }
     }
 }
+
+public sealed class RegistryCleanResult
+{
+    public int ItemsRemoved { get; init; }
+    public int ItemsSkipped { get; init; }
+    public IReadOnlyList<CacheBucket> Buckets { get; init; } = Array.Empty<CacheBucket>();
+    public string ResultLine
+    {
+        get
+        {
+            if (ItemsRemoved == 0)
+                return ItemsSkipped > 0
+                    ? $"没有可删的残留。跳过 {ItemsSkipped} 项（受保护或无权修改）。"
+                    : "没有发现可安全删除的注册表残留。";
+            return $"已清理 {ItemsRemoved} 项无效残留，跳过 {ItemsSkipped} 项。没有改驱动、奥创中心和微软运行库。";
+        }
+    }
+}

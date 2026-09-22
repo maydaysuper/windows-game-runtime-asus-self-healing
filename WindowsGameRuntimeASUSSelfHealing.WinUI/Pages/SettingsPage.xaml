@@ -12,12 +12,12 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="系统工具" FontSize="22" FontWeight="SemiBold"/>
-                    <TextBlock Text="缓存清理和内存清理可以直接跑。不会结束正在运行的程序，也不会动奥创修复、驱动和主板。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="缓存、着色器、注册表和内存都可以直接跑。不会结束正在运行的程序，也不会动奥创修复、驱动和主板。" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
                 <Button Grid.Column="1" Content="返回报告中心" Click="BackToReports_Click" VerticalAlignment="Top"/>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="Info" IsOpen="True" Severity="Informational" Title="系统工具" Message="先看下面两张卡片，点一下就能用。"/>
+            <ctrl:StatusBanner x:Name="Info" IsOpen="True" Severity="Informational" Title="系统工具" Message="每张卡片都可以单独用。正在占用的文件会跳过。"/>
 
             <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                 <Grid>
@@ -27,12 +27,48 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="系统缓存清理" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="清临时文件、缩略图、错误报告队列和回收站。正在使用的文件会跳过。不清理显卡着色器缓存，避免和显卡修复冲突。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock Text="清临时文件、缩略图、错误报告队列和回收站。正在使用的文件会跳过。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         <TextBlock x:Name="CacheText" Text="正在扫描…" TextWrapping="Wrap" Margin="0,10,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" VerticalAlignment="Top">
                         <Button x:Name="ScanCacheButton" Content="重新扫描" Click="ScanCache_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
                         <Button x:Name="CleanCacheButton" Content="立即清理" Click="CleanCache_Click" Background="#0F172A" Foreground="White" Margin="0" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,14,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="显卡着色器缓存" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="清理 DirectX / NVIDIA / AMD / Intel 的着色器缓存。正在被游戏占用的文件会跳过。下次开游戏可能会重新编译，开头可能卡一下。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="ShaderText" Text="正在扫描…" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                        <Button x:Name="ScanShaderButton" Content="重新扫描" Click="ScanShader_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="CleanShaderButton" Content="立即清理" Click="CleanShader_Click" Background="#0F172A" Foreground="White" Margin="0" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,14,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="注册表清理" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="只删指向已经不存在文件的残留：卸载项、启动项、程序路径。不动奥创中心、显卡驱动、微软运行库和系统服务。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="RegistryText" Text="正在扫描…" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                        <Button x:Name="ScanRegistryButton" Content="重新扫描" Click="ScanRegistry_Click" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="CleanRegistryButton" Content="立即清理" Click="CleanRegistry_Click" Background="#0F172A" Foreground="White" Margin="0" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -71,8 +107,9 @@
                 <StackPanel>
                     <TextBlock Text="安全边界" FontSize="17" FontWeight="SemiBold"/>
                     <TextBlock Text="• 不结束正在运行的程序，不强制解锁正在占用的文件。" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                    <TextBlock Text="• 不清理显卡着色器缓存，避免和游戏崩溃页的显卡修复冲突。"/>
-                    <TextBlock Text="• 不自动运行 DDU，不卸载 GPU/芯片组驱动，不改 BIOS / ReBAR。"/>
+                    <TextBlock Text="• 着色器缓存是单独清理。游戏下次启动会重新编译，正在占用的文件会跳过。" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 注册表只删指向已经不存在文件的残留，不动驱动、奥创中心和微软运行库。" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 不自动运行 DDU，不卸载 GPU/芯片组驱动，不改 BIOS / ReBAR。" TextWrapping="Wrap"/>
                     <TextBlock Text="• 未知 ASUS 新版本只诊断，不套用旧 4151/4152 方案。" TextWrapping="Wrap"/>
                     <TextBlock Text="• 本软件检测缓存只删除事件游标和组件快照，不删除修复事务。" TextWrapping="Wrap"/>
                 </StackPanel>

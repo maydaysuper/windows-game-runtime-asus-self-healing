@@ -22,7 +22,7 @@ public sealed partial class SettingsPage : Page
 
     private async void CleanCache_Click(object sender, RoutedEventArgs e)
     {
-        if (!await PageHelpers.ConfirmAsync(this, "清理系统缓存", "会删除可安全删除的临时文件，并清空回收站。正在使用的文件会跳过。不会结束正在运行的程序，也不会动奥创修复和显卡着色器缓存。", "立即清理"))
+        if (!await PageHelpers.ConfirmAsync(this, "清理系统缓存", "会删除可安全删除的临时文件，并清空回收站。正在使用的文件会跳过。不会结束正在运行的程序。着色器缓存请用下面单独的卡片。", "立即清理"))
             return;
         CleanCacheButton.IsEnabled = false;
         ScanCacheButton.IsEnabled = false;
@@ -45,6 +45,66 @@ public sealed partial class SettingsPage : Page
         {
             CleanCacheButton.IsEnabled = true;
             ScanCacheButton.IsEnabled = true;
+        }
+    }
+
+    private async void ScanShader_Click(object sender, RoutedEventArgs e) => await ScanShaderAsync();
+
+    private async void CleanShader_Click(object sender, RoutedEventArgs e)
+    {
+        if (!await PageHelpers.ConfirmAsync(this, "清理显卡着色器缓存", "会清理 DirectX / NVIDIA / AMD / Intel 的着色器缓存。正在被游戏占用的文件会跳过。下次开游戏可能会重新编译，开头可能卡一下。不会结束正在运行的程序，也不会卸驱动。", "立即清理"))
+            return;
+        ScanShaderButton.IsEnabled = false;
+        CleanShaderButton.IsEnabled = false;
+        try
+        {
+            var result = await App.Services.Maintenance.CleanShaderCacheAsync();
+            ShaderText.Text = result.ResultLine + "\n" + string.Join("\n", result.Buckets.Select(b => b.Line));
+            Info.Title = "着色器缓存已清理";
+            Info.Message = result.ResultLine;
+            Info.Severity = InfoBarSeverity.Success;
+            App.Services.SessionLog.Note("ShaderClean", result.ResultLine);
+        }
+        catch (Exception ex)
+        {
+            Info.Title = "着色器缓存清理失败";
+            Info.Message = ex.Message;
+            Info.Severity = InfoBarSeverity.Error;
+        }
+        finally
+        {
+            ScanShaderButton.IsEnabled = true;
+            CleanShaderButton.IsEnabled = true;
+        }
+    }
+
+    private async void ScanRegistry_Click(object sender, RoutedEventArgs e) => await ScanRegistryAsync();
+
+    private async void CleanRegistry_Click(object sender, RoutedEventArgs e)
+    {
+        if (!await PageHelpers.ConfirmAsync(this, "清理注册表残留", "只删除指向已经不存在文件的残留项。不会改驱动、奥创中心、微软运行库和系统服务。无权修改的系统项会自动跳过。", "立即清理"))
+            return;
+        ScanRegistryButton.IsEnabled = false;
+        CleanRegistryButton.IsEnabled = false;
+        try
+        {
+            var result = await App.Services.Maintenance.CleanRegistryAsync();
+            RegistryText.Text = result.ResultLine + "\n" + string.Join("\n", result.Buckets.Select(b => b.Line));
+            Info.Title = "注册表已清理";
+            Info.Message = result.ResultLine;
+            Info.Severity = InfoBarSeverity.Success;
+            App.Services.SessionLog.Note("RegistryClean", result.ResultLine);
+        }
+        catch (Exception ex)
+        {
+            Info.Title = "注册表清理失败";
+            Info.Message = ex.Message;
+            Info.Severity = InfoBarSeverity.Error;
+        }
+        finally
+        {
+            ScanRegistryButton.IsEnabled = true;
+            CleanRegistryButton.IsEnabled = true;
         }
     }
 
@@ -88,7 +148,7 @@ public sealed partial class SettingsPage : Page
 
     private async Task RefreshAsync()
     {
-        await Task.WhenAll(ScanCacheAsync(), RefreshMemoryAsync(), RefreshAppCacheAsync());
+        await Task.WhenAll(ScanCacheAsync(), ScanShaderAsync(), ScanRegistryAsync(), RefreshMemoryAsync(), RefreshAppCacheAsync());
     }
 
     private async Task ScanCacheAsync()
@@ -114,6 +174,49 @@ public sealed partial class SettingsPage : Page
         {
             ScanCacheButton.IsEnabled = true;
             CleanCacheButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ScanShaderAsync()
+    {
+        ScanShaderButton.IsEnabled = false;
+        CleanShaderButton.IsEnabled = false;
+        try
+        {
+            var scan = await App.Services.Maintenance.ScanShaderCacheAsync();
+            ShaderText.Text = scan.Summary + "\n" + string.Join("\n", scan.Buckets.Select(b => b.Line));
+        }
+        catch (Exception ex)
+        {
+            ShaderText.Text = "扫描失败：" + ex.Message;
+        }
+        finally
+        {
+            ScanShaderButton.IsEnabled = true;
+            CleanShaderButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ScanRegistryAsync()
+    {
+        ScanRegistryButton.IsEnabled = false;
+        CleanRegistryButton.IsEnabled = false;
+        try
+        {
+            var scan = await App.Services.Maintenance.ScanRegistryAsync();
+            RegistryText.Text = (scan.TotalFiles == 0
+                ? "没有发现可安全删除的注册表残留。"
+                : $"大约 {scan.TotalFiles} 项无效残留。受保护和无权修改的会跳过。")
+                + "\n" + string.Join("\n", scan.Buckets.Select(b => b.Line));
+        }
+        catch (Exception ex)
+        {
+            RegistryText.Text = "扫描失败：" + ex.Message;
+        }
+        finally
+        {
+            ScanRegistryButton.IsEnabled = true;
+            CleanRegistryButton.IsEnabled = true;
         }
     }
 
