@@ -1,3 +1,4 @@
+using System.IO;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 using Xunit;
 
