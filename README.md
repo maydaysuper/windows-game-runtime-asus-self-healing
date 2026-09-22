@@ -88,6 +88,14 @@
 
 引擎文件有哈希锁定。安装包附带 `RELEASE_SHA256.txt`。Issue 请尽量带报告中心导出的诊断包。
 
+开发提交前在 Windows 上先模拟 CI，不要直接推：
+
+```powershell
+./Build-Release.ps1 -WhatIf
+```
+
+这会跑引用完整性、UTF-8 BOM、`source_invariants`、架构测试、Pester，以及（有 SDK 时）`Tests/WGR.Tests`。不打包。CI 还会核 `RELEASE_SHA256.txt`，并解压便携包跑 `--version`。
+
 ```text
 maydaysuper/windows-game-runtime-asus-self-healing
 MIT License · 2026

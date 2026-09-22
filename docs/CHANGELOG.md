@@ -2,11 +2,11 @@
 
 ## v4.6.1
 
-- 注册表清理：备份写不进去就整次取消，不会先删后补。
-- 奥创启动 3 次全失败会记下错误码和每次尝试。
-- 着色器缓存清理可重复执行。
-- `Build-Release.ps1 -WhatIf` 本地预检，对齐 CI 静态/Pester 门。
-- 便携包解压后核 `SelfHealingCenter.exe --version`。
+- 注册表清理：备份写不进去就整次取消，不会先删后补。逐项备份失败则跳过该项。
+- 奥创启动 3 次全失败会记下错误码和每次尝试（混合 Win32 码、HResult、多 EXE 轮换）。
+- 着色器缓存清理可重复执行；缺目录 / 空目录 / 占用中的文件不会抛错。
+- `Build-Release.ps1 -WhatIf` 本地预检，对齐 CI 静态/Pester 门；Windows 上顺带跑 WGR.Tests。
+- CI 拆成独立步骤：SHA256 清单核对、便携包解压后 `SelfHealingCenter.exe --version`。
 
 ## v4.6.0
 

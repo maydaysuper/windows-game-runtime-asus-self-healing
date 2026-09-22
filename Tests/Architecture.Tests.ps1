@@ -206,6 +206,11 @@ if($oneClickRaw -notmatch 'source reset'){Pass 'OneClick does not destructively 
 if($releaseRaw -match "'-p:Platform=x64'" -and $releaseRaw -match 'Publish_\{0\}\.log' -and $releaseRaw -match '-bl:'){Pass 'Build-Release pins MSBuild Platform=x64 and emits publish diagnostics'}else{Fail 'Build-Release x64 publish/logging contract missing'}
 $workflowRaw=Read-Utf8Text (Join-Path $Root '.github\workflows\windows-ci.yml')
 if($workflowRaw -match 'Materialize hash-locked Backend' -and $workflowRaw -match 'Verify published payload trust chain' -and $workflowRaw -match 'softprops/action-gh-release' -and $workflowRaw -match 'PublishSingleFile=false' -and $workflowRaw -match 'wpfgfx_cor3.dll' -and $workflowRaw -notmatch 'PublishSingleFile=true'){Pass 'Windows CI materializes Backend then emits Setup/Portable'}else{Fail 'Windows CI Backend materialize / release pipeline incomplete'}
+if($workflowRaw -match 'Verify release SHA256' -and $workflowRaw -match 'E2E unzip portable and --version' -and $workflowRaw -match 'Verify-ReleaseLayout\.ps1' -and $workflowRaw -match 'dotnet test' -and $workflowRaw -match 'WGR\.Tests'){Pass 'Windows CI runs SHA256 + portable --version E2E + WGR.Tests'}else{Fail 'Windows CI SHA256 / E2E / WGR.Tests steps missing'}
+$e2eRaw=Read-Utf8Text (Join-Path $Root 'Tests\E2E\Verify-ReleaseLayout.ps1')
+if($e2eRaw -match '--version' -and $e2eRaw -match 'Expand-Archive' -and $e2eRaw -match 'RELEASE_SHA256\.txt'){Pass 'E2E extracts portable ZIP, verifies SHA256, runs --version'}else{Fail 'E2E portable --version contract missing'}
+$preflightRaw=Read-Utf8Text (Join-Path $Root 'tools\Preflight-Ci.ps1')
+if($preflightRaw -match 'WGR\.Tests' -and $preflightRaw -match 'WGR\.Tests\.csproj' -and $preflightRaw -match 'Invoke-Pester'){Pass 'Preflight-Ci simulates CI static/Pester/WGR.Tests'}else{Fail 'Preflight-Ci is missing WGR.Tests / Pester'}
 $issRaw=Read-Utf8Text (Join-Path $Root 'Installer\WindowsGameRuntimeASUSSelfHealing.iss')
 if($issRaw -match 'autoprograms'){Fail 'Setup must not create a Start Menu shortcut'}else{Pass 'Setup does not create a Start Menu shortcut'}
 if($issRaw -match 'autodesktop' -and $issRaw -match 'SelfHealingCenter.exe' -and $issRaw -notmatch '\[Tasks\]'){Pass 'Setup always creates a desktop shortcut to the launcher'}else{Fail 'Setup desktop-launcher contract drift'}

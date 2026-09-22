@@ -38,4 +38,17 @@ if($pester){
     Write-Warn 'Pester 5 not installed; skipped (CI will still run it)'
 }
 
+$onWindows = $env:OS -eq 'Windows_NT'
+$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+if($onWindows -and $dotnet){
+    Write-Step '.NET unit tests (WGR.Tests)'
+    $testProj = Join-Path $Root 'Tests\WGR.Tests\WGR.Tests.csproj'
+    & $dotnet.Source test $testProj -c Release --nologo -p:Platform=x64 --runtime win-x64
+    if($LASTEXITCODE -ne 0){ Fail 'WGR.Tests failed' }
+} elseif(-not $onWindows) {
+    Write-Warn 'Non-Windows host; skipped WGR.Tests'
+} else {
+    Write-Warn 'dotnet not found; skipped WGR.Tests (CI will still run it)'
+}
+
 Write-Ok 'WhatIf / local CI preflight passed'

@@ -93,7 +93,16 @@ public sealed class SystemMaintenanceService
         => Task.Run(() => RestoreLatestRegistryBackup(cancellationToken), cancellationToken);
 
     internal static Func<string> BackupDirectoryResolver { get; set; } = RegistryBackupDirectory;
+    internal static Func<string>? BackupFileNameResolver { get; set; }
+    internal static bool ForceBackupAppendFailure { get; set; }
     internal string? ShaderLocalAppDataOverride { get; set; }
+
+    internal static void ResetTestHooks()
+    {
+        BackupDirectoryResolver = RegistryBackupDirectory;
+        BackupFileNameResolver = null;
+        ForceBackupAppendFailure = false;
+    }
 
     public static string RegistryBackupDirectory()
         => Path.Combine(
@@ -103,7 +112,7 @@ public sealed class SystemMaintenanceService
 
     public static string? LatestRegistryBackupPath()
     {
-        var dir = RegistryBackupDirectory();
+        var dir = BackupDirectoryResolver();
         if (!Directory.Exists(dir)) return null;
         return Directory.GetFiles(dir, "WGR_RegistryBackup_*.reg")
             .OrderByDescending(p => p, StringComparer.OrdinalIgnoreCase)
@@ -273,7 +282,9 @@ public sealed class SystemMaintenanceService
             throw new InvalidOperationException("无法创建注册表备份目录，已取消删除。", ex);
         }
 
-        var backupPath = Path.Combine(dir, $"WGR_RegistryBackup_{DateTime.Now:yyyyMMdd_HHmmss}.reg");
+        var backupName = BackupFileNameResolver?.Invoke()
+            ?? $"WGR_RegistryBackup_{DateTime.Now:yyyyMMdd_HHmmss}.reg";
+        var backupPath = Path.Combine(dir, backupName);
         StreamWriter writer;
         try
         {
@@ -358,6 +369,7 @@ public sealed class SystemMaintenanceService
 
     private bool WriteRegistryBackup(RegistryKey key)
     {
+        if (ForceBackupAppendFailure) return false;
         if (_registryBackup is null || key is null) return false;
         var values = new List<(string Name, object? Value, RegistryValueKind Kind)>();
         foreach (var name in key.GetValueNames())
@@ -370,6 +382,7 @@ public sealed class SystemMaintenanceService
 
     private bool WriteRegistryValueBackup(string keyName, string valueName, object? value, RegistryValueKind kind)
     {
+        if (ForceBackupAppendFailure) return false;
         if (_registryBackup is null) return false;
         return TryAppendRegistryKey(_registryBackup, keyName, new[] { (valueName, value, kind) });
     }
@@ -485,7 +498,7 @@ public sealed class SystemMaintenanceService
         catch { return false; }
     }
 
-    private static bool IsProtectedName(string? name)
+    internal static bool IsProtectedName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return true;
         foreach (var token in ProtectedRegistryNames)
@@ -510,7 +523,7 @@ public sealed class SystemMaintenanceService
         return (space > 0 ? expanded[..space] : expanded).Trim().Trim('"');
     }
 
-    private static bool LooksMissing(string? command)
+    internal static bool LooksMissing(string? command)
     {
         var path = FirstExistingCheckPath(command);
         if (string.IsNullOrWhiteSpace(path)) return false;

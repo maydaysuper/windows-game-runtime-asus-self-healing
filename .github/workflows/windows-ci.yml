@@ -202,7 +202,10 @@ jobs:
           $ver = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup.FullName).FileVersion
           if($ver -notmatch '^4\.') { throw "Unexpected FileVersion: $ver" }
           Write-Host "[PASS] Setup FileVersion=$ver"
-          ./Tests/E2E/Verify-ReleaseLayout.ps1 -ReleaseDir artifacts/release
+
+      - name: E2E unzip portable and --version
+        shell: powershell
+        run: ./Tests/E2E/Verify-ReleaseLayout.ps1 -ReleaseDir artifacts/release
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

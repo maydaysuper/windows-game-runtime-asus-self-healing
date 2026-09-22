@@ -232,7 +232,7 @@ try {
     if(-not (Test-Path -LiteralPath $Project)) { Fail ("项目文件不存在：{0}" -f $Project) }
     Write-Ok 'WinUI 3 项目文件存在'
 
-    Write-Step '本地 CI 预检（BOM / 引用 / 不变量 / 架构 / Pester）'
+    Write-Step '本地 CI 预检（BOM / 引用 / 不变量 / 架构 / Pester / WGR.Tests）'
     $preflight = Join-Path $PSScriptRoot 'tools\Preflight-Ci.ps1'
     if(-not (Test-Path -LiteralPath $preflight)) { Fail 'tools/Preflight-Ci.ps1 missing' }
     $StaticLog = Join-Path $LogRoot ("StaticTests_{0}.log" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
