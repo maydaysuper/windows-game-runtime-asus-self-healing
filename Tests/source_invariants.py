@@ -239,7 +239,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.3.0': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.3.1': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -274,8 +274,15 @@ if '点击一键诊断/运行库联网检测后会与 Microsoft 官方最新版�
 else: ok('VC++ no longer asks the user to online-compare for health')
 if "Status -in @('N/A','INFO')" in engine_text or 'Status -in @(\'N/A\',\'INFO\')' in engine_text or "$r.Status -in @('N/A','INFO')" in engine_text: ok('final verification treats INFO as PASS')
 else: fail('final verification still maps INFO to WARN')
-if '$eligible=$false' in engine_text.replace(' ', '') or '$eligible = $false' in engine_text: ok('runtime auto-repair via official installer is disabled')
-else: fail('runtime repair eligibility still allows official-installer repair')
+elig_fn=engine_text.split('function Get-RuntimeRepairEligibility',1)[1].split('function Convert-PlanRows',1)[0]
+if "Status -in @('REPAIR','UPDATE','WARN')" in elig_fn and "State -eq 'ELIGIBLE'" in elig_fn:
+    ok('runtime repair eligibility allows local-first auto-repair')
+else:
+    fail('runtime repair eligibility still refuses auto-repair')
+if 'Get-LocalVCRedistInstaller' in engine_text and 'Invoke-VCRedistWinget' in engine_text:
+    ok('VC++ repair is local cache then system installer then official package')
+else:
+    fail('VC++ local-first repair path missing')
 online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-OfficialVC14Target',1)[0]
 if 'Get-VCRedistOnlinePackage' in online_fn or 'Get-DirectXWebInstaller' in online_fn or 'Invoke-OfficialMicrosoftDownload' in online_fn: fail('Update-RuntimeOnlineInfo still downloads Microsoft installers')
 else: ok('Update-RuntimeOnlineInfo is a retired no-download stub')
@@ -293,8 +300,10 @@ verify_fn=engine_text.split('function Run-FinalVerification',1)[1].split('functi
 if 'installed=' in verify_fn or 'runtime=' in verify_fn: fail('final verification still prints installed=/runtime= jargon')
 else: ok('final verification prints customer results')
 headless_fn=engine_text.split('function Invoke-RuntimeRepairHeadless',1)[1].split('function Invoke-ContinuePendingRepairHeadless',1)[0]
-if 'Update-RuntimeOnlineInfo' in headless_fn or 'Invoke-RuntimeAutoRepair' in headless_fn: fail('runtime repair headless still tries Microsoft installer repair')
-else: ok('runtime repair headless refuses without downloading')
+if 'Invoke-RuntimeAutoRepair' in headless_fn and 'Update-RuntimeOnlineInfo' not in headless_fn:
+    ok('runtime repair headless uses local-first auto-repair without dashboard download')
+else:
+    fail('runtime repair headless missing local-first auto-repair')
 bridge_text=(BACK/'UiBridge.ps1').read_text(encoding='utf-8')
 if "[void](Update-RuntimeOnlineInfo" in bridge_text: fail('UiBridge still runs Microsoft online compare')
 else: ok('UiBridge RUNTIME_ONLINE/PLAN_RUNTIME no longer download Microsoft installers')
@@ -314,8 +323,10 @@ runtime_xaml=(PROJ/'Pages'/'RuntimePage.xaml').read_text(encoding='utf-8')
 safety_xaml=(PROJ/'Pages'/'SafetyPage.xaml').read_text(encoding='utf-8')
 if '<ScrollViewer>' in runtime_xaml and 'ItemsControl' in runtime_xaml: ok('runtime page uses page-level wheel scroll')
 else: fail('runtime page still traps wheel inside nested ListView')
-if '联网对比' in runtime_xaml or '安全修复' in runtime_xaml or '官方包信任证据' in runtime_xaml: fail('runtime Microsoft compare/repair UI must be removed')
-else: ok('runtime page is local-only detection')
+if '修复运行库' not in runtime_xaml: fail('runtime page missing 修复运行库 button')
+else: ok('runtime page exposes 修复运行库')
+if '联网对比' in runtime_xaml or '官方包信任证据' in runtime_xaml: fail('runtime Microsoft compare UI must stay removed')
+else: ok('runtime page has no Microsoft compare UI')
 if 'DisplayName' in runtime_xaml and 'DisplayStatus' in runtime_xaml and 'ResultLine' in runtime_xaml: ok('runtime cards show customer-facing result labels')
 else: fail('runtime cards still bind raw Name/Status/Detail jargon')
 if '奥创更新错误' in safety_xaml: ok('ASUS page is update-error focused')
@@ -376,7 +387,7 @@ for page in cap['ReportsAdvanced']['Pages']:
 # User-accessible parity with the v3.1 stable UI operations after navigation consolidation.
 ui_contracts={
     'Pages/SafetyPage.xaml.cs':['RunAsync("PLAN_ASUS"','ASUS_REPAIR'],
-    'Pages/RuntimePage.xaml.cs':['ReadComponentStatesAsync("RUNTIME"','RunAsync("DASHBOARD"'],
+    'Pages/RuntimePage.xaml.cs':['ReadComponentStatesAsync("RUNTIME"','RunAsync("DASHBOARD"','RunAsync("PLAN_RUNTIME"','RUNTIME_REPAIR'],
     'Pages/CrashPage.xaml.cs':['AnalyzeDump_Click','WER_ENABLE','WER_DISABLE','RunGpuDiagnosisAsync','GPU_SAFE_REPAIR'],
     'Pages/ReportsPage.xaml.cs':['RunAsync("TRANSACTIONS"','RunAsync("VERIFY"','RunAsync("EXPORT_REPORT"','CONTINUE','GenerateSystemHealthReportAsync','GenerateRepairReportAsync'],
     'Pages/SettingsPage.xaml.cs':['DeepTestPage','IdentityPage','ArchitecturePage'],
