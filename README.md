@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.1/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.4.1_x64.exe"><strong>下载安装包</strong></a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.5.0/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.5.0_x64.exe"><strong>下载安装包</strong></a>
   ·
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.1/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.4.1_win-x64.zip">便携版 ZIP</a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.5.0/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.5.0_win-x64.zip">便携版 ZIP</a>
   ·
   <a href="README_CN.md">中文说明</a>
   ·
@@ -30,7 +30,7 @@
 
 市面上的运行库工具大多是「一键全装」。奥创修复中心反过来：**先看本机真实文件，再联网对比微软官方版本，不一样才修，修完立刻再验一次。**
 
-华硕玩家多出来的那一块也覆盖了：Armoury Crate 更新失败（4151 / 4152），只查现在有没有错，不把旧方案乱套上去。
+华硕玩家多出来的那一块也覆盖了：Armoury Crate 安装 501、装完打不开、更新失败（4151 / 4152）。只查现在有没有错，不把旧方案乱套上去。
 
 ## 直接用，不要编译
 
@@ -38,20 +38,20 @@
 
 | 包 | 给谁 |
 |---|---|
-| `Setup_v4.4.1_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
-| `Portable_v4.4.1_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
+| `Setup_v4.5.0_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
+| `Portable_v4.5.0_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
 
 - 请先卸载全部 **3.4.x**（WinUI 版在部分机器上无法启动）
-- 已装 4.1 / 4.2 / 4.3 可直接覆盖
+- 已装 4.1 / 4.2 / 4.3 / 4.4 可直接覆盖
 - 不往开始菜单塞快捷方式
 - 只有真正需要提权的修复才会弹出 UAC
 
-当前版本：**v4.4.1** · .NET 10 · WPF · Windows 11 x64
+当前版本：**v4.5.0** · .NET 10 · WPF · Windows 11 x64
 
 ## 五个页面，一眼看懂结果
 
 1. **系统健康** — 正不正常，一句话
-2. **奥创中心** — 只查现在有没有更新错误
+2. **奥创中心** — 安装 501、装完打不开、更新错误，点「全自动修复」
 3. **游戏运行库** — 本机 C++ 文件 vs 微软官方；不一样就问你要不要修
 4. **游戏崩溃** — 看为什么崩，不乱卸显卡驱动
 5. **报告中心** — 再检查一遍、诊断包、缓存 / 着色器 / 注册表 / 内存清理（不结束正在运行的程序）

@@ -76,6 +76,7 @@ $required=@{
     'IncrementalEventReader.ps1'=[string]$build.EventReaderSHA256
     'GpuDiagnosticsReader.ps1'=[string]$build.GpuDiagnosticsReaderSHA256
     'GpuSafeRepair.ps1'=[string]$build.GpuSafeRepairSHA256
+    'ArmouryCrateSafeRepair.ps1'=[string]$build.ArmouryCrateSafeRepairSHA256
     'AtomicPolicyExecutor.ps1'=[string]$build.AtomicPolicyExecutorSHA256
     'RecipeCatalog.psd1'=[string]$build.RecipeCatalogSHA256
     'BuildInfo.psd1'=[string]$build.BuildInfoSHA256

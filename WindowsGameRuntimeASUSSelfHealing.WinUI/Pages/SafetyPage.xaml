@@ -10,7 +10,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,20,0">
                     <TextBlock Text="奥创中心" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock Text="只回答一件事：现在有没有奥创更新错误，要不要修。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="安装 501、装完打不开、更新失败，都可以在这里全自动修。笔记本和台式机都能用。" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
                     <ComboBox x:Name="GroupCombo" Width="180" SelectedIndex="0">
@@ -19,12 +19,13 @@
                         <ComboBoxItem Content="主板内存灯效" Tag="HOLTEK"/>
                         <ComboBoxItem Content="硬盘灯效" Tag="ENE"/>
                     </ComboBox>
-                    <Button x:Name="PlanButton" Content="检测更新错误" Click="AsusPlan_Click"/>
-                    <Button x:Name="ExecuteButton" Content="执行安全修复" IsEnabled="False" Click="ExecuteButton_Click" Margin="0"/>
+                    <Button x:Name="PlanButton" Content="检测问题" Click="AsusPlan_Click"/>
+                    <Button x:Name="AutoRepairButton" Content="全自动修复" IsEnabled="False" Click="AutoRepairButton_Click"/>
+                    <Button x:Name="ExecuteButton" Content="执行灯效修复" IsEnabled="False" Click="ExecuteButton_Click" Margin="0"/>
                 </WrapPanel>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="PlanInfo" Margin="0,16,0,0" IsOpen="True" Severity="Informational" Title="等待检测" Message="点「检测更新错误」后，这里会明确告诉你：要不要修。" />
+            <ctrl:StatusBanner x:Name="PlanInfo" Margin="0,16,0,0" IsOpen="True" Severity="Informational" Title="等待检测" Message="点「检测问题」后，这里会告诉你：501、打不开或更新错误要不要修。" />
 
             <Grid Margin="0,16,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="0.95*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.45*"/></Grid.ColumnDefinitions>

@@ -58,7 +58,7 @@ try {
     $created=[datetime]$req.CreatedAt
     if(((Get-Date)-$created).TotalMinutes -gt 15){throw 'Stale broker request (>15 minutes)'}
 
-    $allowed=@('ASUS_REPAIR','RUNTIME_REPAIR','CONTINUE','WER_ENABLE','WER_DISABLE','GPU_SAFE_REPAIR')
+    $allowed=@('ASUS_REPAIR','RUNTIME_REPAIR','CONTINUE','WER_ENABLE','WER_DISABLE','GPU_SAFE_REPAIR','ASUS_CRATE_REPAIR')
     if($allowed -notcontains [string]$req.Action){throw 'Action is not broker allow-listed'}
 
     # Validate the structured recipe envelope before loading the large engine. This is an
@@ -74,6 +74,12 @@ try {
         if(-not(Test-Path -LiteralPath $gpuRepairPath)){throw 'GpuSafeRepair.ps1 missing'}
         if((Hash $gpuRepairPath) -ne [string]$Build.GpuSafeRepairSHA256){throw 'GpuSafeRepair SHA256 does not match BuildInfo'}
         . $gpuRepairPath
+    } elseif([string]$req.Action -eq 'ASUS_CRATE_REPAIR') {
+        [void](Assert-WgrRecipeEnvelope $recipeCatalog 'ASUS_CRATE' $Build)
+        $cratePath=Join-Path $Root 'ArmouryCrateSafeRepair.ps1'
+        if(-not(Test-Path -LiteralPath $cratePath)){throw 'ArmouryCrateSafeRepair.ps1 missing'}
+        if((Hash $cratePath) -ne [string]$Build.ArmouryCrateSafeRepairSHA256){throw 'ArmouryCrateSafeRepair SHA256 does not match BuildInfo'}
+        . $cratePath
     }
 
     . $EnginePath -LibraryMode
@@ -87,6 +93,7 @@ try {
         'WER_ENABLE' {$d=Set-WerLocalDumpConfiguration ([string]$req.ExeName) $true;$result=[PSCustomObject]@{Success=$true;Detail=$d;State='COMPLETED'}}
         'WER_DISABLE' {$d=Set-WerLocalDumpConfiguration ([string]$req.ExeName) $false;$result=[PSCustomObject]@{Success=$true;Detail=$d;State='COMPLETED'}}
         'GPU_SAFE_REPAIR' {$result=Invoke-WgrGpuSafeRepair}
+        'ASUS_CRATE_REPAIR' {$result=Invoke-ArmouryCrateRepairHeadless ([string]$req.Group)}
     }
 
     $ok=$true

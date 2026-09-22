@@ -15,6 +15,7 @@ public sealed partial class SafetyPage : Page
     private string _planType = "";
     private string _planGroup = "";
     private bool _eligible;
+    private bool _launchEligible;
     private bool _loaded;
 
     public SafetyPage()
@@ -35,19 +36,37 @@ public sealed partial class SafetyPage : Page
         {
             using var r = await _backend.RunAsync("DASHBOARD", force: true, timeout: TimeSpan.FromMinutes(2));
             _asusErrors.Clear();
+            _launchEligible = false;
             if (!r.Success) throw new InvalidOperationException(r.Error);
 
             var codes = r.Payload.StringArray("ActiveErrorCodes");
             var updateCodes = codes.Where(IsAsusUpdateError).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            var launchNeeded = r.Payload.Bool("ArmouryCrateNeedsRepair");
+            var launchIssue = r.Payload.String("ArmouryCrateIssue");
             var components = r.Payload.Array("Components")
                 .Select(PageHelpers.ToComponent)
                 .Where(x => AsusGroups.Contains(x.Group, StringComparer.OrdinalIgnoreCase))
                 .ToArray();
 
+            if (launchNeeded || codes.Any(c => c.Contains("501", StringComparison.OrdinalIgnoreCase)))
+            {
+                _asusErrors.Add(new PreflightItem
+                {
+                    Name = codes.Any(c => c.Contains("501", StringComparison.OrdinalIgnoreCase)) ? "安装出现 501" : "奥创打不开",
+                    Status = "FAIL",
+                    Detail = string.IsNullOrWhiteSpace(launchIssue)
+                        ? "安装失败或装完打不开。可以全自动修：清残留、检查 C++、拉起服务、再打开。"
+                        : launchIssue
+                });
+                _launchEligible = true;
+            }
+
             foreach (var code in updateCodes)
             {
                 var isKnown = code.Contains("4151", StringComparison.OrdinalIgnoreCase)
                     || code.Contains("4152", StringComparison.OrdinalIgnoreCase);
+                if (code.Contains("501", StringComparison.OrdinalIgnoreCase) || code.Contains("601", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 _asusErrors.Add(new PreflightItem
                 {
                     Name = isKnown ? "奥创更新失败" : "奥创相关错误",
@@ -72,25 +91,35 @@ public sealed partial class SafetyPage : Page
             {
                 _asusErrors.Add(new PreflightItem
                 {
-                    Name = "当前没有奥创更新错误",
+                    Name = "当前没有奥创问题",
                     Status = "PASS",
-                    Detail = "奥创现在没有更新失败。不必修复。"
+                    Detail = "没有 501、打不开或更新失败。不必修复。"
                 });
                 PlanInfo.Title = "结论：不必修复";
-                PlanInfo.Message = "奥创没有更新错误。";
+                PlanInfo.Message = "奥创现在没有安装失败、打不开或更新错误。";
                 PlanInfo.Severity = InfoBarSeverity.Success;
+                AutoRepairButton.IsEnabled = false;
+            }
+            else if (_launchEligible)
+            {
+                PlanInfo.Title = "结论：可以全自动修复";
+                PlanInfo.Message = "501 或打不开可以一键修。会弹出系统确认。笔记本和台式机都能用。";
+                PlanInfo.Severity = InfoBarSeverity.Warning;
+                AutoRepairButton.IsEnabled = true;
             }
             else if (updateCodes.Length > 0)
             {
                 PlanInfo.Title = "结论：发现更新错误";
-                PlanInfo.Message = "点「检测更新错误」看能不能自动修。未知新版本只诊断，不套旧方案。";
+                PlanInfo.Message = "点「检测问题」看能不能修灯效更新。未知新版本只诊断，不套旧方案。";
                 PlanInfo.Severity = InfoBarSeverity.Warning;
+                AutoRepairButton.IsEnabled = false;
             }
             else
             {
                 PlanInfo.Title = "结论：有组件需要关注";
-                PlanInfo.Message = "没有更新失败，但有奥创组件状态异常。请看左侧。";
+                PlanInfo.Message = "没有 501 或打不开，但有奥创组件状态异常。请看左侧。";
                 PlanInfo.Severity = InfoBarSeverity.Warning;
+                AutoRepairButton.IsEnabled = false;
             }
         }
         catch (Exception ex)
@@ -108,6 +137,8 @@ public sealed partial class SafetyPage : Page
         var c = code.Trim();
         return c.Contains("4151", StringComparison.OrdinalIgnoreCase)
             || c.Contains("4152", StringComparison.OrdinalIgnoreCase)
+            || c.Contains("501", StringComparison.OrdinalIgnoreCase)
+            || c.Contains("601", StringComparison.OrdinalIgnoreCase)
             || c.Contains("1603", StringComparison.OrdinalIgnoreCase)
             || c.Contains("1618", StringComparison.OrdinalIgnoreCase)
             || c.Contains("1721", StringComparison.OrdinalIgnoreCase);
@@ -132,8 +163,9 @@ public sealed partial class SafetyPage : Page
             _planType = "ASUS";
             var plan = r.Payload.TryGetProperty("Plan", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Object ? p : default;
             _eligible = plan.ValueKind == System.Text.Json.JsonValueKind.Object && plan.Bool("Eligible");
+            _launchEligible = r.Payload.Bool("LaunchEligible") || _launchEligible;
             var state = plan.ValueKind == System.Text.Json.JsonValueKind.Object ? plan.String("PlanState") : "NO_ACTION_REQUIRED";
-            UpdatePlanInfo(state, _eligible);
+            UpdatePlanInfo(state, _eligible, _launchEligible);
             try
             {
                 await App.Services.Workflow.RecordPlanAsync(_planType, _planGroup, state, _eligible, PlanText.Text);
@@ -150,13 +182,21 @@ public sealed partial class SafetyPage : Page
         }
     }
 
-    private void UpdatePlanInfo(string state, bool eligible)
+    private void UpdatePlanInfo(string state, bool eligible, bool launchEligible)
     {
-        ExecuteButton.IsEnabled = eligible;
+        ExecuteButton.IsEnabled = eligible && !launchEligible;
+        AutoRepairButton.IsEnabled = launchEligible || eligible;
+        if (launchEligible)
+        {
+            PlanInfo.Title = "结论：可以全自动修复";
+            PlanInfo.Message = "点「全自动修复」后会弹出系统确认。会修 501 / 打不开，有已验证灯效错误也会一起修。";
+            PlanInfo.Severity = InfoBarSeverity.Success;
+            return;
+        }
         if (eligible)
         {
             PlanInfo.Title = "结论：可以安全修复";
-            PlanInfo.Message = "点「执行安全修复」后会弹出系统确认。";
+            PlanInfo.Message = "点「全自动修复」或「执行灯效修复」后会弹出系统确认。";
             PlanInfo.Severity = InfoBarSeverity.Success;
             return;
         }
@@ -164,7 +204,7 @@ public sealed partial class SafetyPage : Page
         if (state == "NO_ACTION_REQUIRED")
         {
             PlanInfo.Title = "结论：不必修复";
-            PlanInfo.Message = "现在没有可自动修的奥创更新错误。";
+            PlanInfo.Message = "现在没有 501、打不开或可自动修的奥创更新错误。";
             PlanInfo.Severity = InfoBarSeverity.Success;
             return;
         }
@@ -177,10 +217,41 @@ public sealed partial class SafetyPage : Page
     private void SetPlanFailure(string error)
     {
         _eligible = false;
+        _launchEligible = false;
         ExecuteButton.IsEnabled = false;
+        AutoRepairButton.IsEnabled = false;
         PlanInfo.Title = "检测失败";
         PlanInfo.Message = error;
         PlanInfo.Severity = InfoBarSeverity.Error;
+    }
+
+    private async void AutoRepairButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_launchEligible && !_eligible) return;
+        var confirmed = await PageHelpers.ConfirmAsync(this, "全自动修复奥创", "接下来会弹出系统确认。会清理安装残留、检查 C++、拉起奥创服务并尝试打开。不会卸显卡驱动，也不会套未知新版本的旧方案。", "开始修复");
+        if (!confirmed) return;
+        AutoRepairButton.IsEnabled = false;
+        ExecuteButton.IsEnabled = false;
+        try
+        {
+            await App.Services.Workflow.RecordBrokerStartAsync("ASUS_CRATE", _planGroup);
+            var group = _planGroup is "PV" or "HOLTEK" or "ENE" ? _planGroup : SelectedGroup();
+            var result = await _broker.ExecuteAsync("ASUS_CRATE_REPAIR", group);
+            await App.Services.Workflow.RecordBrokerResultAsync("ASUS_CRATE", group, result.Success, result.State, result.Detail);
+            await PageHelpers.ShowAsync(this, result.Success ? "修复已返回" : "修复未完成", CustomerCopy.Plain(result.Detail));
+            _launchEligible = false;
+            _eligible = false;
+        }
+        catch (Exception ex)
+        {
+            App.Services.SessionLog.Bug("ASUS.CrateRepair", ex);
+            await App.Services.Workflow.RecordBrokerResultAsync("ASUS_CRATE", _planGroup, false, "FAILED", ex.Message);
+            await PageHelpers.ShowAsync(this, "修复出错", CustomerCopy.Plain(ex.Message));
+        }
+        finally
+        {
+            await LoadAsusErrorsAsync();
+        }
     }
 
     private async void ExecuteButton_Click(object sender, RoutedEventArgs e)
