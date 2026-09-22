@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-import base64, hashlib, json, re, sys
+import base64, hashlib, json, re, sys, tempfile
 import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -488,11 +488,14 @@ for launcher_name in ['Launch-Win11.cmd']:
     else:
         fail('launcher command contract drift '+launcher_name)
 
-report=Path('/tmp')/f"STATIC_VALIDATION_v{bj['Version']}.txt"
+report=Path(tempfile.gettempdir())/f"STATIC_VALIDATION_v{bj['Version']}.txt"
 lines=[f"Windows Game Runtime / ASUS Armoury Self-Healing Center v{bj['Version']}",f'Local source-invariant validation: {len(passes)} PASS / {len(failures)} FAIL','']
 lines += ['PASS: '+x for x in passes]
 if failures: lines += ['']+['FAIL: '+x for x in failures]
-report.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+try:
+    report.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+except OSError:
+    pass
 print(lines[0]); print(lines[1])
 for x in failures: print('FAIL',x)
 sys.exit(1 if failures else 0)
