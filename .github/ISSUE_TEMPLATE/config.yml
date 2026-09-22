@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 下载最新安装包
+    url: https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest
+    about: 普通用户请下载 Release，不要从源码编译
+  - name: 使用说明
+    url: https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/blob/main/README_CN.md
+    about: 安装、卸载 3.4.x、五个页面分别做什么
