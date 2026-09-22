@@ -50,10 +50,10 @@ function Assert-WgrRecipeEnvelope([hashtable]$Catalog,[string]$Group,[hashtable]
 
 function Test-WgrAtomicPolicyPath([string]$Path,[string[]]$AllowedRoots) {
     if(-not $Path){return $false}
-    try{$full=[IO.Path]::GetFullPath($Path).TrimEnd('\\')+'\\'}catch{return $false}
+    try{$full=[IO.Path]::GetFullPath($Path).TrimEnd('\')+'\'}catch{return $false}
     foreach($rootText in @($AllowedRoots)){
         if(-not $rootText){continue}
-        try{$root=[IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($rootText)).TrimEnd('\\')+'\\'}catch{continue}
+        try{$root=[IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($rootText)).TrimEnd('\')+'\'}catch{continue}
         if($full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){return $true}
     }
     return $false
