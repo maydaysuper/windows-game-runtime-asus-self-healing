@@ -47,5 +47,11 @@
             Group = 'GPU_SAFE'
             UnknownVersionBehavior = 'SAFE_OS_ONLY'
         }
+        ASUS_CRATE = @{
+            RecipeId = 'ASUS.CRATE.LAUNCH_501.v1'
+            Kind = 'SAFE_OS_REMEDIATION'
+            Group = 'ASUS_CRATE'
+            UnknownVersionBehavior = 'SAFE_OS_ONLY'
+        }
     }
 }

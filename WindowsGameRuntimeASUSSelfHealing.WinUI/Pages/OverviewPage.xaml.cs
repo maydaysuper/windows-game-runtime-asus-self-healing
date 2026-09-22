@@ -43,7 +43,7 @@ public sealed partial class OverviewPage : Page
             var crashes = await App.Services.StateStore.ReadCrashEventGroupsAsync(7, 120);
             var health = App.Services.HealthScore.Calculate(components, result.Payload.Bool("BrokerValid"), crashes);
             ApplyHealth(health);
-            ApplyAsusCard(result.Payload.StringArray("ActiveErrorCodes"), health);
+            ApplyAsusCard(result.Payload.StringArray("ActiveErrorCodes"), health, result.Payload.Bool("ArmouryCrateNeedsRepair"));
             try { await App.Services.Workflow.RecordDiagnosedAsync(health.Summary); }
             catch (Exception wf) { App.Services.SessionLog.Bug("Overview.RecordDiagnosed", wf); }
 
@@ -86,16 +86,24 @@ public sealed partial class OverviewPage : Page
         SetDomain(SystemCard, SystemStatusText, SystemDetailText, health.SystemState, health.SystemSummary);
     }
 
-    private void ApplyAsusCard(string[] codes, HealthScoreSnapshot health)
+    private void ApplyAsusCard(string[] codes, HealthScoreSnapshot health, bool crateNeedsRepair)
     {
         var update = codes.Where(c =>
             c.Contains("4151", StringComparison.OrdinalIgnoreCase)
             || c.Contains("4152", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var install = codes.Any(c => c.Contains("501", StringComparison.OrdinalIgnoreCase) || c.Contains("601", StringComparison.OrdinalIgnoreCase));
         if (update.Length > 0)
         {
             AsusCard.Background = StatusPalette.Brush("FAIL");
             AsusStatusText.Text = "有更新错误";
-            AsusDetailText.Text = "奥创更新失败。请到「奥创中心」看能不能自动修。";
+            AsusDetailText.Text = "奥创更新失败。请到「奥创中心」全自动修。";
+            return;
+        }
+        if (crateNeedsRepair)
+        {
+            AsusCard.Background = StatusPalette.Brush("FAIL");
+            AsusStatusText.Text = install ? "安装 501" : "打不开";
+            AsusDetailText.Text = "请到「奥创中心」全自动修。笔记本和台式机都能用。";
             return;
         }
 

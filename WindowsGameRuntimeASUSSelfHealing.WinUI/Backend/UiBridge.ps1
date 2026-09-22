@@ -114,6 +114,9 @@ try {
                 ActiveArmouryCount=@($snap.ActiveArmoury).Count
                 ActiveMsiCount=@($snap.ActiveMsi).Count
                 PendingReboot=@($snap.PendingReboot)
+                ArmouryCrateNeedsRepair=[bool]$(if($snap.ArmouryCrate){$snap.ArmouryCrate.NeedsRepair}else{$false})
+                ArmouryCrateIssue=[string]$(if($snap.ArmouryCrate){$snap.ArmouryCrate.Detail}else{''})
+                ArmouryCrateChassis=[string]$(if($snap.ArmouryCrate){$snap.ArmouryCrate.Chassis}else{''})
                 PendingRepair=$(if($snap.Pending){[string]$snap.Pending.Label}else{''})
                 Components=@($snap.Rows|Select-Object Key,Name,Installed,Target,Runtime,ErrorCode,Status,Detail,Group)
                 Preflight=@($pre.Rows|Select-Object Name,Status,Detail,Blocking)
@@ -167,13 +170,27 @@ try {
         }
         'PLAN_ASUS' {
             $snap=Get-SystemSnapshot -Force
+            $crate=$snap.ArmouryCrate
+            $has501=@($snap.ActiveErrorCodes) -contains '501' -or @($snap.ActiveErrorCodes) -contains '601'
+            if($crate -and $has501 -and (-not [bool]$crate.Installed -or [bool]$crate.NeedsRepair)){
+                try{$crate.NeedsRepair=$true;if(-not [string]$crate.Issue){$crate.Issue='安装奥创时出现 501 错误。';$crate.Detail=$crate.Issue}}catch{}
+            }
             $g=$Group
             if(-not $g){$g=[string]$snap.RecommendedGroup}
-            if(-not $g){
-                Write-BridgeResult $true ([PSCustomObject]@{Plan=$null;Text='结论：不必修复。现在没有可自动修的奥创更新错误。';RecommendedGroup=''} )
+            $plan=$null
+            if($g -in @('PV','HOLTEK','ENE')){$plan=New-RepairPlan 'ASUS' $g $snap}
+            $launch=[bool]($crate -and $crate.NeedsRepair)
+            if($launch){
+                $text=@('结论：可以全自动修复。')
+                if($has501 -or ([string]$crate.Issue -match '501')){$text += '安装奥创时出现 501 错误。会清安装残留、检查 C++、拉起奥创服务，再尝试打开。'}
+                else{$text += [string]$crate.Detail}
+                $text += '笔记本和台式机都按这台电脑现有的奥创 / 奥创 Lite 来修。不会卸显卡驱动，也不会套未知新版本的旧方案。'
+                if($plan -and [bool]$plan.Eligible){$text += '如果还有已验证的灯效更新错误，会在同一轮里一起修。'}
+                Write-BridgeResult $true ([PSCustomObject]@{Plan=[PSCustomObject]@{Eligible=$true;PlanState='ELIGIBLE';Decision=($text -join ' ')};Text=($text -join ' ');RecommendedGroup=$(if($g){$g}else{'ASUS_CRATE'});LaunchEligible=$true;HalEligible=[bool]($plan -and $plan.Eligible)})
+            }elseif($plan){
+                Write-BridgeResult $true ([PSCustomObject]@{Plan=$plan;Text=(Format-RepairPlan $plan);RecommendedGroup=$g;LaunchEligible=$false;HalEligible=[bool]$plan.Eligible})
             }else{
-                $plan=New-RepairPlan 'ASUS' $g $snap
-                Write-BridgeResult $true ([PSCustomObject]@{Plan=$plan;Text=(Format-RepairPlan $plan);RecommendedGroup=$g})
+                Write-BridgeResult $true ([PSCustomObject]@{Plan=$null;Text='结论：不必修复。现在没有 501、打不开或可自动修的奥创更新错误。';RecommendedGroup='';LaunchEligible=$false;HalEligible=$false})
             }
         }
         'VERIFY' {
@@ -189,7 +206,7 @@ try {
         }
         'BROKER_PREPARE_*' {
             $brokerAction=$Action.Substring('BROKER_PREPARE_'.Length)
-            $allowed=@('ASUS_REPAIR','RUNTIME_REPAIR','CONTINUE','WER_ENABLE','WER_DISABLE','GPU_SAFE_REPAIR')
+            $allowed=@('ASUS_REPAIR','RUNTIME_REPAIR','CONTINUE','WER_ENABLE','WER_DISABLE','GPU_SAFE_REPAIR','ASUS_CRATE_REPAIR')
             if($allowed -notcontains $brokerAction){throw "Invalid broker action: $brokerAction"}
             if($brokerAction -eq 'ASUS_REPAIR' -and $Group -notin @('PV','HOLTEK','ENE')){throw 'ASUS_REPAIR requires Group PV/HOLTEK/ENE'}
             if($brokerAction -in @('WER_ENABLE','WER_DISABLE') -and $ExeName -notmatch '^[A-Za-z0-9_.-]+\.exe$'){throw 'WER action requires a safe exe name'}

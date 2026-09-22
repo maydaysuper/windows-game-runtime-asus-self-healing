@@ -11,10 +11,12 @@
       "TRANSACTIONS",
       "VERIFY",
       "EXPORT_REPORT",
-      "BROKER_PREPARE_ASUS_REPAIR"
+      "BROKER_PREPARE_ASUS_REPAIR",
+      "BROKER_PREPARE_ASUS_CRATE_REPAIR"
     ],
     "BrokerActions": [
       "ASUS_REPAIR",
+      "ASUS_CRATE_REPAIR",
       "CONTINUE"
     ],
     "EngineFunctions": [
@@ -22,6 +24,8 @@
       "New-RepairPlan",
       "Invoke-SafeRepairGroup",
       "Invoke-ASUSRepairHeadless",
+      "Invoke-ArmouryCrateRepairHeadless",
+      "Get-ArmouryCrateLaunchHealth",
       "Continue-PendingRepair",
       "Run-FinalVerification",
       "Start-TransactionObservation",
@@ -32,7 +36,8 @@
     "Recipes": {
       "PV": "ASUS.PV.4151.v1",
       "HOLTEK": "ASUS.HOLTEK.4151.v1",
-      "ENE": "ASUS.ENE.4152.v1"
+      "ENE": "ASUS.ENE.4152.v1",
+      "ASUS_CRATE": "ASUS.CRATE.LAUNCH_501.v1"
     },
     "LegacyHashes": {
       "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",

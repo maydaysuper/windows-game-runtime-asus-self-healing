@@ -76,6 +76,7 @@ $hashMap=@{
     EventReaderSHA256='IncrementalEventReader.ps1'
     GpuDiagnosticsReaderSHA256='GpuDiagnosticsReader.ps1'
     GpuSafeRepairSHA256='GpuSafeRepair.ps1'
+    ArmouryCrateSafeRepairSHA256='ArmouryCrateSafeRepair.ps1'
     AtomicPolicyExecutorSHA256='AtomicPolicyExecutor.ps1'
     RecipeCatalogSHA256='RecipeCatalog.psd1'
 }

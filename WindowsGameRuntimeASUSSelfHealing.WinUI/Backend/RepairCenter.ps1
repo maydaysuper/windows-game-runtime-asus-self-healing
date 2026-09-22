@@ -51,6 +51,7 @@ $script:CurrentTransaction = $null
 $script:IncidentSeen = @{}
 $script:IncidentDbInitialized = $false
 $script:NativeSmokeLoaded = $false
+$script:ArmouryCrateSafeRepairLoaded = $false
 $script:MsiNativeLoaded = $false
 $script:RestartManagerLoaded = $false
 $script:FingerprintCache = @{}
@@ -2382,8 +2383,9 @@ function Get-ContextValue([string]$Context,[string[]]$Patterns) {
 
 function Get-ArmouryErrorCode([string]$Line) {
     $patterns = @(
-        '(?i)(?:UI\s*code|uicode|error\s*code)\s*[:=]\s*(?<v>4\d{3})',
-        '(?i)Optional\s+Hal\s+(?<v>4\d{3})'
+        '(?i)(?:UI\s*code|uicode|error\s*code)\s*[:=]\s*(?<v>501|601|4\d{3})',
+        '(?i)Optional\s+Hal\s+(?<v>4\d{3})',
+        '(?i)\berror\s*(?<v>501)\b'
     )
     foreach ($p in $patterns) {
         if ($Line -match $p) { return [string]$matches['v'] }
@@ -2515,7 +2517,7 @@ function Get-ArmouryErrorEvidence([int]$Minutes=180) {
 
                 for ($i=0; $i -lt $lines.Count; $i++) {
                     $line = [string]$lines[$i]
-                    if ($line -notmatch '(?i)(UI\s*code\s*[:=]\s*4\d{3}|uicode\s*[:=]\s*4\d{3}|error\s*code\s*[:=]\s*4\d{3}|Optional\s+Hal\s+4\d{3}|FailedVersionMismatch)') {
+                    if ($line -notmatch '(?i)(UI\s*code\s*[:=]\s*(4\d{3}|501|601)|uicode\s*[:=]\s*(4\d{3}|501|601)|error\s*code\s*[:=]\s*(4\d{3}|501|601)|Optional\s+Hal\s+4\d{3}|FailedVersionMismatch|\berror\s*501\b)') {
                         continue
                     }
 
@@ -2885,6 +2887,18 @@ function Get-SystemSnapshot([switch]$Force) {
     $diff = @(Get-VersionDiff $rows)
     $codes = @($activeArmoury | Select-Object -ExpandProperty Code -Unique | Sort-Object)
 
+    $crate = $null
+    try { $crate = Get-ArmouryCrateLaunchHealth } catch { $crate = [PSCustomObject]@{NeedsRepair=$false;Issue='';Detail='';Has501=$false;Chassis='';Installed=$false} }
+    if ($codes -contains '501') {
+        try {
+            $crate.Has501 = $true
+            if (-not [bool]$crate.Installed -or [bool]$crate.NeedsRepair) {
+                $crate.NeedsRepair = $true
+                if (-not [string]$crate.Issue) { $crate.Issue = '安装奥创时出现 501 错误。'; $crate.Detail = $crate.Issue }
+            }
+        } catch {}
+    }
+    if ($crate -and [bool]$crate.Has501 -and ($codes -notcontains '501')) { $codes = @($codes + '501') }
     $obj = [PSCustomObject]@{
         CapturedAt=$now
         Rows=$rows
@@ -2900,6 +2914,7 @@ function Get-SystemSnapshot([switch]$Force) {
         RecommendedGroup=$recommended
         VersionDiff=$diff
         PendingReboot=@(Get-PendingRebootReasons)
+        ArmouryCrate=$crate
     }
     $script:SnapshotCache = $obj
     $script:SnapshotCacheTime = $now
@@ -3469,6 +3484,37 @@ function Set-WerLocalDumpConfiguration([string]$ExeName,[bool]$Enable) {
     $root='HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps';$p=Join-Path $root $ExeName
     if($Enable){New-Item -Path $p -Force|Out-Null;New-ItemProperty -Path $p -Name DumpFolder -Value $CrashDumpRoot -PropertyType ExpandString -Force|Out-Null;New-ItemProperty -Path $p -Name DumpCount -Value 3 -PropertyType DWord -Force|Out-Null;New-ItemProperty -Path $p -Name DumpType -Value 2 -PropertyType DWord -Force|Out-Null;return "WER LocalDumps enabled for $ExeName; folder=$CrashDumpRoot; count=3; type=2(full)"}
     if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop};return "WER LocalDumps disabled for $ExeName"
+}
+
+function Import-ArmouryCrateSafeRepair {
+    if ($script:ArmouryCrateSafeRepairLoaded) { return }
+    $p = Join-Path $PSScriptRoot 'ArmouryCrateSafeRepair.ps1'
+    if (-not (Test-Path -LiteralPath $p)) { throw 'ArmouryCrateSafeRepair.ps1 missing' }
+    . $p
+    $script:ArmouryCrateSafeRepairLoaded = $true
+}
+
+function Get-ArmouryCrateLaunchHealth {
+    Import-ArmouryCrateSafeRepair
+    return Get-WgrArmouryCrateLaunchHealth -SkipLogScan
+}
+
+function Invoke-ArmouryCrateRepairHeadless([string]$Group='') {
+    if (-not (Get-AdminState)) { throw 'Elevated broker required' }
+    Import-ArmouryCrateSafeRepair
+    $r = Invoke-WgrArmouryCrateSafeRepair
+    if ($Group -in @('PV','HOLTEK','ENE')) {
+        try {
+            $snap = Get-SystemSnapshot -Force
+            $elig = Get-ASUSRepairEligibility $Group $snap
+            if ($elig.Eligible) {
+                $hal = Invoke-ASUSRepairHeadless $Group
+                $extra = [string]$hal.Detail
+                if ($extra) { $r.Detail = ([string]$r.Detail + ' ' + $extra).Trim() }
+            }
+        } catch {}
+    }
+    return $r
 }
 
 function Invoke-ASUSRepairHeadless([string]$Group) {

@@ -33,6 +33,7 @@ expected_files={
  'EngineSHA256':'RepairCenter.ps1','BrokerSHA256':'ElevatedBroker.ps1','BootstrapSHA256':'Bootstrap.ps1',
  'UiBridgeSHA256':'UiBridge.ps1','EventReaderSHA256':'IncrementalEventReader.ps1',
  'GpuDiagnosticsReaderSHA256':'GpuDiagnosticsReader.ps1','GpuSafeRepairSHA256':'GpuSafeRepair.ps1',
+ 'ArmouryCrateSafeRepairSHA256':'ArmouryCrateSafeRepair.ps1',
  'AtomicPolicyExecutorSHA256':'AtomicPolicyExecutor.ps1','RecipeCatalogSHA256':'RecipeCatalog.psd1'}
 for key,name in expected_files.items():
     actual=sha(BACK/name)
@@ -239,7 +240,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.4.1': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.5.0': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -374,8 +375,8 @@ if '官方包信任证据' in runtime_xaml: fail('runtime page still dumps trust
 else: ok('runtime page has no trust-evidence dump')
 if 'DisplayName' in runtime_xaml and 'DisplayStatus' in runtime_xaml and 'ResultLine' in runtime_xaml: ok('runtime cards show customer-facing result labels')
 else: fail('runtime cards still bind raw Name/Status/Detail jargon')
-if '奥创更新错误' in safety_xaml: ok('ASUS page is update-error focused')
-else: fail('ASUS page still looks like generic system health')
+if '全自动修复' in safety_xaml and '501' in safety_xaml: ok('ASUS page covers install 501 and launch repair')
+else: fail('ASUS page missing 501 / auto-repair')
 if 'TopNavButton' in app_xaml and '奥创修复中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): ok('single top chrome without duplicate title')
 else: fail('main window still duplicates the long product title')
 if '自愈中心' in (PROJ/'MainWindow.xaml').read_text(encoding='utf-8'): fail('main window still uses old product name 自愈中心')
