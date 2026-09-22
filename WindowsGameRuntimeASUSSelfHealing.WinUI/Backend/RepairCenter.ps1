@@ -495,13 +495,13 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
         if (-not $reg.Installed -or -not $reg.Version -or $healthyFiles -lt $files.Count) {
             $status = 'REPAIR'
             $runtime = '未安装'
-            $detail = '没有完整的 C++ 运行库，部分游戏会打不开。请到微软安装「Visual C++ 2015-2022 运行库」。本工具不会自动下载。'
+            $detail = '没有完整的 C++ 运行库，部分游戏会打不开。点「修复运行库」可以自动修。'
         } else {
             $cmpMin = Compare-VersionSafe $installed $vcTarget.Minimum
             if ($cmpMin -lt 0) {
                 $status = 'WARN'
                 $runtime = '版本偏低'
-                $detail = '已经能用，但版本偏低，部分新游戏可能打不开。建议更新微软 C++ 运行库。'
+                $detail = '已经能用，但版本偏低，部分新游戏可能打不开。点「修复运行库」可以更新。'
             } else {
                 $cmpRec = Compare-VersionSafe $installed $vcTarget.Version
                 if ($cmpRec -ge 0) {
@@ -527,7 +527,7 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
     $coreRuntime = '本机可用'
     if (-not $core.Healthy) {
         $coreStatus = 'REPAIR'
-        $coreDetail = '游戏 DirectX 不完整。请用 Windows 系统修复处理，本工具不会自动改系统文件。'
+        $coreDetail = '游戏 DirectX 不完整。点「修复运行库」会用系统自带修复处理。'
         $coreRuntime = '不完整'
     }
     $rows += [PSCustomObject]@{
@@ -539,7 +539,7 @@ function Get-RuntimeDiagnosticRows([switch]$Deep) {
     $legacyRuntime = '本机可用'
     if (-not $legacy.Healthy) {
         $legacyStatus = 'REPAIR'
-        $legacyDetail = '老游戏兼容组件缺失，部分老游戏可能打不开。请到微软安装 DirectX 最终用户运行时。本工具不会自动下载。'
+        $legacyDetail = '老游戏兼容组件缺失，部分老游戏可能打不开。点「修复运行库」可以自动装。'
         $legacyRuntime = '不完整'
     }
     $rows += [PSCustomObject]@{
@@ -615,13 +615,212 @@ $r=Invoke-OfficialMicrosoftDownload $Url $Destination 0;$tmp=$ResultPath+'.tmp';
     try{$proc=Start-Process -FilePath $ps -ArgumentList $args -PassThru -WindowStyle Hidden -ErrorAction Stop;[void](Wait-ProcessResponsive $proc 140);if(-not (Test-Path -LiteralPath $result)){return [PSCustomObject]@{Success=$false;TrustComplete=$false;Error='可信下载 worker 未返回结果'}};return (Get-Content -LiteralPath $result -Raw|ConvertFrom-Json)}catch{return [PSCustomObject]@{Success=$false;TrustComplete=$false;Error=$_.Exception.Message}}finally{Remove-Item -LiteralPath $result -Force -ErrorAction SilentlyContinue}
 }
 
+function Get-WingetPath {
+    try {
+        $cmd = Get-Command winget.exe -ErrorAction SilentlyContinue
+        if ($cmd -and $cmd.Source -and (Test-Path -LiteralPath $cmd.Source)) { return [string]$cmd.Source }
+    } catch {}
+    $cands = @(
+        (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\WindowsApps\winget.exe')
+    )
+    foreach ($p in $cands) { if ($p -and (Test-Path -LiteralPath $p)) { return $p } }
+    return ''
+}
+
+function Convert-RuntimeRepairExit([int]$Code) {
+    if ($Code -in 0,1638,-1978335189,-1978334964,-1978335212) { return [PSCustomObject]@{Success=$true;Reboot=$false} }
+    if ($Code -in 3010,1641) { return [PSCustomObject]@{Success=$true;Reboot=$true} }
+    return [PSCustomObject]@{Success=$false;Reboot=$false}
+}
+
+function Get-LocalVCRedistInstaller([string]$Arch) {
+    $label = switch ($Arch) { 'x86' { 'x86' } 'arm64' { 'ARM64' } default { 'x64' } }
+    $hits = @()
+    foreach ($root in @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )) {
+        try {
+            $hits += Get-ItemProperty $root -ErrorAction SilentlyContinue |
+                Where-Object {
+                    $_.DisplayName -match '(?i)Microsoft Visual C\+\+ 2015-2022 Redistributable' -and
+                    $_.DisplayName -match [regex]::Escape('(' + $label + ')')
+                }
+        } catch {}
+    }
+    $paths = New-Object System.Collections.Generic.List[string]
+    foreach ($h in @($hits)) {
+        foreach ($prop in @('ModifyPath','BundleCachePath','UninstallString','InstallLocation')) {
+            $raw = [string]$h.$prop
+            if (-not $raw) { continue }
+            $m = [regex]::Match($raw, '(?i)"([^"]*VC_redist[^"]*\.exe)"')
+            if (-not $m.Success) { $m = [regex]::Match($raw, '(?i)([A-Za-z]:\\[^\s"]*VC_redist[^\s"]*\.exe)') }
+            if ($m.Success) { [void]$paths.Add($m.Groups[1].Value) }
+        }
+    }
+    $cache = Join-Path $env:ProgramData 'Package Cache'
+    if (Test-Path -LiteralPath $cache) {
+        try {
+            Get-ChildItem -LiteralPath $cache -Filter ("VC_redist.$Arch.exe") -Recurse -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 6 |
+                ForEach-Object { [void]$paths.Add($_.FullName) }
+        } catch {}
+    }
+    $appCache = Join-Path $RuntimeCacheRoot ("vc_redist_$Arch.exe")
+    if (Test-Path -LiteralPath $appCache) { [void]$paths.Add($appCache) }
+    foreach ($p in @($paths | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $p)) { continue }
+        $sig = Test-MicrosoftSignedFile $p
+        if ($sig.Valid) { return [PSCustomObject]@{Success=$true;Path=$p;Source='Local'} }
+    }
+    return [PSCustomObject]@{Success=$false;Path='';Source=''}
+}
+
+function Invoke-SignedRedistExe([string]$Path,[string]$Args,[string]$OkText,[string]$FailText) {
+    $sig = Test-MicrosoftSignedFile $Path
+    if (-not $sig.Valid) { return [PSCustomObject]@{Success=$false;Reboot=$false;Message=$FailText} }
+    try {
+        $p = Start-Process -FilePath $Path -ArgumentList $Args -PassThru -WindowStyle Hidden
+        $code = Wait-ProcessResponsive $p
+        $st = Convert-RuntimeRepairExit $code
+        return [PSCustomObject]@{Success=[bool]$st.Success;Reboot=[bool]$st.Reboot;Message=$(if($st.Success){$OkText}else{$FailText})}
+    } catch {
+        return [PSCustomObject]@{Success=$false;Reboot=$false;Message=$FailText}
+    }
+}
+
+function Invoke-VCRedistWinget([string]$Arch) {
+    $ids = @{ x64='Microsoft.VCRedist.2015+.x64'; x86='Microsoft.VCRedist.2015+.x86'; arm64='Microsoft.VCRedist.2015+.arm64' }
+    if (-not $ids.ContainsKey($Arch)) { return [PSCustomObject]@{Success=$false;Reboot=$false;Message='C++ 运行库不支持此架构。'} }
+    $wg = Get-WingetPath
+    if (-not $wg) { return [PSCustomObject]@{Success=$false;Reboot=$false;Message='本机没有系统安装器，改用其他方式。'} }
+    try {
+        $p = Start-Process -FilePath $wg -ArgumentList @('install','--id',$ids[$Arch],'-e','--accept-package-agreements','--accept-source-agreements','--disable-interactivity','--silent') -PassThru -WindowStyle Hidden
+        $code = Wait-ProcessResponsive $p
+        $st = Convert-RuntimeRepairExit $code
+        $okText = 'C++ 运行库已更新。'
+        $failText = '系统安装器没能装上 C++ 运行库。'
+        return [PSCustomObject]@{Success=[bool]$st.Success;Reboot=[bool]$st.Reboot;Message=$(if($st.Success){$okText}else{$failText})}
+    } catch {
+        return [PSCustomObject]@{Success=$false;Reboot=$false;Message='系统安装器启动失败。'}
+    }
+}
+
 function Invoke-VCRedistRepair([string]$Arch,[object]$Row) {
-    return [PSCustomObject]@{Success=$false;Reboot=$false;Message="VC++ $Arch 官方安装器自动修复已停用。请自行安装 Microsoft Visual C++ Redistributable。"}
+    $archName = @{ x64='64位'; x86='32位'; arm64='ARM' }
+    $label = 'C++ 运行库（' + $(if($archName.ContainsKey($Arch)){$archName[$Arch]}else{$Arch}) + '）'
+    $okText = $label + '已修好。'
+    $failText = $label + '没法自动修好。'
+    $local = Get-LocalVCRedistInstaller $Arch
+    if ($local.Success) {
+        $args = '/install /quiet /norestart'
+        if ($Row -and $Row.Installed -and ($Row.Status -in @('WARN','REPAIR','UPDATE'))) {
+            $args = '/repair /quiet /norestart'
+        }
+        $r = Invoke-SignedRedistExe ([string]$local.Path) $args $okText $failText
+        if ($r.Success) { return $r }
+    }
+    $wg = Invoke-VCRedistWinget $Arch
+    if ($wg.Success) { $wg.Message = $okText; return $wg }
+    $online = $null
+    try { $online = Get-VCRedistOnlinePackage $Arch -Force } catch { $online = $null }
+    if ($online -and $online.Success -and [string]$online.Path) {
+        $args = '/install /quiet /norestart'
+        if ($Row -and $Row.Installed) { $args = '/repair /quiet /norestart' }
+        $r = Invoke-SignedRedistExe ([string]$online.Path) $args $okText $failText
+        if ($r.Success) { return $r }
+    }
+    return [PSCustomObject]@{Success=$false;Reboot=$false;Message=$failText}
+}
+
+function Get-LocalDirectXLegacyInstaller {
+    $paths = New-Object System.Collections.Generic.List[string]
+    foreach ($n in @('dxwebsetup.exe','directx_Jun2010_redist.exe','DXSETUP.exe')) {
+        $p = Join-Path $RuntimeCacheRoot $n
+        if (Test-Path -LiteralPath $p) { [void]$paths.Add($p) }
+    }
+    foreach ($root in @(
+        (Join-Path $env:ProgramData 'Package Cache'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft DirectX SDK (June 2010)'),
+        (Join-Path ${env:ProgramFiles(x86)} 'DirectX'),
+        (Join-Path $env:ProgramFiles 'DirectX')
+    )) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+        try {
+            Get-ChildItem -LiteralPath $root -Filter 'DXSETUP.exe' -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -First 4 |
+                ForEach-Object { [void]$paths.Add($_.FullName) }
+            Get-ChildItem -LiteralPath $root -Filter 'dxwebsetup.exe' -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -First 2 |
+                ForEach-Object { [void]$paths.Add($_.FullName) }
+        } catch {}
+    }
+    foreach ($p in @($paths | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $p)) { continue }
+        $sig = Test-MicrosoftSignedFile $p
+        if ($sig.Valid) { return [PSCustomObject]@{Success=$true;Path=$p;Name=([IO.Path]::GetFileName($p))} }
+    }
+    return [PSCustomObject]@{Success=$false;Path='';Name=''}
 }
 
 function Invoke-DirectXLegacyRepair {
-    return [PSCustomObject]@{Success=$false;Reboot=$false;Message='DirectX Legacy 官方安装器自动修复已停用。请自行安装 DirectX End-User Runtime。'}
+    $okText = '老游戏兼容组件已装好。'
+    $failText = '老游戏兼容组件没法自动装上。'
+    $local = Get-LocalDirectXLegacyInstaller
+    if ($local.Success) {
+        $name = [string]$local.Name
+        if ($name -match '(?i)DXSETUP') {
+            $r = Invoke-SignedRedistExe ([string]$local.Path) '/silent' $okText $failText
+            if ($r.Success) { return $r }
+        } elseif ($name -match '(?i)dxwebsetup') {
+            $r = Invoke-SignedRedistExe ([string]$local.Path) '/Q' $okText $failText
+            if ($r.Success) { return $r }
+        } elseif ($name -match '(?i)directx_Jun2010') {
+            $extract = Join-Path $RuntimeCacheRoot 'DirectX_June2010_Extracted'
+            try {
+                Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
+                New-Item -ItemType Directory -Force -Path $extract | Out-Null
+                $x = Start-Process -FilePath ([string]$local.Path) -ArgumentList "/Q /T:`"$extract`"" -PassThru -WindowStyle Hidden
+                $xCode = Wait-ProcessResponsive $x
+                if ($xCode -eq 0) {
+                    $dxsetup = Join-Path $extract 'DXSETUP.exe'
+                    if (Test-Path -LiteralPath $dxsetup) {
+                        $r = Invoke-SignedRedistExe $dxsetup '/silent' $okText $failText
+                        if ($r.Success) { return $r }
+                    }
+                }
+            } catch {}
+        }
+    }
+    $online = $null
+    try { $online = Get-DirectXWebInstaller -Force } catch { $online = $null }
+    if ($online -and $online.Success -and [string]$online.Path) {
+        $r = Invoke-SignedRedistExe ([string]$online.Path) '/Q' $okText $failText
+        if ($r.Success) { return $r }
+    }
+    $offline = $null
+    try { $offline = Get-DirectXOfflineInstaller -Force } catch { $offline = $null }
+    if ($offline -and $offline.Success -and [string]$offline.Path) {
+        $extract = Join-Path $RuntimeCacheRoot 'DirectX_June2010_Extracted'
+        try {
+            Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $extract | Out-Null
+            $x = Start-Process -FilePath ([string]$offline.Path) -ArgumentList "/Q /T:`"$extract`"" -PassThru -WindowStyle Hidden
+            $xCode = Wait-ProcessResponsive $x
+            if ($xCode -eq 0) {
+                $dxsetup = Join-Path $extract 'DXSETUP.exe'
+                if (Test-Path -LiteralPath $dxsetup) {
+                    $r = Invoke-SignedRedistExe $dxsetup '/silent' $okText $failText
+                    if ($r.Success) { return $r }
+                }
+            }
+        } catch {}
+    }
+    return [PSCustomObject]@{Success=$false;Reboot=$false;Message=$failText}
 }
+
 
 function Invoke-DirectXCoreRepair {
     $messages=@();$ok=$true;$reboot=$false;$needRepair=$true
@@ -646,11 +845,50 @@ function Invoke-DirectXCoreRepair {
     # SFC runs only when DirectX Core was actually judged unhealthy and servicing was attempted.
     if($needRepair -and $ok){try{$sfc=Start-Process -FilePath (Join-Path $env:WINDIR 'System32\sfc.exe') -ArgumentList '/scannow' -PassThru;$sfcCode=Wait-ProcessResponsive $sfc;$messages += "SFC=$sfcCode";if($sfcCode -notin 0,1,2){$ok=$false}}catch{$ok=$false;$messages += "SFC启动失败=$($_.Exception.Message)"}}
     if(-not $needRepair){$messages += '组件存储健康；未执行 RestoreHealth/SFC'}
-    return [PSCustomObject]@{Success=$ok;Reboot=$reboot;Message=($messages -join '; ')}
+    $msg = if($ok){'游戏 DirectX 已用系统修复处理。'}else{'游戏 DirectX 没法自动修好。'}
+    return [PSCustomObject]@{Success=$ok;Reboot=$reboot;Message=$msg}
 }
 
 function Invoke-RuntimeAutoRepair {
-    return [PSCustomObject]@{Success=$false;Reboot=$false;Messages=@('VC++ / DirectX 官方安装器对比与自动修复已停用。本机文件异常时请自行安装 Microsoft Visual C++ Redistributable 或 DirectX End-User Runtime。')}
+    $rows = @(Get-RuntimeDiagnosticRows -Deep)
+    $todo = @($rows | Where-Object { $_.Status -in @('REPAIR','UPDATE','WARN') })
+    if ($todo.Count -eq 0) {
+        return [PSCustomObject]@{Success=$true;Reboot=$false;Messages=@('C++ 运行库和 DirectX 都正常，不必修复。')}
+    }
+    $messages = @()
+    $success = $true
+    $reboot = $false
+    foreach ($r in $todo) {
+        if ($r.Key -match '^VC_(?<a>x86|x64|arm64)$') {
+            $x = Invoke-VCRedistRepair $matches['a'] $r
+            $messages += $x.Message
+            if (-not $x.Success) { $success = $false }
+            if ($x.Reboot) { $reboot = $true }
+        } elseif ($r.Key -eq 'DirectXLegacy') {
+            $x = Invoke-DirectXLegacyRepair
+            $messages += $x.Message
+            if (-not $x.Success) { $success = $false }
+            if ($x.Reboot) { $reboot = $true }
+        } elseif ($r.Key -eq 'DirectXCore' -and $r.Status -eq 'REPAIR') {
+            $x = Invoke-DirectXCoreRepair
+            $messages += $x.Message
+            if (-not $x.Success) { $success = $false }
+            if ($x.Reboot) { $reboot = $true }
+        }
+    }
+    if ($success) {
+        try { (Get-Date).ToString('o') | Set-Content -LiteralPath $RuntimeRepairStampPath -Encoding ASCII } catch {}
+    }
+    $script:SnapshotCacheTime = [datetime]::MinValue
+    $post = @(Get-RuntimeDiagnosticRows -Deep)
+    $remaining = @($post | Where-Object { $_.Status -in @('REPAIR','UPDATE') })
+    if ($remaining.Count -gt 0) {
+        $success = $false
+        $messages += '修完后再看，还有项目不完整。'
+    } else {
+        $messages += '修完后再看：C++ 运行库和 DirectX 都可以用。'
+    }
+    return [PSCustomObject]@{Success=$success;Reboot=$reboot;Messages=$messages}
 }
 
 
@@ -1353,10 +1591,12 @@ function Get-ASUSRepairEligibility([string]$Group,[object]$Snap) {
 
 function Get-RuntimeRepairEligibility([object]$Snap) {
     $pre=Get-EnvironmentPreflight 'Runtime' '';$reasons=@();$warnings=@();foreach($x in @($pre.Rows)){if($x.Blocking){$reasons += "$($x.Name): $($x.Detail)"}elseif($x.Status -eq 'WARN'){$warnings += "$($x.Name): $($x.Detail)"}}
-    $todo=@($Snap.Rows|Where-Object{$_.Group -eq 'RUNTIME' -and $_.Status -eq 'REPAIR'})
-    if($todo.Count -gt 0){$reasons += '运行库不完整。本工具不会自动下载微软安装包，请自行安装 C++ 运行库或 DirectX 最终用户运行时。'}
-    $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons);if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()};$eligible=$false
-    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$(if($todo.Count -gt 0){'运行库不完整，需要自行安装，本工具不会自动修复。'}else{'运行库正常，不必修复。'});EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
+    $todo=@($Snap.Rows|Where-Object{$_.Group -eq 'RUNTIME' -and $_.Status -in @('REPAIR','UPDATE','WARN')})
+    $stateInfo=Resolve-EligibilityState $todo.Count 0 $pre @($reasons)
+    if($stateInfo.State -eq 'NO_ACTION_REQUIRED'){$reasons=@()}
+    $eligible=($stateInfo.State -eq 'ELIGIBLE' -and $reasons.Count -eq 0)
+    $decision=if($todo.Count -gt 0){'运行库不完整或版本偏低，可以自动修复。'}else{'运行库正常，不必修复。'}
+    return [PSCustomObject]@{State=$stateInfo.State;Eligible=$eligible;Decision=$decision;EnvironmentStates=@($stateInfo.EnvironmentStates);Reasons=$reasons;Warnings=$warnings;Preflight=$pre;TargetRows=$todo}
 }
 
 
@@ -1370,7 +1610,7 @@ function Convert-PlanRows([object[]]$Rows) {
 
 function New-RepairPlan([ValidateSet('ASUS','RUNTIME')][string]$Type,[string]$Group,[object]$Snap) {
     $id='PLAN-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+([guid]::NewGuid().ToString('N').Substring(0,6));$actions=@();$recovery=@();$risk='LOW';$elig=$null;$label='';$moduleIdentity=$null;$runtimePackages=@()
-    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('确认奥创组件身份','按已验证步骤修复','修完后再看有没有新的更新错误');$recovery=@('用本工具生成的恢复包还原','需要时使用系统还原点');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='游戏运行库';$actions=@('检测本机 C++ 运行库和 DirectX','不下载微软安装包，也不自动修复','不完整时请自行到微软安装对应运行库');$recovery=@('自行安装微软官方运行库');$risk='LOW'}
+    if($Type -eq 'ASUS'){$elig=Get-ASUSRepairEligibility $Group $Snap;$info=Get-ModuleInfo $Group;$label=if($info){$info.Label}else{$Group};if($info -and(Test-Path -LiteralPath $info.Module)){try{$policy=$RepairPolicies[$Group];$moduleKey=[string]$policy.ModuleKey;$moduleIdentity=[PSCustomObject]@{Path=$info.Module;SHA256=(Get-FileHash -Algorithm SHA256 -LiteralPath $info.Module).Hash.ToLowerInvariant();ExpectedSHA256=[string]$ExpectedModuleHashes[$moduleKey];Label=$info.Label}}catch{}};$actions=@('确认奥创组件身份','按已验证步骤修复','修完后再看有没有新的更新错误');$recovery=@('用本工具生成的恢复包还原','需要时使用系统还原点');$risk='MEDIUM'}else{$elig=Get-RuntimeRepairEligibility $Snap;$label='游戏运行库';$actions=@('检测本机 C++ 运行库和 DirectX','能修的项目自动修','优先用本机安装包，没有再尝试安装','修完后再检测一次');$recovery=@('需要时再自行安装官方运行库');$risk='LOW'}
     $plan=[PSCustomObject]@{SchemaVersion=2;PlanId=$id;AppVersion=$AppVersion;BuildId=$BuildId;EngineSHA256=$script:EngineSHA256;CreatedAt=(Get-Date).ToString('o');Type=$Type;Group=$Group;Label=$label;PlanState=[string]$elig.State;EnvironmentStates=@($elig.EnvironmentStates);Decision=[string]$elig.Decision;Eligible=[bool]$elig.Eligible;BlockingReasons=@($elig.Reasons);Warnings=@($elig.Warnings);Risk=$risk;Actions=$actions;Recovery=$recovery;TargetRows=Convert-PlanRows $elig.TargetRows;Fingerprints=$(if($Type -eq 'ASUS'){@($elig.Fingerprints)}else{@()});Policy=$(if($Type -eq 'ASUS'){$elig.Policy}else{$null});RepairModuleIdentity=$moduleIdentity;RuntimePackageIdentities=@($runtimePackages)}
     $path=Join-Path $PlanRoot ($id+'.json');try{[void](Write-JsonAtomic $path $plan 16)}catch{};$script:CurrentPlan=$plan;return $plan
 }
@@ -1428,8 +1668,7 @@ function Format-RepairPlan([object]$Plan) {
     }
     if($eligible){
         [void]$lines.Add('')
-        [void]$lines.Add('接下来：点「执行安全修复」，然后在系统确认窗口同意。')
-        [void]$lines.Add('修完后再看一次，有没有新的更新错误。')
+        if([string]$Plan.Type -eq 'RUNTIME'){[void]$lines.Add('接下来：点「修复运行库」，然后在系统确认窗口同意。');[void]$lines.Add('修完后再检测一次。')}else{[void]$lines.Add('接下来：点「执行安全修复」，然后在系统确认窗口同意。');[void]$lines.Add('修完后再看一次，有没有新的更新错误。')}
     } elseif($state -eq 'NO_ACTION_REQUIRED'){
         [void]$lines.Add('现在不用动手。')
     }
@@ -2889,8 +3128,20 @@ function Invoke-ASUSRepairHeadless([string]$Group) {
 
 function Invoke-RuntimeRepairHeadless {
     if(-not (Get-AdminState)){throw 'Elevated broker required'}
-    $msg='VC++ / DirectX 官方安装器对比与自动修复已停用。本机文件异常时请自行安装 Microsoft Visual C++ Redistributable 或 DirectX End-User Runtime。'
-    return [PSCustomObject]@{Success=$false;TransactionId='';State='Cancelled';Detail=$msg}
+    $script:SnapshotCacheTime=[datetime]::MinValue
+    $snap=Get-SystemSnapshot -Force
+    $elig=Get-RuntimeRepairEligibility $snap
+    if(-not $elig.Eligible){throw ('现在不能自动修运行库：'+(@($elig.Reasons)-join '；'))}
+    $plan=New-RepairPlan 'RUNTIME' '' $snap
+    if(-not $plan.Eligible){throw ('现在不能自动修运行库：'+(@($plan.BlockingReasons)-join '；'))}
+    $tx=New-RepairTransaction $plan $snap
+    Set-TransactionState $tx 'RepairStarted' '开始修复运行库'
+    $script:RepairExecutionActive=$true
+    try{$r=Invoke-RuntimeAutoRepair}finally{$script:RepairExecutionActive=$false}
+    $detail=(@($r.Messages)|ForEach-Object{ConvertTo-CustomerSentence ([string]$_)} | Where-Object {$_}) -join ' '
+    if(-not $detail){$detail=if($r.Success){'运行库已修好。'}else{'运行库没有完全修好。'}}
+    if($r.Success){Set-TransactionState $tx 'SuccessPendingVerification' $detail}else{Set-TransactionState $tx 'NeedsAttention' $detail}
+    return [PSCustomObject]@{Success=[bool]$r.Success;TransactionId=$tx.TransactionId;State=$tx.State;Detail=$detail}
 }
 
 function Invoke-ContinuePendingRepairHeadless {
