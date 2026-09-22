@@ -25,6 +25,10 @@ Write-Step 'Architecture / hash-lock'
 & powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File (Join-Path $Root 'Tests\Architecture.Tests.ps1')
 if($LASTEXITCODE -ne 0){ Fail 'Architecture.Tests failed' }
 
+Write-Step 'Engine import regression'
+& powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File (Join-Path $Root 'Tests\EngineImport.Smoke.ps1') -Backend (Join-Path $Root 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend') -Scratch (Join-Path $env:TEMP ('WgrImportSmoke-' + [guid]::NewGuid()))
+if($LASTEXITCODE -ne 0){ Fail 'Engine import regression failed' }
+
 $pester = Get-Module -ListAvailable Pester | Where-Object { $_.Version.Major -ge 5 } | Select-Object -First 1
 if($pester){
     Write-Step 'Pester unit tests'

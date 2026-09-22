@@ -47,6 +47,10 @@ jobs:
         shell: powershell
         run: ./Tests/Architecture.Tests.ps1
 
+      - name: Engine import regression (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./Tests/EngineImport.Smoke.ps1 -Backend "$PWD/WindowsGameRuntimeASUSSelfHealing.WinUI/Backend" -Scratch "$env:RUNNER_TEMP/WgrImportSmoke"
+
       - name: Pester unit tests
         shell: powershell
         run: |

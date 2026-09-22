@@ -25,7 +25,7 @@
     AtomicPolicyExecutorSHA256 = '158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995'
     RecipeCatalogSHA256 = 'a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6'
     RuntimeEngineSHA256 = 'cb2135bf67e2b64410ee355d75cf5bf26d1d4ba2d1c65be4264a755f82232f4c'
-    SnapshotEngineSHA256 = '122f6bce84c5a1114fcbeb5ff34d01aef7d8faed7097122f7a72ce771b3439d8'
+    SnapshotEngineSHA256 = '0025f9878eea0f70094f84c39c1d90f0d38066031ed2763a6329efbbdf104967'
     LegacyAdapterHashes = @{
         PV = 'bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04'
         HOLTEK = '9217d88ee0632d3c36cc96e6c8edcaf5f156ab555da521511705f91dab6d2674'
