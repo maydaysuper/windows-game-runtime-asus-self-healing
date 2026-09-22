@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = '奥创修复中心'
-    Version = '4.5.1'
-    BuildId = '20260922.wpf.16'
+    Version = '4.5.2'
+    BuildId = '20260922.wpf.17'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4
@@ -22,7 +22,7 @@
     GpuDiagnosticsReaderSHA256 = '4a39b9a4a24ee4dda66d67e79bec93a1eb17f8fa551d4a5f7e5d3cba46ba3af2'
     GpuSafeRepairSHA256 = 'a2873909dec75e0abcfff0467693d79ab24e84ac2ae4976e4b9226e747ed0092'
     ArmouryCrateSafeRepairSHA256 = 'b6acbca2702d4d1bcd61a56679c9c8f3ae51e665bb2823d9cfbbece737c290f6'
-    AtomicPolicyExecutorSHA256 = '0863b4f51edd020ce7c978af453bca550d669eb1eda4db237fa24be59bb079e3'
+    AtomicPolicyExecutorSHA256 = '158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995'
     RecipeCatalogSHA256 = 'a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6'
     LegacyAdapterHashes = @{
         PV = 'bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04'
