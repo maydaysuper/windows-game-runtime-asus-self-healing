@@ -2,7 +2,7 @@
 
 Windows 11 x64 **WPF** tool for game runtime repair, **ASUS Armoury Crate 4151/4152** healing, plus safe cache/memory cleanup.
 
-WinUI 3 unpackaged builds (v3.4.x) do not start on the target PC. v4.3.2 is WPF / .NET 10 self-contained.
+WinUI 3 unpackaged builds (v3.4.x) do not start on the target PC. v4.4.0 is WPF / .NET 10 self-contained.
 
 **End users: do not compile this repo.** Download the latest GitHub Release:
 
@@ -13,7 +13,7 @@ Uninstall every 3.4.x build first. Setup installs per-user under LocalAppData an
 
 ## Current version
 
-v4.3.2 · .NET 10 · C# 14 · WPF · desktop launcher + App folder
+v4.4.0 · .NET 10 · C# 14 · WPF · desktop launcher + App folder
 
 ## What it does
 
