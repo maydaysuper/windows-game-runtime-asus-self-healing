@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.0/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.4.0_x64.exe"><strong>下载安装包</strong></a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.1/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.4.1_x64.exe"><strong>下载安装包</strong></a>
   ·
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.0/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.4.0_win-x64.zip">便携版 ZIP</a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.4.1/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.4.1_win-x64.zip">便携版 ZIP</a>
   ·
   <a href="README_CN.md">中文说明</a>
   ·
@@ -38,15 +38,15 @@
 
 | 包 | 给谁 |
 |---|---|
-| `Setup_v4.4.0_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
-| `Portable_v4.4.0_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
+| `Setup_v4.4.1_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
+| `Portable_v4.4.1_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
 
 - 请先卸载全部 **3.4.x**（WinUI 版在部分机器上无法启动）
 - 已装 4.1 / 4.2 / 4.3 可直接覆盖
 - 不往开始菜单塞快捷方式
 - 只有真正需要提权的修复才会弹出 UAC
 
-当前版本：**v4.4.0** · .NET 10 · WPF · Windows 11 x64
+当前版本：**v4.4.1** · .NET 10 · WPF · Windows 11 x64
 
 ## 五个页面，一眼看懂结果
 
@@ -54,7 +54,7 @@
 2. **奥创中心** — 只查现在有没有更新错误
 3. **游戏运行库** — 本机 C++ 文件 vs 微软官方；不一样就问你要不要修
 4. **游戏崩溃** — 看为什么崩，不乱卸显卡驱动
-5. **报告中心** — 再检查一遍、诊断包、缓存 / 内存清理（不结束正在运行的程序，不动显卡着色器缓存）
+5. **报告中心** — 再检查一遍、诊断包、缓存 / 着色器 / 注册表 / 内存清理（不结束正在运行的程序）
 
 ## 和合集包、DirectX Repair 的差别
 
@@ -78,7 +78,7 @@
 - 不降级已经新于官方的运行库
 - 不卸载显卡驱动、不改主板 / BIOS
 - 不结束正在运行的游戏和软件
-- 不清理显卡着色器缓存
+- 注册表只删指向已经不存在文件的残留
 
 修复 C++ 只用微软签名的官方安装器（本机缓存 / `winget` / 官方下载），不是网盘合集。
 

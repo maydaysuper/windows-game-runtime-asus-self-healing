@@ -239,7 +239,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.4.0': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.4.1': ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -385,11 +385,17 @@ settings_xaml=(PROJ/'Pages'/'SettingsPage.xaml').read_text(encoding='utf-8')
 for token,msg in [
     ('EmptyWorkingSet','memory cleaner uses EmptyWorkingSet'),
     ('SHEmptyRecycleBin','cache cleaner can empty recycle bin'),
-    ('shader','cache cleaner excludes shader caches'),
+    ('ForbiddenPathParts','general cache still has a forbidden-path list'),
+    ('IsAllowedShaderPath','shader cleaner is allow-listed under LocalAppData'),
+    ('CleanShaderCacheAsync','shader cache cleaner exists'),
+    ('CleanRegistryAsync','registry cleaner exists'),
+    ('ProtectedRegistryNames','registry cleaner skips ASUS/Microsoft/driver names'),
 ]:
     ok(msg) if token in maint else fail('maintenance missing '+token)
-if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
-else: fail('settings page missing cache/memory tools')
+if 'shader' in maint and 'd3dscache' in maint.lower(): ok('general cache still names shader paths so it can skip them')
+else: fail('general cache lost shader exclusion tokens')
+if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml and '显卡着色器缓存' in settings_xaml and '注册表清理' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
+else: fail('settings page missing cache/memory/shader/registry tools')
 if '高级设置' in (PROJ/'Pages'/'ReportsPage.xaml').read_text(encoding='utf-8'): fail('reports still labels the tools page 高级设置')
 else: ok('reports opens 系统工具')
 

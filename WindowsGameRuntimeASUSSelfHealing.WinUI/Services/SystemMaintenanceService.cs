@@ -1,12 +1,15 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
 /// <summary>
-/// Safe cache/memory tools. Never kills processes, never touches shader caches,
-/// dumps, drivers, BIOS, or Armoury repair state.
+/// Safe cache/memory/registry tools. Never kills processes, never force-unlocks
+/// in-use files, never touches drivers, BIOS, or Armoury repair state.
+/// General cache cleaning still skips shader caches; shader cleanup is a
+/// separate, allow-listed LocalAppData pass.
 /// </summary>
 public sealed class SystemMaintenanceService
 {
@@ -23,6 +26,13 @@ public sealed class SystemMaintenanceService
         "windows\\fonts", "softwaredistribution\\download",
         "windowsruntimeasusselfhealing\\state",
         "windowsruntimeasusselfhealing\\backend"
+    };
+
+    private static readonly string[] ProtectedRegistryNames =
+    {
+        "Microsoft", "Windows", "Visual C++", "DirectX", "Armoury", "ASUS",
+        "NVIDIA", "AMD", "Intel", "Realtek", "Visual Studio", ".NET",
+        "奥创", "Windows Game Runtime"
     };
 
     private const int ProcessQueryLimitedInformation = 0x1000;
@@ -52,6 +62,39 @@ public sealed class SystemMaintenanceService
 
     public Task<CacheCleanResult> CleanCacheAsync(CancellationToken cancellationToken = default)
         => Task.Run(() => CleanCache(cancellationToken), cancellationToken);
+
+    public Task<CacheScanResult> ScanShaderCacheAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() => ToScan(CollectShaderBuckets(delete: false, cancellationToken)), cancellationToken);
+
+    public Task<CacheCleanResult> CleanShaderCacheAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() =>
+        {
+            var buckets = CollectShaderBuckets(delete: true, cancellationToken);
+            return new CacheCleanResult
+            {
+                BytesFreed = buckets.Sum(b => b.Bytes),
+                FilesRemoved = buckets.Sum(b => b.Files),
+                FilesSkipped = buckets.Sum(b => b.Skipped),
+                RecycleBinEmptied = false,
+                DnsFlushed = false,
+                Buckets = buckets
+            };
+        }, cancellationToken);
+
+    public Task<CacheScanResult> ScanRegistryAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() => ToScan(CollectRegistryBuckets(delete: false, cancellationToken)), cancellationToken);
+
+    public Task<RegistryCleanResult> CleanRegistryAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() =>
+        {
+            var buckets = CollectRegistryBuckets(delete: true, cancellationToken);
+            return new RegistryCleanResult
+            {
+                ItemsRemoved = buckets.Sum(b => b.Files),
+                ItemsSkipped = buckets.Sum(b => b.Skipped),
+                Buckets = buckets
+            };
+        }, cancellationToken);
 
     private MemoryCleanResult CleanMemory(CancellationToken cancellationToken)
     {
@@ -110,12 +153,7 @@ public sealed class SystemMaintenanceService
     private CacheScanResult ScanCache(CancellationToken cancellationToken)
     {
         var buckets = CollectBuckets(delete: false, cancellationToken);
-        return new CacheScanResult
-        {
-            Buckets = buckets,
-            TotalBytes = buckets.Sum(b => b.Bytes),
-            TotalFiles = buckets.Sum(b => b.Files)
-        };
+        return ToScan(buckets);
     }
 
     private CacheCleanResult CleanCache(CancellationToken cancellationToken)
@@ -133,6 +171,13 @@ public sealed class SystemMaintenanceService
             Buckets = buckets
         };
     }
+
+    private static CacheScanResult ToScan(List<CacheBucket> buckets) => new()
+    {
+        Buckets = buckets,
+        TotalBytes = buckets.Sum(b => b.Bytes),
+        TotalFiles = buckets.Sum(b => b.Files)
+    };
 
     private List<CacheBucket> CollectBuckets(bool delete, CancellationToken cancellationToken)
     {
@@ -163,7 +208,45 @@ public sealed class SystemMaintenanceService
         return list;
     }
 
-    private CacheBucket Walk(string name, string root, bool delete, CancellationToken cancellationToken, bool optional = false, Func<string, bool>? filePredicate = null)
+    private List<CacheBucket> CollectShaderBuckets(bool delete, CancellationToken cancellationToken)
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var targets = new (string name, string path)[]
+        {
+            ("DirectX 着色器缓存", Path.Combine(local, "D3DSCache")),
+            ("NVIDIA 图形缓存", Path.Combine(local, "NVIDIA", "DXCache")),
+            ("NVIDIA OpenGL 缓存", Path.Combine(local, "NVIDIA", "GLCache")),
+            ("NVIDIA 驱动缓存", Path.Combine(local, "NVIDIA Corporation", "NV_Cache")),
+            ("AMD 图形缓存", Path.Combine(local, "AMD", "DxCache")),
+            ("AMD OpenGL 缓存", Path.Combine(local, "AMD", "GLCache")),
+            ("Intel 着色器缓存", Path.Combine(local, "Intel", "ShaderCache")),
+        };
+        var list = new List<CacheBucket>();
+        foreach (var (name, path) in targets)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsAllowedShaderPath(path))
+            {
+                list.Add(new CacheBucket { Name = name, Note = "当前没有或已跳过" });
+                continue;
+            }
+            list.Add(Walk(name, path, delete, cancellationToken, optional: true, enforceForbidden: false, skipRecent: false));
+        }
+        return list;
+    }
+
+    private List<CacheBucket> CollectRegistryBuckets(bool delete, CancellationToken cancellationToken)
+    {
+        return
+        [
+            SweepUninstallLeftovers(delete, cancellationToken),
+            SweepAppPaths(delete, cancellationToken),
+            SweepInvalidRunValues(delete, cancellationToken),
+            SweepMuiCache(delete, cancellationToken)
+        ];
+    }
+
+    private CacheBucket Walk(string name, string root, bool delete, CancellationToken cancellationToken, bool optional = false, Func<string, bool>? filePredicate = null, bool enforceForbidden = true, bool skipRecent = true)
     {
         if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             return new CacheBucket { Name = name, Note = optional ? "当前没有或无权访问" : "目录不存在" };
@@ -199,12 +282,12 @@ public sealed class SystemMaintenanceService
             if (files + skipped > 25000) break;
             var fileName = Path.GetFileName(path);
             if (filePredicate is not null && !filePredicate(fileName)) continue;
-            if (IsForbidden(path)) { skipped++; continue; }
+            if (enforceForbidden && IsForbidden(path)) { skipped++; continue; }
             try
             {
                 var info = new FileInfo(path);
                 if ((info.Attributes & FileAttributes.System) != 0) { skipped++; continue; }
-                if (info.LastWriteTimeUtc > cutoff) { skipped++; continue; }
+                if (skipRecent && info.LastWriteTimeUtc > cutoff) { skipped++; continue; }
                 var size = info.Length;
                 if (delete)
                 {
@@ -233,10 +316,209 @@ public sealed class SystemMaintenanceService
         return false;
     }
 
+    private static bool IsAllowedShaderPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        try
+        {
+            var local = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)).TrimEnd('\\') + "\\";
+            var full = Path.GetFullPath(path).TrimEnd('\\') + "\\";
+            if (!full.StartsWith(local, StringComparison.OrdinalIgnoreCase)) return false;
+            var n = full.ToLowerInvariant();
+            return n.Contains("\\d3dscache\\") ||
+                   n.Contains("\\nvidia\\dxcache\\") ||
+                   n.Contains("\\nvidia\\glcache\\") ||
+                   n.Contains("\\nvidia corporation\\nv_cache\\") ||
+                   n.Contains("\\amd\\dxcache\\") ||
+                   n.Contains("\\amd\\glcache\\") ||
+                   n.Contains("\\intel\\shadercache\\");
+        }
+        catch { return false; }
+    }
+
     private static bool PathsEqual(string a, string b)
     {
         try { return string.Equals(Path.GetFullPath(a).TrimEnd('\\'), Path.GetFullPath(b).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase); }
         catch { return false; }
+    }
+
+    private static bool IsProtectedName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return true;
+        foreach (var token in ProtectedRegistryNames)
+        {
+            if (name.Contains(token, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private static string? FirstExistingCheckPath(string? command)
+    {
+        if (string.IsNullOrWhiteSpace(command)) return null;
+        var expanded = Environment.ExpandEnvironmentVariables(command.Trim());
+        if (expanded.StartsWith('"'))
+        {
+            var end = expanded.IndexOf('"', 1);
+            if (end > 1) return expanded[1..end];
+        }
+        var exe = expanded.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+        if (exe >= 0) return expanded[..(exe + 4)].Trim().Trim('"');
+        var space = expanded.IndexOf(' ');
+        return (space > 0 ? expanded[..space] : expanded).Trim().Trim('"');
+    }
+
+    private static bool LooksMissing(string? command)
+    {
+        var path = FirstExistingCheckPath(command);
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        if (path.Contains("msiexec", StringComparison.OrdinalIgnoreCase)) return false;
+        if (path.Contains("rundll32", StringComparison.OrdinalIgnoreCase)) return false;
+        try
+        {
+            if (path.EndsWith('\\')) return !Directory.Exists(path);
+            return !File.Exists(path) && !Directory.Exists(path);
+        }
+        catch { return false; }
+    }
+
+    private CacheBucket SweepUninstallLeftovers(bool delete, CancellationToken cancellationToken)
+    {
+        var files = 0;
+        var skipped = 0;
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                using var uninstall = baseKey.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall", writable: delete);
+                if (uninstall is null) continue;
+                foreach (var name in uninstall.GetSubKeyNames())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (files + skipped > 4000) break;
+                    try
+                    {
+                        using var sub = uninstall.OpenSubKey(name, writable: false);
+                        if (sub is null) { skipped++; continue; }
+                        var display = sub.GetValue("DisplayName") as string;
+                        if (IsProtectedName(display)) { skipped++; continue; }
+                        var uninstallString = sub.GetValue("UninstallString") as string;
+                        if (string.IsNullOrWhiteSpace(uninstallString) || !LooksMissing(uninstallString)) { skipped++; continue; }
+                        if (delete)
+                        {
+                            uninstall.DeleteSubKeyTree(name, throwOnMissingSubKey: false);
+                        }
+                        files++;
+                    }
+                    catch { skipped++; }
+                }
+            }
+            catch { skipped++; }
+        }
+        return new CacheBucket { Name = "卸载残留", Files = files, Skipped = skipped, Note = "只删已经卸掉、路径不存在的项" };
+    }
+
+    private CacheBucket SweepAppPaths(bool delete, CancellationToken cancellationToken)
+    {
+        var files = 0;
+        var skipped = 0;
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                using var appPaths = baseKey.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\App Paths", writable: delete);
+                if (appPaths is null) continue;
+                foreach (var name in appPaths.GetSubKeyNames())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (IsProtectedName(name)) { skipped++; continue; }
+                    try
+                    {
+                        using var sub = appPaths.OpenSubKey(name, writable: false);
+                        if (sub is null) { skipped++; continue; }
+                        var target = sub.GetValue(null) as string ?? sub.GetValue("Path") as string;
+                        if (!LooksMissing(target)) { skipped++; continue; }
+                        if (delete) appPaths.DeleteSubKeyTree(name, throwOnMissingSubKey: false);
+                        files++;
+                    }
+                    catch { skipped++; }
+                }
+            }
+            catch { skipped++; }
+        }
+        return new CacheBucket { Name = "无效程序路径", Files = files, Skipped = skipped };
+    }
+
+    private CacheBucket SweepInvalidRunValues(bool delete, CancellationToken cancellationToken)
+    {
+        var files = 0;
+        var skipped = 0;
+        var runPaths = new[]
+        {
+            @"Software\Microsoft\Windows\CurrentVersion\Run",
+            @"Software\Microsoft\Windows\CurrentVersion\RunOnce"
+        };
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        foreach (var path in runPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                using var run = baseKey.OpenSubKey(path, writable: delete);
+                if (run is null) continue;
+                foreach (var name in run.GetValueNames())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (IsProtectedName(name)) { skipped++; continue; }
+                    try
+                    {
+                        var value = run.GetValue(name) as string;
+                        if (!LooksMissing(value)) { skipped++; continue; }
+                        if (delete) run.DeleteValue(name, throwOnMissingValue: false);
+                        files++;
+                    }
+                    catch { skipped++; }
+                }
+            }
+            catch { skipped++; }
+        }
+        return new CacheBucket { Name = "无效启动项", Files = files, Skipped = skipped };
+    }
+
+    private CacheBucket SweepMuiCache(bool delete, CancellationToken cancellationToken)
+    {
+        var files = 0;
+        var skipped = 0;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache", writable: delete);
+            if (key is null)
+                return new CacheBucket { Name = "无效文件名缓存", Note = "当前没有或无权访问" };
+            foreach (var name in key.GetValueNames())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (files + skipped > 8000) break;
+                var path = name;
+                var cut = path.LastIndexOf('.');
+                if (cut > 2) path = path[..cut];
+                if (!path.Contains('\\') || !LooksMissing(path)) { skipped++; continue; }
+                try
+                {
+                    if (delete) key.DeleteValue(name, throwOnMissingValue: false);
+                    files++;
+                }
+                catch { skipped++; }
+            }
+        }
+        catch { skipped++; }
+        return new CacheBucket { Name = "无效文件名缓存", Files = files, Skipped = skipped };
     }
 
     private static (long bytes, int items) QueryRecycleBin()
