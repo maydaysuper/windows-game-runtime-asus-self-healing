@@ -269,7 +269,12 @@ if($capability){
     foreach($action in @('ASUS_REPAIR','RUNTIME_REPAIR','CONTINUE','WER_ENABLE','WER_DISABLE','GPU_SAFE_REPAIR')){
         if($brokerRaw -match [regex]::Escape("'$action'")){Pass ('Broker action retained: '+$action)}else{Fail ('Broker action missing: '+$action)}
     }
-    $engineRaw=Read-Utf8Text (Join-Path $Backend 'RepairCenter.ps1')
+    $engineRaw=(
+        (Read-Utf8Text (Join-Path $Backend 'RepairCenter.ps1')) + "`n" +
+        (Read-Utf8Text (Join-Path $Backend 'RuntimeEngine.ps1')) + "`n" +
+        (Read-Utf8Text (Join-Path $Backend 'SnapshotEngine.ps1')) + "`n" +
+        (Read-Utf8Text (Join-Path $Backend 'ArmouryCrateSafeRepair.ps1'))
+    )
     foreach($fn in @('Get-ASUSRepairEligibility','Invoke-ASUSRepairHeadless','Invoke-RuntimeRepairHeadless','Continue-PendingRepair','Run-FinalVerification','Start-TransactionObservation','Get-GameCrashTelemetry','Set-WerLocalDumpConfiguration')){
         if($engineRaw -match ('(?m)^function\s+'+[regex]::Escape($fn)+'\b')){Pass ('Engine capability retained: '+$fn)}else{Fail ('Engine capability missing: '+$fn)}
     }
