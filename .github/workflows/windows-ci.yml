@@ -33,6 +33,12 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Quick reference and UTF-8 BOM check
+        shell: powershell
+        run: |
+          ./tools/Check-FileReferences.ps1
+          ./tools/Ensure-BOM.ps1 -Verify
+
       - name: Source capability / no-regression invariants
         shell: powershell
         run: python ./Tests/source_invariants.py
@@ -40,6 +46,20 @@ jobs:
       - name: PowerShell parser, architecture and hash-lock tests
         shell: powershell
         run: ./Tests/Architecture.Tests.ps1
+
+      - name: Pester unit tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if(-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version.Major -ge 5 })){
+            Install-Module Pester -Force -SkipPublisherCheck -MinimumVersion 5.0.0 -Scope CurrentUser
+          }
+          Import-Module Pester -MinimumVersion 5.0.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = 'Tests/Unit'
+          $cfg.Run.Exit = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $cfg
 
       - name: Restore
         shell: powershell

@@ -295,6 +295,18 @@ $crashCode=Read-Utf8Text (Join-Path $ProjectRoot 'Pages\CrashPage.xaml.cs')
 if($crashCode -match 'RunGpuDiagnosisAsync' -and $crashCode -match 'GPU_SAFE_REPAIR'){Pass 'GPU diagnosis and safe repair are user accessible'}else{Fail 'GPU diagnosis UI path missing'}
 if($gpuDiagRaw -match 'LiveKernelReports' -and $gpuDiagRaw -match '_dumpAnalysis\.AnalyzeAsync' -and $gpuDiagRaw -match 'SaveDumpAnalysisAsync'){Pass 'GPU diagnosis auto-analyzes newest local LiveKernel dump best-effort'}else{Fail 'GPU LiveKernel dump auto-analysis path missing'}
 
+# 13) Allow-listed predicates for new safe tools (no Pester required).
+. (Join-Path $Backend 'ArmouryCrateSafeRepair.ps1')
+. (Join-Path $Backend 'GpuSafeRepair.ps1')
+$tempArmoury = Join-Path $env:TEMP 'ArmouryCrateInstaller'
+if(Test-WgrArmouryTempPath $tempArmoury){Pass 'Armoury temp allowlist accepts TEMP leftovers'}else{Fail 'Armoury temp allowlist rejected TEMP leftovers'}
+if(-not (Test-WgrArmouryTempPath 'C:\Windows\System32\ArmourySetup')){Pass 'Armoury temp allowlist denies System32'}else{Fail 'Armoury temp allowlist accepted System32'}
+$dxCache = Join-Path $env:LOCALAPPDATA 'D3DSCache\blob'
+if(Test-WgrGpuCachePath $dxCache){Pass 'GPU cache allowlist accepts LocalAppData D3DSCache'}else{Fail 'GPU cache allowlist rejected D3DSCache'}
+if(-not (Test-WgrGpuCachePath 'C:\Windows\System32\drivers')){Pass 'GPU cache allowlist denies System32'}else{Fail 'GPU cache allowlist accepted System32'}
+$svcNames = @(Get-WgrArmouryServiceNames)
+if($svcNames -contains 'ArmouryCrateService' -and (Get-Command Invoke-WgrArmouryLaunchAttempt -ErrorAction SilentlyContinue)){Pass 'Armoury launch retry helper is exported'}else{Fail 'Armoury launch retry helper missing'}
+
 if($Failures.Count -gt 0){
     Write-Host ''
     Write-Host ("FAILED: {0} static test(s)" -f $Failures.Count) -ForegroundColor Red

@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 Safe Armoury Crate launch / install-501 repair.
 
@@ -183,6 +183,50 @@ function Get-WgrArmouryCrateLaunchHealth([switch]$SkipLogScan) {
     }
 }
 
+function Invoke-WgrArmouryLaunchAttempt {
+    [CmdletBinding()]
+    param(
+        [int]$MaxRetries = 3,
+        [int]$DelaySeconds = 5,
+        [string[]]$Executables,
+        [switch]$SkipProcessCheck
+    )
+    if(-not $SkipProcessCheck){
+        try {
+            $running=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '(?i)ArmouryCrate' })
+            if($running.Count -gt 0){
+                return [PSCustomObject]@{Success=$true;Attempts=0;ErrorCode=$null;Error=$null;Path='';AlreadyRunning=$true}
+            }
+        } catch {}
+    }
+    if($null -eq $Executables){ $Executables = @(Get-WgrArmouryExecutables) }
+    $list=@($Executables | Where-Object { $_ })
+    if($list.Count -eq 0){
+        return [PSCustomObject]@{Success=$false;Attempts=0;ErrorCode=$null;Error='没有找到奥创程序';Path='';AlreadyRunning=$false}
+    }
+
+    $attempts=0
+    $lastError=$null
+    $lastCode=$null
+    $path=$list[0]
+    $exeIndex=0
+    while($attempts -lt $MaxRetries){
+        $attempts++
+        if($exeIndex -ge $list.Count){ $exeIndex = 0 }
+        $path=$list[$exeIndex]
+        try {
+            Start-Process -FilePath $path -ErrorAction Stop | Out-Null
+            return [PSCustomObject]@{Success=$true;Attempts=$attempts;ErrorCode=$null;Error=$null;Path=$path;AlreadyRunning=$false}
+        } catch {
+            $lastError=[string]$_.Exception.Message
+            try { $lastCode = [int]$_.Exception.HResult } catch { $lastCode = $null }
+            $exeIndex++
+            if($attempts -lt $MaxRetries -and $DelaySeconds -gt 0){ Start-Sleep -Seconds $DelaySeconds }
+        }
+    }
+    return [PSCustomObject]@{Success=$false;Attempts=$attempts;ErrorCode=$lastCode;Error=$lastError;Path=$path;AlreadyRunning=$false}
+}
+
 function Invoke-WgrArmouryCrateSafeRepair {
     $before=Get-WgrArmouryCrateLaunchHealth
     $messages=New-Object System.Collections.Generic.List[string]
@@ -259,22 +303,11 @@ function Invoke-WgrArmouryCrateSafeRepair {
     } catch {}
     if($registered -gt 0){[void]$messages.Add("已重新注册 $registered 个奥创应用。")}
 
-    $launched=$false
-    try {
-        $running=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '(?i)ArmouryCrate' })
-        if($running.Count -eq 0){
-            foreach($exe in @(Get-WgrArmouryExecutables)){
-                try {
-                    Start-Process -FilePath $exe -ErrorAction Stop | Out-Null
-                    $launched=$true
-                    break
-                } catch {}
-            }
-        } else {
-            $launched=$true
-        }
-    } catch {}
-    if($launched){[void]$messages.Add('已尝试打开奥创。')}
+    $launch=Invoke-WgrArmouryLaunchAttempt -MaxRetries 3 -DelaySeconds 5
+    if($launch.AlreadyRunning){[void]$messages.Add('奥创已经在运行。')}
+    elseif($launch.Success){[void]$messages.Add("已打开奥创（第 $($launch.Attempts) 次成功）。")}
+    elseif($launch.ErrorCode){[void]$messages.Add("打开奥创失败，错误码 $($launch.ErrorCode)。")}
+    elseif($launch.Error){[void]$messages.Add('打开奥创失败。')}
 
     Start-Sleep -Seconds 2
     $after=Get-WgrArmouryCrateLaunchHealth
@@ -285,12 +318,14 @@ function Invoke-WgrArmouryCrateSafeRepair {
 
     $detail=($messages | Where-Object { $_ }) -join ' '
     if(-not $detail){$detail='奥创安装/启动修复已跑完。'}
+    $launched=[bool]$launch.Success
     return [PSCustomObject]@{
         Success=$ok -or $cleaned -gt 0 -or $started -gt 0 -or $registered -gt 0 -or $launched
         Detail=$detail
         State=$(if($ok){'COMPLETED'}else{'NEEDS_ATTENTION'})
         Before=$before
         After=$after
+        LaunchAttempt=$launch
         Safety=[PSCustomObject]@{AutomaticDDU=$false;DriverRemoval=$false;BiosWrites=$false;HalDeletion=$false}
     }
 }

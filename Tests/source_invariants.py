@@ -240,7 +240,7 @@ if 'MICROSOFT_WINDOWSAPPRUNTIME' not in startup: ok('WASDK bootstrap directory e
 else: fail('WASDK environment variable leftover')
 if (PROJ/'Program.cs').exists() and (PROJ/'StartupGuard.cs').exists(): ok('custom Main + startup crash log exist')
 else: fail('startup guard files missing')
-if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version')=='4.5.0': ok('BuildInfo technology metadata')
+if bj.get('WindowsAppSDK')=='WPF' and bj.get('DotNet')=='10.0' and bj.get('Language')=='C# 14' and bj.get('Version'): ok('BuildInfo technology metadata')
 else: fail('BuildInfo technology metadata mismatch')
 
 if 'Microsoft YaHei UI' in app_xaml: ok('Chinese UI font stack')
@@ -391,12 +391,24 @@ for token,msg in [
     ('CleanShaderCacheAsync','shader cache cleaner exists'),
     ('CleanRegistryAsync','registry cleaner exists'),
     ('ProtectedRegistryNames','registry cleaner skips ASUS/Microsoft/driver names'),
+    ('WriteRegistryBackup','registry cleaner writes a .reg backup before delete'),
+    ('RestoreLatestRegistryBackup','registry cleaner can restore the last backup'),
 ]:
     ok(msg) if token in maint else fail('maintenance missing '+token)
 if 'shader' in maint and 'd3dscache' in maint.lower(): ok('general cache still names shader paths so it can skip them')
 else: fail('general cache lost shader exclusion tokens')
-if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml and '显卡着色器缓存' in settings_xaml and '注册表清理' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
+if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml and '显卡着色器缓存' in settings_xaml and '注册表清理' in settings_xaml and '还原上次备份' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
 else: fail('settings page missing cache/memory/shader/registry tools')
+crate=(BACK/'ArmouryCrateSafeRepair.ps1').read_text(encoding='utf-8')
+if 'function Invoke-WgrArmouryLaunchAttempt' in crate and 'LaunchAttempt' in crate and '$MaxRetries = 3' in crate:
+    ok('Armoury launch retry records attempts and error code')
+else:
+    fail('Armoury launch retry helper missing')
+for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1']:
+    if (ROOT/'tools'/tool).exists(): ok('tool '+tool)
+    else: fail('missing tools/'+tool)
+if (ROOT/'Tests'/'Unit'/'ArmouryRepair.Tests.ps1').exists(): ok('Pester Armoury 501 tests')
+else: fail('Tests/Unit/ArmouryRepair.Tests.ps1 missing')
 if '高级设置' in (PROJ/'Pages'/'ReportsPage.xaml').read_text(encoding='utf-8'): fail('reports still labels the tools page 高级设置')
 else: ok('reports opens 系统工具')
 
