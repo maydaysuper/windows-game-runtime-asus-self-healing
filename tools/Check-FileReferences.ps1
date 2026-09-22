@@ -73,6 +73,8 @@ $scan += Get-ChildItem -LiteralPath (Join-Path $Root 'tools') -Recurse -File -Er
 foreach($rel in $deleted){
     $leaf = Split-Path -Leaf $rel
     if(-not $leaf){ continue }
+    $stillExists = Get-ChildItem -LiteralPath $Root -Recurse -Filter $leaf -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if($stillExists){ continue }
     foreach($file in $scan){
         if(Select-String -Path $file.FullName -Pattern ([regex]::Escape($leaf)) -SimpleMatch -Quiet -ErrorAction SilentlyContinue){
             AddFail ("deleted {0} still referenced in {1}" -f $rel, $file.Name)

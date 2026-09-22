@@ -29,7 +29,7 @@ function Sync-BrokerFiles {
     $srcRoot=Split-Path -Parent $EnginePath
     $work=Join-Path $env:LOCALAPPDATA 'WindowsGameRuntimeASUSSelfHealing'
     New-Item -ItemType Directory -Force -Path $work|Out-Null
-    foreach($n in @('RepairCenter.ps1','ElevatedBroker.ps1','BuildInfo.psd1','Bootstrap.ps1','AtomicPolicyExecutor.ps1','RecipeCatalog.psd1','GpuSafeRepair.ps1')){
+    foreach($n in @('RepairCenter.ps1','ElevatedBroker.ps1','BuildInfo.psd1','Bootstrap.ps1','AtomicPolicyExecutor.ps1','RecipeCatalog.psd1','GpuSafeRepair.ps1','ArmouryCrateSafeRepair.ps1','RuntimeEngine.ps1','SnapshotEngine.ps1')){
         $src=Join-Path $srcRoot $n
         $dst=Join-Path $work $n
         if(-not(Test-Path -LiteralPath $src)){throw "Missing backend file: $src"}

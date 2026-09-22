@@ -110,7 +110,7 @@ jobs:
             Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dst $_.Name) -Force
           }
           $count = @(Get-ChildItem -LiteralPath $dst -File).Count
-          if($count -lt 10) { throw "Materialize hash-locked Backend produced too few files: $count" }
+          if($count -lt 12) { throw "Materialize hash-locked Backend produced too few files: $count" }
           Write-Host "Materialized hash-locked Backend next to published EXE ($count files). Folder deploy must keep RepairCenter on disk."
 
       - name: Validate published runtime
@@ -194,6 +194,7 @@ jobs:
           $ver = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup.FullName).FileVersion
           if($ver -notmatch '^4\.') { throw "Unexpected FileVersion: $ver" }
           Write-Host "[PASS] Setup FileVersion=$ver"
+          ./Tests/E2E/Verify-ReleaseLayout.ps1 -ReleaseDir artifacts/release
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

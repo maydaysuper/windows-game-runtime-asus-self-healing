@@ -182,7 +182,8 @@ public sealed class BackendService : IBackendClient, IDisposable
         var required = scope == BackendTrustScope.Telemetry
             ? new[] { _bridgePath, _eventReaderPath, _gpuDiagnosticsReaderPath, _buildInfoJsonPath, _buildInfoPsd1Path, _capabilityBaselinePath }
             : new[] { _bridgePath, _enginePath, _brokerPath, _eventReaderPath, _gpuDiagnosticsReaderPath, _gpuSafeRepairPath, _buildInfoJsonPath, _buildInfoPsd1Path, _capabilityBaselinePath,
-                Path.Combine(_backendRoot, "AtomicPolicyExecutor.ps1"), Path.Combine(_backendRoot, "RecipeCatalog.psd1") };
+                Path.Combine(_backendRoot, "AtomicPolicyExecutor.ps1"), Path.Combine(_backendRoot, "RecipeCatalog.psd1"),
+                Path.Combine(_backendRoot, "ArmouryCrateSafeRepair.ps1"), Path.Combine(_backendRoot, "RuntimeEngine.ps1"), Path.Combine(_backendRoot, "SnapshotEngine.ps1") };
 
         foreach (var path in required)
             if (!File.Exists(path)) throw new FileNotFoundException("WinUI 后端文件缺失。", path);
@@ -205,6 +206,9 @@ public sealed class BackendService : IBackendClient, IDisposable
         ValidateHash(_gpuSafeRepairPath, id.GpuSafeRepairSha256, "GpuSafeRepair");
         ValidateHash(Path.Combine(_backendRoot, "AtomicPolicyExecutor.ps1"), id.AtomicPolicyExecutorSha256, "AtomicPolicyExecutor");
         ValidateHash(Path.Combine(_backendRoot, "RecipeCatalog.psd1"), id.RecipeCatalogSha256, "RecipeCatalog");
+        ValidateJsonLocked("ArmouryCrateSafeRepairSHA256", "ArmouryCrateSafeRepair.ps1");
+        ValidateJsonLocked("RuntimeEngineSHA256", "RuntimeEngine.ps1");
+        ValidateJsonLocked("SnapshotEngineSHA256", "SnapshotEngine.ps1");
     }
 
     private static void ValidateHash(string path, string expected, string label)
@@ -214,6 +218,13 @@ public sealed class BackendService : IBackendClient, IDisposable
         var actual = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
         if (!actual.Equals(expected, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException($"{label} SHA256 不匹配，拒绝执行后台脚本。 expected={expected} actual={actual}");
+    }
+
+    private void ValidateJsonLocked(string jsonProperty, string fileName)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(_buildInfoJsonPath, Encoding.UTF8));
+        var expected = doc.RootElement.TryGetProperty(jsonProperty, out var el) ? el.GetString() ?? "" : "";
+        ValidateHash(Path.Combine(_backendRoot, fileName), expected, fileName);
     }
 
     private static void AddArg(ProcessStartInfo info, string value) => info.ArgumentList.Add(value);

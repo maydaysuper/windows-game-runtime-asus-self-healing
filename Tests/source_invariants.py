@@ -34,7 +34,8 @@ expected_files={
  'UiBridgeSHA256':'UiBridge.ps1','EventReaderSHA256':'IncrementalEventReader.ps1',
  'GpuDiagnosticsReaderSHA256':'GpuDiagnosticsReader.ps1','GpuSafeRepairSHA256':'GpuSafeRepair.ps1',
  'ArmouryCrateSafeRepairSHA256':'ArmouryCrateSafeRepair.ps1',
- 'AtomicPolicyExecutorSHA256':'AtomicPolicyExecutor.ps1','RecipeCatalogSHA256':'RecipeCatalog.psd1'}
+ 'AtomicPolicyExecutorSHA256':'AtomicPolicyExecutor.ps1','RecipeCatalogSHA256':'RecipeCatalog.psd1',
+ 'RuntimeEngineSHA256':'RuntimeEngine.ps1','SnapshotEngineSHA256':'SnapshotEngine.ps1'}
 for key,name in expected_files.items():
     actual=sha(BACK/name)
     if actual==bj[key]: ok('hash '+name)
@@ -182,10 +183,10 @@ if all(x in verify_payload for x in ['Assert-PeX64','LegacyAdapterHashes','Capab
 else: fail('published payload verifier incomplete')
 if all(x in build_installer for x in ['Verify-PublishPayload.ps1','Inno Setup 7','Inno Setup 6','.sha256.txt','Select-Object -First 1','SelfHealingCenter.exe','App\\WindowsGameRuntimeASUSSelfHealing.WinUI.exe']) and '$isccCandidates[0]' not in build_installer: ok('installer builder verifies payload and supports Inno 7/6')
 else: fail('installer builder contract incomplete')
-if all(x in build_release for x in ['Windows_Game_Runtime_ASUS_SelfHealing_Portable_v','Build-Installer.ps1','RELEASE_SHA256.txt','RELEASE_MANIFEST.json','SelfHealingCenter.exe','Join-Path $package App','Build-DesktopLauncher']): ok('release builder emits portable + setup + manifests')
+if all(x in build_release for x in ['Windows_Game_Runtime_ASUS_SelfHealing_Portable_v','Build-Installer.ps1','RELEASE_SHA256.txt','RELEASE_MANIFEST.json','SelfHealingCenter.exe','Join-Path $package App','Build-DesktopLauncher','$BuildProject','RuntimeEngine.ps1','PublishSingleFile=false']): ok('release builder emits portable + setup + manifests')
 else: fail('release builder contract incomplete')
 workflow=(ROOT/'.github'/'workflows'/'windows-ci.yml').read_text(encoding='utf-8')
-if all(x in workflow for x in ['Verify published payload trust chain','JRSoftware.InnoSetup.7','Build-Release.ps1','artifacts/release/*','-p:Platform=$env:PLATFORM','softprops/action-gh-release','Show-MsBuildErrors','contents: write','Materialize hash-locked Backend','PublishSingleFile=false','wpfgfx_cor3.dll','Verify release SHA256']): ok('Windows CI emits verified installer + portable release artifacts')
+if all(x in workflow for x in ['Verify published payload trust chain','JRSoftware.InnoSetup.7','Build-Release.ps1','artifacts/release/*','-p:Platform=$env:PLATFORM','softprops/action-gh-release','Show-MsBuildErrors','contents: write','Materialize hash-locked Backend','PublishSingleFile=false','wpfgfx_cor3.dll','Verify release SHA256','Verify-ReleaseLayout.ps1']): ok('Windows CI emits verified installer + portable release artifacts')
 else: fail('Windows CI release artifact pipeline incomplete')
 if re.search(r'(?m)^\s*uses:\s+\S+@v\d', workflow): fail('GitHub Actions still use floating version tags')
 else: ok('GitHub Actions pinned to commit SHA')
@@ -267,59 +268,60 @@ else: fail('session log missing')
 if 'SessionLog.Flush' in appservices: ok('session log flushed on close')
 else: fail('session log not flushed on dispose')
 engine_text=(BACK/'RepairCenter.ps1').read_text(encoding='utf-8')
+runtime_text=(BACK/'RuntimeEngine.ps1').read_text(encoding='utf-8')
 if "$host='" in engine_text or 'try{$host=' in engine_text: fail('RepairCenter must not assign to PowerShell automatic $Host')
 else: ok('RepairCenter does not clobber $Host')
-if '$finalHost' in engine_text: ok('Microsoft trust result uses $finalHost')
+if '$finalHost' in runtime_text: ok('Microsoft trust result uses $finalHost')
 else: fail('Microsoft trust result still uses $host')
-if 'function Get-WingetVCRedistVersion' in engine_text and "Source='Online'" in engine_text: ok('runtime detection compares official VC++ version')
+if 'function Get-WingetVCRedistVersion' in runtime_text and "Source='Online'" in runtime_text: ok('runtime detection compares official VC++ version')
 else: fail('runtime detection no longer compares official VC++ version')
-if '点击一键诊断/运行库联网检测后会与 Microsoft 官方最新版本比较' in engine_text: fail('VC++ still WARNs waiting for online compare')
+if '点击一键诊断/运行库联网检测后会与 Microsoft 官方最新版本比较' in runtime_text+engine_text: fail('VC++ still WARNs waiting for online compare')
 else: ok('VC++ no longer asks the user to online-compare for health')
 if "Status -in @('N/A','INFO')" in engine_text or 'Status -in @(\'N/A\',\'INFO\')' in engine_text or "$r.Status -in @('N/A','INFO')" in engine_text: ok('final verification treats INFO as PASS')
 else: fail('final verification still maps INFO to WARN')
-elig_fn=engine_text.split('function Get-RuntimeRepairEligibility',1)[1].split('function Convert-PlanRows',1)[0]
+elig_fn=runtime_text.split('function Get-RuntimeRepairEligibility',1)[1].split('\nfunction ',1)[0]
 if "Status -in @('REPAIR','UPDATE','WARN')" in elig_fn and "State -eq 'ELIGIBLE'" in elig_fn:
     ok('runtime repair eligibility allows local-first auto-repair')
 else:
     fail('runtime repair eligibility still refuses auto-repair')
-if 'Get-LocalVCRedistInstaller' in engine_text and 'Invoke-VCRedistWinget' in engine_text:
+if 'Get-LocalVCRedistInstaller' in runtime_text and 'Invoke-VCRedistWinget' in runtime_text:
     ok('VC++ repair is local cache then system installer then official package')
 else:
     fail('VC++ local-first repair path missing')
-online_fn=engine_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-OfficialVC14Target',1)[0]
+online_fn=runtime_text.split('function Update-RuntimeOnlineInfo',1)[1].split('\nfunction ',1)[0]
 if 'Get-WingetVCRedistVersion' in online_fn: ok('Update-RuntimeOnlineInfo queries official version first')
 else: fail('Update-RuntimeOnlineInfo does not query official version')
-if 'function Get-OfficialVC14Target' in engine_text and '14.42.0.0' in engine_text: ok('VC++ keeps offline official-baseline comparison')
+if 'function Get-OfficialVC14Target' in runtime_text and '14.42.0.0' in runtime_text: ok('VC++ keeps offline official-baseline comparison')
 else: fail('VC++ offline version comparison missing')
-if 'function Get-VCRuntimeLocalState' in engine_text and 'msvcp140_1.dll' in engine_text and 'msvcp140_atomic_wait.dll' in engine_text and 'vccorlib140.dll' in engine_text:
+if 'function Get-VCRuntimeLocalState' in runtime_text and 'msvcp140_1.dll' in runtime_text and 'msvcp140_atomic_wait.dll' in runtime_text and 'vccorlib140.dll' in runtime_text:
     ok('VC++ detection inventories the full CRT DLL set')
 else:
     fail('VC++ detection still checks only 2-3 CRT DLLs')
-if 'function Update-WingetVCRedistVersions' in engine_text and 'AddSeconds(12)' in engine_text:
+if 'function Update-WingetVCRedistVersions' in runtime_text and 'AddSeconds(12)' in runtime_text:
     ok('official VC++ lookup is parallel with a short timeout')
 else:
     fail('official VC++ lookup is still serial/slow')
-if 'function Test-VCRuntimeRepaired' in engine_text and 'Test-VCRuntimeRepaired' in engine_text.split('function Invoke-VCRedistRepair',1)[1].split('function Get-LocalDirectXLegacyInstaller',1)[0]:
+if 'function Test-VCRuntimeRepaired' in runtime_text and 'Test-VCRuntimeRepaired' in runtime_text.split('function Invoke-VCRedistRepair',1)[1].split('function Get-LocalDirectXLegacyInstaller',1)[0]:
     ok('VC++ repair re-checks local files after each method')
 else:
     fail('VC++ repair does not verify files after install')
-if '-Depth 2' in engine_text and 'VC_redist.' in engine_text:
+if '-Depth 2' in runtime_text and 'VC_redist.' in runtime_text:
     ok('Package Cache scan is depth-limited')
 else:
     fail('Package Cache scan is unbounded recurse')
-if 'Test-RuntimeOnlineInfoFresh $freshMinutes' in engine_text:
+if 'Test-RuntimeOnlineInfoFresh $freshMinutes' in runtime_text:
     ok('runtime online compare coalesces duplicate Force queries')
 else:
     fail('runtime online compare still double-queries on Force')
-if 'function Test-VCRuntimeInProcessLoad' in engine_text and 'LoadLibraryW' in engine_text:
+if 'function Test-VCRuntimeInProcessLoad' in runtime_text and 'LoadLibraryW' in runtime_text:
     ok('VC++ detection load-tests core CRT DLLs')
 else:
     fail('VC++ detection does not load-test CRT DLLs')
-if 'function Read-RuntimeOfficialCache' in engine_text and 'official-vc14.json' in engine_text:
+if 'function Read-RuntimeOfficialCache' in runtime_text and 'official-vc14.json' in runtime_text:
     ok('official VC++ version is cached for offline compare')
 else:
     fail('official VC++ disk cache missing')
-diag_fn=engine_text.split('function Get-RuntimeDiagnosticRows',1)[1].split('function Write-RuntimeOnlineWorker',1)[0]
+diag_fn=runtime_text.split('function Get-RuntimeDiagnosticRows',1)[1].split('\nfunction ',1)[0]
 if '低于官方' in diag_fn and "Source -eq 'Online'" in diag_fn: ok('runtime diagnostics mark UPDATE when below official')
 else: fail('runtime diagnostics do not UPDATE on official mismatch')
 if 'C++ 运行库' in diag_fn and '游戏 DirectX' in diag_fn and '老游戏兼容组件' in diag_fn: ok('runtime diagnostics use customer-facing names')
@@ -330,7 +332,7 @@ else: fail('repair plan text still dumps hashes/paths')
 verify_fn=engine_text.split('function Run-FinalVerification',1)[1].split('function Test-BrokerIntegrity',1)[0]
 if 'installed=' in verify_fn or 'runtime=' in verify_fn: fail('final verification still prints installed=/runtime= jargon')
 else: ok('final verification prints customer results')
-headless_fn=engine_text.split('function Invoke-RuntimeRepairHeadless',1)[1].split('function Invoke-ContinuePendingRepairHeadless',1)[0]
+headless_fn=runtime_text.split('function Invoke-RuntimeRepairHeadless',1)[1]
 if 'Invoke-RuntimeAutoRepair' in headless_fn and 'Update-RuntimeOnlineInfo' in headless_fn:
     ok('runtime repair headless compares official version then repairs')
 else:
@@ -363,7 +365,8 @@ if 'await RefreshOnlineAsync(true)' in runtime_cs and 'NeedsAutoRepair()' in run
     ok('runtime detection auto-starts repair on official mismatch')
 else:
     fail('runtime detection does not auto-repair on mismatch')
-snap_fn=engine_text.split('function Get-SystemSnapshot',1)[1].split('\nfunction ',1)[0]
+snap_text=(BACK/'SnapshotEngine.ps1').read_text(encoding='utf-8')
+snap_fn=snap_text.split('function Get-SystemSnapshot',1)[1].split('\nfunction ',1)[0]
 if 'Update-RuntimeOnlineInfo -Force:$Force' in snap_fn:
     ok('dashboard snapshot online-compares VC++ on every detect')
 else:
@@ -406,13 +409,21 @@ if 'function Invoke-WgrArmouryLaunchAttempt' in crate and 'LaunchAttempt' in cra
     ok('Armoury launch retry records attempts and error code')
 else:
     fail('Armoury launch retry helper missing')
-for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1','Update-HashLock.ps1']:
+for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1','Update-HashLock.ps1','BuildStatus.ps1']:
     if (ROOT/'tools'/tool).exists(): ok('tool '+tool)
     else: fail('missing tools/'+tool)
 if (ROOT/'Tests'/'Unit'/'ArmouryRepair.Tests.ps1').exists(): ok('Pester Armoury 501 tests')
 else: fail('Tests/Unit/ArmouryRepair.Tests.ps1 missing')
 if (ROOT/'Tests'/'Unit'/'AtomicPolicy.Tests.ps1').exists(): ok('Pester atomic policy tests')
 else: fail('Tests/Unit/AtomicPolicy.Tests.ps1 missing')
+if (ROOT/'Tests'/'Unit'/'RuntimeEngine.Tests.ps1').exists(): ok('Pester runtime engine tests')
+else: fail('Tests/Unit/RuntimeEngine.Tests.ps1 missing')
+if (ROOT/'Tests'/'E2E'/'Verify-ReleaseLayout.ps1').exists(): ok('E2E release layout script')
+else: fail('Tests/E2E/Verify-ReleaseLayout.ps1 missing')
+if (ROOT/'docs'/'ARCHITECTURE.md').exists() and (ROOT/'docs'/'CHANGELOG.md').exists() and (ROOT/'docs'/'README_CN.md').exists() and (ROOT/'docs'/'TESTING.md').exists(): ok('docs live under docs/')
+else: fail('root docs were not moved into docs/')
+if (ROOT/'ARCHITECTURE.md').exists() or (ROOT/'CHANGELOG.md').exists() or (ROOT/'README_CN.md').exists(): fail('root still has docs that belong in docs/')
+else: ok('repository root no longer duplicates architecture/changelog/cn readme')
 backend_cs=(PROJ/'Services'/'BackendService.cs').read_text(encoding='utf-8')
 if 'RemoteSigned' in backend_cs and 'LooksLikeExecutionPolicyFailure' in backend_cs: ok('backend prefers RemoteSigned then Bypass')
 else: fail('backend execution policy fallback missing')
@@ -438,7 +449,7 @@ if cap.get('Policy')=='NO_FEATURE_REDUCTION' and cap.get('AsusCore',{}).get('Pri
 else: fail('ASUS capability baseline policy missing')
 bridge=(BACK/'UiBridge.ps1').read_text(encoding='utf-8')
 broker=(BACK/'ElevatedBroker.ps1').read_text(encoding='utf-8')
-engine=(BACK/'RepairCenter.ps1').read_text(encoding='utf-8')
+engine='\n'.join((BACK/name).read_text(encoding='utf-8') for name in ['RepairCenter.ps1','RuntimeEngine.ps1','SnapshotEngine.ps1','ArmouryCrateSafeRepair.ps1'])
 recipe=(BACK/'RecipeCatalog.psd1').read_text(encoding='utf-8')
 for action in cap['AsusCore']['BridgeActions']+cap['Runtime']['BridgeActions']+cap['CrashDump']['BridgeActions']:
     token = action
@@ -494,14 +505,21 @@ if all(x in one for x in ['https://dot.net/v1/dotnet-install.ps1','Install-DotNe
 else: fail('OneClick robust .NET SDK bootstrap fallback missing')
 if 'source reset' not in one: ok('OneClick does not auto-reset WinGet sources')
 else: fail('OneClick auto-reset of WinGet sources is forbidden')
-if 'publish 目录缺少 Backend' in one and '孤立 EXE' in one and '$DesktopExe' not in one: ok('OneClick never ships a bare EXE without hash-locked Backend')
-else: fail('OneClick bare-EXE delivery regression')
-if 'Materialize hash-locked Backend' in one and r'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend' in one: ok('OneClick materializes hash-locked Backend beside published EXE')
-else: fail('OneClick no longer copies Backend beside published EXE')
-if "-p:PublishSingleFile=false" in one and 'wpfgfx_cor3.dll' in one: ok('OneClick forbids WPF PublishSingleFile payload')
-else: fail('OneClick still publishes as a single file')
-if re.search(r"(?m)^\s*\$Version\s*=\s*'"+re.escape(bj['Version'])+r"'\s*$",one): ok('OneClick '+bj['Version'])
+if 'Build-Release.ps1' in one and '-BuildProject' in one and '$DesktopExe' not in one: ok('OneClick delegates packaging to Build-Release')
+else: fail('OneClick is not delegated to Build-Release')
+if 'BuildInfo.json' in one and '.Version' in one: ok('OneClick version is read from BuildInfo')
 else: fail('OneClick version mismatch')
+rt=(BACK/'RuntimeEngine.ps1').read_text(encoding='utf-8')
+sn=(BACK/'SnapshotEngine.ps1').read_text(encoding='utf-8')
+rc=(BACK/'RepairCenter.ps1').read_text(encoding='utf-8')
+if 'function Compare-VersionSafe' in rt and 'function Invoke-RuntimeAutoRepair' in rt and 'function Compare-VersionSafe' not in rc: ok('VC++/DirectX engine extracted from RepairCenter')
+else: fail('RuntimeEngine split incomplete')
+if 'function Get-SystemSnapshot' in sn and 'function Export-DiagnosticReport' in sn and 'function Get-SystemSnapshot' not in rc: ok('snapshot/report engine extracted from RepairCenter')
+else: fail('SnapshotEngine split incomplete')
+if 'Import-HashLockedEngineModule' in rc and "RuntimeEngine.ps1" in rc and "SnapshotEngine.ps1" in rc: ok('RepairCenter hash-locks extracted modules')
+else: fail('RepairCenter no longer imports extracted modules')
+if 'RuntimeEngine.ps1' in bridge and 'SnapshotEngine.ps1' in bridge and 'ArmouryCrateSafeRepair.ps1' in bridge: ok('UiBridge copies split engine modules')
+else: fail('UiBridge missing split engine copies')
 for launcher_name in ['Launch-Win11.cmd']:
     raw=(ROOT/launcher_name).read_bytes()
     if raw.startswith(b'\xef\xbb\xbf'): fail('launcher UTF-8 BOM forbidden '+launcher_name)

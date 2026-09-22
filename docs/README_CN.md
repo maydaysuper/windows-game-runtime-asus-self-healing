@@ -1,13 +1,13 @@
-# 奥创修复中心 v4.5.2
+# 奥创修复中心 v4.6.0
 
 检测会先检查本机 C++ 文件，再联网对比微软官方版本。文件不完整或和官方不一样就修复，修完立刻再验一次。软件显示名是「奥创修复中心」。
 
 请到 [Releases](https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest) 下载安装包，不要自己编译。
 
-- 安装包：`Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.5.2_x64.exe`（推荐）
+- 安装包：`Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.0_x64.exe`（推荐）
 - 便携版：同一页的 ZIP，解压后双击 `SelfHealingCenter.exe`
 
-请卸载全部 3.4.x 后安装 4.5.2。已装 4.1.x / 4.2.x / 4.3.x / 4.4.x 可直接覆盖。桌面会生成图标，不往开始菜单塞快捷方式。
+请卸载全部 3.4.x 后安装 4.6.0。已装 4.1.x / 4.2.x / 4.3.x / 4.4.x / 4.5.x 可直接覆盖。桌面会生成图标，不往开始菜单塞快捷方式。
 
 ## 主界面
 
@@ -17,4 +17,4 @@
 4. **游戏崩溃**：看为什么崩。不乱卸显卡驱动。
 5. **报告中心**：再检查一遍、诊断包、重启续跑。点「系统工具」可清理缓存、着色器、注册表和内存。
 
-完整说明见 [README.md](README.md)。
+完整说明见 [README.md](../README.md)。

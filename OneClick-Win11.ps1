@@ -9,9 +9,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+. (Join-Path $PSScriptRoot 'tools\BuildStatus.ps1')
 
 $Product = '奥创修复中心'
-$Version = '4.5.2'
+$buildInfoJson = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend\BuildInfo.json'
+$Version = ([IO.File]::ReadAllText($buildInfoJson) | ConvertFrom-Json).Version
 $Project = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj'
 $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
@@ -28,27 +30,6 @@ $LocalDotNetRoot = if($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'WindowsG
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
 $LogPath = Join-Path $LogRoot ("WinUI3_OneClick_{0}.log" -f $BuildStamp)
 
-function Write-Step {
-    param([string]$Text)
-    Write-Host ''
-    Write-Host ('==> ' + $Text) -ForegroundColor Cyan
-}
-
-function Write-Ok {
-    param([string]$Text)
-    Write-Host ('[PASS] ' + $Text) -ForegroundColor Green
-}
-
-function Write-Warn {
-    param([string]$Text)
-    Write-Host ('[WARN] ' + $Text) -ForegroundColor Yellow
-}
-
-function Fail {
-    param([string]$Text)
-    Write-Host ('[FAIL] ' + $Text) -ForegroundColor Red
-    throw $Text
-}
 
 function Get-DotNetCandidatePaths {
     $candidates = @(
@@ -216,25 +197,6 @@ function Install-DotNet10Sdk {
     return (Install-DotNet10SdkLocal)
 }
 
-function Invoke-LoggedCommand {
-    param(
-        [Parameter(Mandatory=$true)][string]$FilePath,
-        [Parameter(Mandatory=$true)][string[]]$Arguments,
-        [Parameter(Mandatory=$true)][string]$Title,
-        [string]$DiagnosticLog
-    )
-
-    Write-Step $Title
-    Write-Host ($FilePath + ' ' + ($Arguments -join ' '))
-    if($DiagnosticLog) { Write-Host ("详细 MSBuild 日志：{0}" -f $DiagnosticLog) -ForegroundColor DarkGray }
-    & $FilePath @Arguments
-    if($LASTEXITCODE -ne 0) {
-        if($DiagnosticLog) {
-            throw ("{0} 失败，ExitCode={1}。详细日志：{2}" -f $Title,$LASTEXITCODE,$DiagnosticLog)
-        }
-        throw ("{0} 失败，ExitCode={1}" -f $Title,$LASTEXITCODE)
-    }
-}
 
 $transcriptStarted = $false
 try {
@@ -296,90 +258,20 @@ try {
     Write-Host '构建方式：.NET CLI + WPF + Microsoft.Data.Sqlite'
     Write-Host '不需要 Windows App SDK / WinUI，也不需要先安装 Visual Studio；首次构建需要联网恢复 NuGet 包。'
 
-    Write-Step '清理旧 bin / obj / publish'
-    $projectDir = Split-Path -Parent $Project
-    foreach($name in @('bin','obj')) {
-        Remove-Item -LiteralPath (Join-Path $projectDir $name) -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    Remove-Item -LiteralPath $PublishRoot -Recurse -Force -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory -Path $PublishRoot -Force | Out-Null
-    Write-Ok '旧构建缓存已清理'
+    Write-Step '发布并组装用户包（Build-Release 单一入口）'
+    $releaseDir = Join-Path $PSScriptRoot 'artifacts\release'
+    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File (Join-Path $PSScriptRoot 'Build-Release.ps1') -PublishRoot $PublishRoot -ReleaseDir $releaseDir -BuildProject -SkipInstaller
+    if($LASTEXITCODE -ne 0) { Fail 'Build-Release.ps1 失败。' }
 
-    $restoreArgs = @(
-        'restore',$Project,
-        '-r',$Runtime,
-        '--nologo',
-        '-p:Platform=x64',
-        '-v:minimal',
-        ("-flp:logfile={0};verbosity=normal" -f $RestoreLog),
-        ("-bl:{0}" -f $RestoreBinLog)
-    )
-    if($ForceRestore) {
-        $restoreArgs += '--force'
-        $restoreArgs += '--no-cache'
-    }
-    Invoke-LoggedCommand -FilePath $dotnet -Arguments $restoreArgs -Title '恢复 WPF / Sqlite NuGet 依赖' -DiagnosticLog $RestoreLog
-
-    $publishArgs = @(
-        'publish',$Project,
-        '-c',$Configuration,
-        '-r',$Runtime,
-        '-o',$PublishRoot,
-        '--self-contained','true',
-        '--no-restore',
-        '--nologo',
-        '-p:Platform=x64',
-        '-p:SelfContained=true',
-        '-p:PublishSingleFile=false',
-        '-p:PublishTrimmed=false',
-        '-p:PublishReadyToRun=false',
-        '-v:minimal',
-        ("-flp:logfile={0};verbosity=normal" -f $PublishLog),
-        ("-bl:{0}" -f $PublishBinLog)
-    )
-    Invoke-LoggedCommand -FilePath $dotnet -Arguments $publishArgs -Title '发布 WPF 自包含运行目录' -DiagnosticLog $PublishLog
-
-    Write-Step 'Materialize hash-locked Backend beside published EXE'
-    $sourceBackend = Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\Backend'
-    $backendDir = Join-Path $PublishRoot 'Backend'
-    if(-not (Test-Path -LiteralPath $sourceBackend)) { Fail '源码 Backend 目录缺失，无法保持 ASUS hash-lock。' }
-    New-Item -ItemType Directory -Path $backendDir -Force | Out-Null
-    Get-ChildItem -LiteralPath $sourceBackend -File | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $backendDir $_.Name) -Force
-    }
-    Write-Ok ("已将 {0} 个 hash-lock Backend 文件落到 publish 目录。" -f @(Get-ChildItem -LiteralPath $backendDir -File).Count)
-
-    Write-Step '验证发布目录与主程序'
     $exe = Get-ChildItem -LiteralPath $PublishRoot -Filter '*.exe' -File |
         Where-Object { $_.Name -notmatch 'createdump|WindowsAppRuntimeInstall' } |
         Sort-Object Length -Descending |
         Select-Object -First 1
-    if(-not $exe) { Fail 'dotnet publish 已结束，但 publish 目录没有找到主程序 EXE。' }
-
-    $dlls = @(Get-ChildItem -LiteralPath $PublishRoot -Filter '*.dll' -File)
-    if($dlls.Count -lt 8) {
-        Fail ("publish 目录 DLL 过少（{0}），疑似又打成了 Single-file。WPF 原生运行库必须和 EXE 在同一目录，否则安装后无法打开。" -f $dlls.Count)
-    }
-    foreach($requiredDll in @('wpfgfx_cor3.dll','PresentationNative_cor3.dll','e_sqlite3.dll')) {
-        if(-not (Test-Path -LiteralPath (Join-Path $PublishRoot $requiredDll))) {
-            Fail ("publish 目录缺少 {0}。禁止继续打包。" -f $requiredDll)
-        }
-    }
-    Write-Ok ("WPF 原生 DLL 已与 EXE 同目录（{0} 个 DLL）。" -f $dlls.Count)
-
+    if(-not $exe) { Fail 'publish 目录没有主程序 EXE。' }
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe.FullName).Hash.ToLowerInvariant()
     Write-Ok ("EXE：{0}" -f $exe.FullName)
-    Write-Ok ("大小：{0:N1} MB" -f ($exe.Length/1MB))
     Write-Ok ("SHA256：{0}" -f $hash)
 
-    Write-Step '组装用户包（启动器 + App 目录）并生成 Portable ZIP'
-    $backendDir = Join-Path $PublishRoot 'Backend'
-    if(-not (Test-Path -LiteralPath $backendDir)) {
-        Fail 'publish 目录缺少 Backend。ASUS hash-lock 修复链不允许发布孤立 EXE。'
-    }
-    $releaseDir = Join-Path $PSScriptRoot 'artifacts\release'
-    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Build-Release.ps1') -PublishRoot $PublishRoot -ReleaseDir $releaseDir -SkipInstaller
-    if($LASTEXITCODE -ne 0) { Fail 'Build-Release.ps1 组装用户包失败。' }
     $builtZip = Join-Path $releaseDir ("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v{0}_win-x64.zip" -f $Version)
     if(-not (Test-Path -LiteralPath $builtZip)) { Fail '未生成 Portable ZIP。' }
     Remove-Item -LiteralPath $DesktopZip -Force -ErrorAction SilentlyContinue

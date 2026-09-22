@@ -79,6 +79,8 @@ $required=@{
     'ArmouryCrateSafeRepair.ps1'=[string]$build.ArmouryCrateSafeRepairSHA256
     'AtomicPolicyExecutor.ps1'=[string]$build.AtomicPolicyExecutorSHA256
     'RecipeCatalog.psd1'=[string]$build.RecipeCatalogSHA256
+    'RuntimeEngine.ps1'=[string]$build.RuntimeEngineSHA256
+    'SnapshotEngine.ps1'=[string]$build.SnapshotEngineSHA256
     'BuildInfo.psd1'=[string]$build.BuildInfoSHA256
     'CapabilityBaseline.json'=[string]$build.CapabilityBaselineSHA256
 }
