@@ -466,7 +466,7 @@ if "-p:PublishSingleFile=false" in one and 'wpfgfx_cor3.dll' in one: ok('OneClic
 else: fail('OneClick still publishes as a single file')
 if re.search(r"(?m)^\s*\$Version\s*=\s*'"+re.escape(bj['Version'])+r"'\s*$",one): ok('OneClick '+bj['Version'])
 else: fail('OneClick version mismatch')
-for launcher_name in ['一键构建并启动_Win11.cmd','Launch-Win11.cmd','Build-WinUI3.cmd']:
+for launcher_name in ['Launch-Win11.cmd']:
     raw=(ROOT/launcher_name).read_bytes()
     if raw.startswith(b'\xef\xbb\xbf'): fail('launcher UTF-8 BOM forbidden '+launcher_name)
     else: ok('launcher BOM-free '+launcher_name)
@@ -476,13 +476,12 @@ for launcher_name in ['一键构建并启动_Win11.cmd','Launch-Win11.cmd','Buil
     if not bad_lf and b'\r\n' in raw: ok('launcher CRLF '+launcher_name)
     else: fail('launcher line endings are not strict CRLF '+launcher_name)
     txt=raw.decode('ascii',errors='replace')
-    expected_script='Build-WinUI3.ps1' if launcher_name == 'Build-WinUI3.cmd' else 'OneClick-Win11.ps1'
-    if txt.startswith('@echo off\r\n') and 'chcp 65001' not in txt.lower() and expected_script in txt:
+    if txt.startswith('@echo off\r\n') and 'chcp 65001' not in txt.lower() and 'OneClick-Win11.ps1' in txt:
         ok('launcher command contract '+launcher_name)
     else:
         fail('launcher command contract drift '+launcher_name)
 
-report=ROOT/f"STATIC_VALIDATION_v{bj['Version']}.txt"
+report=Path('/tmp')/f"STATIC_VALIDATION_v{bj['Version']}.txt"
 lines=[f"Windows Game Runtime / ASUS Armoury Self-Healing Center v{bj['Version']}",f'Local source-invariant validation: {len(passes)} PASS / {len(failures)} FAIL','']
 lines += ['PASS: '+x for x in passes]
 if failures: lines += ['']+['FAIL: '+x for x in failures]

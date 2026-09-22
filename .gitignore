@@ -10,3 +10,6 @@ BuildLogs/
 *.pdb
 *.binlog
 .DS_Store
+STATIC_VALIDATION*.txt
+Tests/__pycache__/
+*.pyc
