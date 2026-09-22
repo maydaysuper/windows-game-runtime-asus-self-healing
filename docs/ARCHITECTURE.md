@@ -6,6 +6,25 @@ The shell keeps five primary entries and caches page instances so switching tabs
 
 PowerShell Backend is split: `RepairCenter.ps1` orchestrates hash-locked modules (`RuntimeEngine.ps1` for VC++/DirectX, `SnapshotEngine.ps1` for snapshot/report, `ArmouryCrateSafeRepair.ps1` for 501/launch). Elevated Broker, RecipeCatalog and PV/HOLTEK/ENE hash-locks remain.
 
+## Non-splittable boundary: RepairCenter embedded HAL payloads
+
+`RepairCenter.ps1` 内嵌华硕 HAL 适配层（PV / HOLTEK / ENE）的 Base64 载荷。载荷与编排逻辑是**同一个哈希锚点**，禁止再拆成独立 `.psm1`。
+
+双重锁定（仓库里没有单独的 `hash-lock.json`）：
+
+1. `BuildInfo.json` / `BuildInfo.psd1` 的 `EngineSHA256` — 整份 `RepairCenter.ps1`（编排 + 内嵌 Base64）一个 SHA256。
+2. `LEGACY_ADAPTER_LOCK.json` + `Tests/Architecture.Tests.ps1` — 同时核对磁盘上的 `module_*.ps1`、引擎里的期望哈希常量、以及内嵌 Base64 解码后的 SHA256。三者必须一致。
+
+**禁止将载荷拆分为独立 `.psm1` 文件。** 原因：
+
+1. 拆分会产生多个独立哈希锚点，检测粒度不变但维护复杂度上升。
+2. 载荷与编排分离后，攻击者可单独篡改载荷文件而不触发编排层校验。
+3. 组合关系无法用「各文件各自 SHA256」表达，需要引入 Merkle 树或签名机制，超出当前安全模型。
+
+已经允许拆出、且**不含** HAL 载荷的模块：`RuntimeEngine.ps1`、`SnapshotEngine.ps1`。它们通过 `Import-HashLockedEngineModule` 按各自的 BuildInfo SHA 键导入。`ArmouryCrateSafeRepair.ps1` 同样独立哈希锁定，也不携带这三份 HAL 载荷。
+
+要改载荷内容：改对应 `module_*.ps1`，同步改 `RepairCenter.ps1` 内嵌 Base64 和引擎常量，更新 `LEGACY_ADAPTER_LOCK.json`，跑 `./tools/Update-HashLock.ps1`，再通过 `Tests/Architecture.Tests.ps1`。缺任何一步都会被 CI 挡住。
+
 # v4.0 / v3.4 architecture
 
 
@@ -40,6 +59,8 @@ Read-only diagnostic child processes may run at BelowNormal priority. Elevated r
 `BackendService` serializes all `RepairCenter.ps1`-backed actions because engine import materializes verified legacy ASUS modules into a shared LocalAppData location. Hash validation is performed before execution.
 
 The v3.4 GPU work does **not** rewrite the ASUS repair engine or the three legacy adapters. `RepairCenter.ps1`, PV, HOLTEK and ENE remain byte-for-byte hash-locked. Broker/Recipe/UiBridge only gain an additional, separately allow-listed `GPU_SAFE_REPAIR` route.
+
+Do not extract the Base64 HAL payloads out of `RepairCenter.ps1`. That file is the single hash anchor for orchestration plus payloads; see **Non-splittable boundary** above.
 
 ## Incremental crash telemetry lane
 
