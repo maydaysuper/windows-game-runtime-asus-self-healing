@@ -19,7 +19,6 @@ $PublishRoot = Join-Path $PSScriptRoot 'publish-win11-x64'
 $LogRoot = Join-Path $PSScriptRoot 'BuildLogs'
 $Desktop = [Environment]::GetFolderPath('Desktop')
 $DesktopZip = Join-Path $Desktop ("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v$Version`_win-x64.zip")
-$StaticTests = Join-Path $PSScriptRoot 'Tests\Architecture.Tests.ps1'
 $BuildStamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $RestoreLog = Join-Path $LogRoot ("Restore_{0}.log" -f $BuildStamp)
 $RestoreBinLog = Join-Path $LogRoot ("Restore_{0}.binlog" -f $BuildStamp)
@@ -233,15 +232,16 @@ try {
     if(-not (Test-Path -LiteralPath $Project)) { Fail ("项目文件不存在：{0}" -f $Project) }
     Write-Ok 'WinUI 3 项目文件存在'
 
-    Write-Step '执行 PowerShell Parser / 架构 / Hash-Lock 静态测试'
-    if(-not (Test-Path -LiteralPath $StaticTests)) { Fail ("静态测试脚本不存在：{0}" -f $StaticTests) }
+    Write-Step '本地 CI 预检（BOM / 引用 / 不变量 / 架构 / Pester / WGR.Tests）'
+    $preflight = Join-Path $PSScriptRoot 'tools\Preflight-Ci.ps1'
+    if(-not (Test-Path -LiteralPath $preflight)) { Fail 'tools/Preflight-Ci.ps1 missing' }
     $StaticLog = Join-Path $LogRoot ("StaticTests_{0}.log" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
-    $staticOutput = @(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $StaticTests 2>&1)
+    $staticOutput = @(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File $preflight -Root $PSScriptRoot 2>&1)
     $staticExit = $LASTEXITCODE
     $staticOutput | Set-Content -LiteralPath $StaticLog -Encoding UTF8
     foreach($line in $staticOutput){ Write-Host ([string]$line) }
-    if($staticExit -ne 0) { Fail ("静态测试失败，ExitCode={0}；详细日志：{1}" -f $staticExit,$StaticLog) }
-    Write-Ok ("静态测试全部通过；日志：{0}" -f $StaticLog)
+    if($staticExit -ne 0) { Fail ("预检失败，ExitCode={0}；详细日志：{1}" -f $staticExit,$StaticLog) }
+    Write-Ok ("预检全部通过；日志：{0}" -f $StaticLog)
 
     Write-Step '检查 .NET 10 SDK'
     $sdk = Get-DotNet10Sdk

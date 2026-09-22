@@ -2,17 +2,22 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 internal static class Program
 {
     private const string InnerExeName = "WindowsGameRuntimeASUSSelfHealing.WinUI.exe";
     private const uint MbIconError = 0x00000010;
+    private const int AttachParentProcess = -1;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern bool AttachConsole(int dwProcessId);
+
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
         try
         {
@@ -30,6 +35,9 @@ internal static class Program
                 Fail("无法确定程序目录。");
                 return 1;
             }
+
+            if (IsVersionRequest(args))
+                return PrintVersion(processPath, root);
 
             var appDir = Path.Combine(root, "App");
             var exe = Path.Combine(appDir, InnerExeName);
@@ -53,6 +61,32 @@ internal static class Program
             Fail("启动失败。\n\n" + ex.Message);
             return 1;
         }
+    }
+
+    private static bool IsVersionRequest(string[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (string.Equals(arg, "--version", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(arg, "-v", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(arg, "/version", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static int PrintVersion(string launcherPath, string root)
+    {
+        try { AttachConsole(AttachParentProcess); } catch { }
+        var launcherVer = FileVersionInfo.GetVersionInfo(launcherPath);
+        var inner = Path.Combine(root, "App", InnerExeName);
+        var innerVer = File.Exists(inner) ? FileVersionInfo.GetVersionInfo(inner).FileVersion : "";
+        var line = "奥创修复中心 " + (launcherVer.ProductVersion ?? launcherVer.FileVersion);
+        if (!string.IsNullOrWhiteSpace(innerVer))
+            line += " (App " + innerVer + ")";
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.WriteLine(line);
+        return 0;
     }
 
     private static void Fail(string text)

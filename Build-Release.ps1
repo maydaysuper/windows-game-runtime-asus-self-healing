@@ -1,5 +1,5 @@
 ﻿#requires -version 5.1
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true)]
 param(
     [string]$PublishRoot = (Join-Path $PSScriptRoot 'artifacts\publish'),
     [string]$ReleaseDir = (Join-Path $PSScriptRoot 'artifacts\release'),
@@ -11,6 +11,14 @@ param(
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 . (Join-Path $PSScriptRoot 'tools\BuildStatus.ps1')
+
+if($WhatIfPreference) {
+    Write-Step 'WhatIf: simulate CI gates, skip publish/package'
+    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File (Join-Path $PSScriptRoot 'tools\Preflight-Ci.ps1') -Root $PSScriptRoot
+    if($LASTEXITCODE -ne 0){ Fail 'WhatIf preflight failed' }
+    Write-Ok 'WhatIf preflight matched CI static/Pester gates'
+    return
+}
 
 function Read-Utf8Json([string]$Path) {
     $utf8=New-Object System.Text.UTF8Encoding($false,$true)

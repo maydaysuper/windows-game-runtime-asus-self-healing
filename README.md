@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.6.0/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.0_x64.exe"><strong>下载安装包</strong></a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.6.1/Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.1_x64.exe"><strong>下载安装包</strong></a>
   ·
-  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.6.0/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.6.0_win-x64.zip">便携版 ZIP</a>
+  <a href="https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/download/v4.6.1/Windows_Game_Runtime_ASUS_SelfHealing_Portable_v4.6.1_win-x64.zip">便携版 ZIP</a>
   ·
   <a href="docs/README_CN.md">中文说明</a>
   ·
@@ -40,15 +40,15 @@
 
 | 包 | 给谁 |
 |---|---|
-| `Setup_v4.6.0_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
-| `Portable_v4.6.0_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
+| `Setup_v4.6.1_x64.exe` | 推荐。装到当前用户目录，桌面生成「奥创修复中心」图标 |
+| `Portable_v4.6.1_win-x64.zip` | 解压后双击 `SelfHealingCenter.exe` |
 
 - 请先卸载全部 **3.4.x**（WinUI 版在部分机器上无法启动）
 - 已装 4.1 / 4.2 / 4.3 / 4.4 可直接覆盖
 - 不往开始菜单塞快捷方式
 - 只有真正需要提权的修复才会弹出 UAC
 
-当前版本：**v4.6.0** · .NET 10 · WPF · Windows 11 x64
+当前版本：**v4.6.1** · .NET 10 · WPF · Windows 11 x64
 
 ## 五个页面，一眼看懂结果
 
@@ -87,6 +87,14 @@
 ## 源码与校验
 
 引擎文件有哈希锁定。安装包附带 `RELEASE_SHA256.txt`。Issue 请尽量带报告中心导出的诊断包。
+
+开发提交前在 Windows 上先模拟 CI，不要直接推：
+
+```powershell
+./Build-Release.ps1 -WhatIf
+```
+
+这会跑引用完整性、UTF-8 BOM、`source_invariants`、架构测试、Pester，以及（有 SDK 时）`Tests/WGR.Tests`。不打包。CI 还会核 `RELEASE_SHA256.txt`，并解压便携包跑 `--version`。
 
 ```text
 maydaysuper/windows-game-runtime-asus-self-healing

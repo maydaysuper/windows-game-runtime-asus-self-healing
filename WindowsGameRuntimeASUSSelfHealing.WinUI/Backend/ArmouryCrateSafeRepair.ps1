@@ -195,14 +195,14 @@ function Invoke-WgrArmouryLaunchAttempt {
         try {
             $running=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '(?i)ArmouryCrate' })
             if($running.Count -gt 0){
-                return [PSCustomObject]@{Success=$true;Attempts=0;ErrorCode=$null;Error=$null;Path='';AlreadyRunning=$true}
+                return [PSCustomObject]@{Success=$true;Attempts=0;ErrorCode=$null;Error=$null;Path='';AlreadyRunning=$true;ErrorHistory=@()}
             }
         } catch {}
     }
     if($null -eq $Executables){ $Executables = @(Get-WgrArmouryExecutables) }
     $list=@($Executables | Where-Object { $_ })
     if($list.Count -eq 0){
-        return [PSCustomObject]@{Success=$false;Attempts=0;ErrorCode=$null;Error='没有找到奥创程序';Path='';AlreadyRunning=$false}
+        return [PSCustomObject]@{Success=$false;Attempts=0;ErrorCode=$null;Error='没有找到奥创程序';Path='';AlreadyRunning=$false;ErrorHistory=@()}
     }
 
     $attempts=0
@@ -210,21 +210,34 @@ function Invoke-WgrArmouryLaunchAttempt {
     $lastCode=$null
     $path=$list[0]
     $exeIndex=0
+    $history=@()
     while($attempts -lt $MaxRetries){
         $attempts++
         if($exeIndex -ge $list.Count){ $exeIndex = 0 }
         $path=$list[$exeIndex]
         try {
             Start-Process -FilePath $path -ErrorAction Stop | Out-Null
-            return [PSCustomObject]@{Success=$true;Attempts=$attempts;ErrorCode=$null;Error=$null;Path=$path;AlreadyRunning=$false}
+            return [PSCustomObject]@{Success=$true;Attempts=$attempts;ErrorCode=$null;Error=$null;Path=$path;AlreadyRunning=$false;ErrorHistory=$history}
         } catch {
             $lastError=[string]$_.Exception.Message
-            try { $lastCode = [int]$_.Exception.HResult } catch { $lastCode = $null }
+            $lastCode=$null
+            $cur=$_.Exception
+            while($cur){
+                if($cur.GetType().FullName -eq 'System.ComponentModel.Win32Exception'){
+                    $lastCode=[int]$cur.NativeErrorCode
+                    break
+                }
+                $cur=$cur.InnerException
+            }
+            if($null -eq $lastCode){
+                try { $lastCode = [int]$_.Exception.HResult } catch { $lastCode = $null }
+            }
+            $history += [PSCustomObject]@{Attempt=$attempts;Path=$path;ErrorCode=$lastCode;Error=$lastError}
             $exeIndex++
             if($attempts -lt $MaxRetries -and $DelaySeconds -gt 0){ Start-Sleep -Seconds $DelaySeconds }
         }
     }
-    return [PSCustomObject]@{Success=$false;Attempts=$attempts;ErrorCode=$lastCode;Error=$lastError;Path=$path;AlreadyRunning=$false}
+    return [PSCustomObject]@{Success=$false;Attempts=$attempts;ErrorCode=$lastCode;Error=$lastError;Path=$path;AlreadyRunning=$false;ErrorHistory=$history}
 }
 
 function Invoke-WgrArmouryCrateSafeRepair {
