@@ -550,8 +550,14 @@ if 'function Compare-VersionSafe' in rt and 'function Invoke-RuntimeAutoRepair' 
 else: fail('RuntimeEngine split incomplete')
 if 'function Get-SystemSnapshot' in sn and 'function Export-DiagnosticReport' in sn and 'function Get-SystemSnapshot' not in rc: ok('snapshot/report engine extracted from RepairCenter')
 else: fail('SnapshotEngine split incomplete')
-if 'Import-HashLockedEngineModule' in rc and "RuntimeEngine.ps1" in rc and "SnapshotEngine.ps1" in rc: ok('RepairCenter hash-locks extracted modules')
-else: fail('RepairCenter no longer imports extracted modules')
+fn=rc.split('function Resolve-HashLockedEngineModule',1)[1].split('\nfunction ',1)[0]
+if ("function Resolve-HashLockedEngineModule" in rc
+    and ". (Resolve-HashLockedEngineModule 'RuntimeEngine.ps1'" in rc
+    and ". (Resolve-HashLockedEngineModule 'SnapshotEngine.ps1'" in rc
+    and '. $path' not in fn):
+    ok('RepairCenter hash-locks extracted modules at script scope')
+else:
+    fail('extracted engines are dot-sourced inside a function and will not survive return')
 if 'RuntimeEngine.ps1' in bridge and 'SnapshotEngine.ps1' in bridge and 'ArmouryCrateSafeRepair.ps1' in bridge: ok('UiBridge copies split engine modules')
 else: fail('UiBridge missing split engine copies')
 for launcher_name in ['Launch-Win11.cmd']:
