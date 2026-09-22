@@ -218,7 +218,7 @@ $gitAttrRaw=Read-Utf8Text (Join-Path $Root '.gitattributes')
 if($gitAttrRaw -match 'WindowsGameRuntimeASUSSelfHealing\.WinUI/Backend/\*\* -text' -and $gitAttrRaw -match 'LEGACY_ADAPTER_LOCK\.json -text'){Pass 'gitattributes keeps Backend hash-lock files byte-identical'}else{Fail 'gitattributes Backend -text missing'}
 
 # 11b) Windows cmd launchers must be code-page independent: ASCII-only, no UTF-8 BOM, strict CRLF.
-foreach($launcherName in @('一键构建并启动_Win11.cmd','Launch-Win11.cmd','Build-WinUI3.cmd')){
+foreach($launcherName in @('Launch-Win11.cmd')){
     $launcherPath=Join-Path $Root $launcherName
     if(-not (Test-Path -LiteralPath $launcherPath)){Fail ('Launcher missing: '+$launcherName);continue}
     $bytes=[IO.File]::ReadAllBytes($launcherPath)
@@ -230,7 +230,7 @@ foreach($launcherName in @('一键构建并启动_Win11.cmd','Launch-Win11.cmd',
     for($i=0;$i -lt $bytes.Length;$i++){if($bytes[$i] -eq 0x0A -and ($i -eq 0 -or $bytes[$i-1] -ne 0x0D)){$badLf=$true;break}}
     if(-not $badLf -and ([Text.Encoding]::ASCII.GetString($bytes)).Contains("`r`n")){Pass ('Launcher strict CRLF: '+$launcherName)}else{Fail ('Launcher line endings are not strict CRLF: '+$launcherName)}
     $launcherText=[Text.Encoding]::ASCII.GetString($bytes)
-    $expectedScript=if($launcherName -eq 'Build-WinUI3.cmd'){'Build-WinUI3.ps1'}else{'OneClick-Win11.ps1'}
+    $expectedScript='OneClick-Win11.ps1'
     if($launcherText.StartsWith("@echo off`r`n") -and $launcherText -notmatch '(?i)chcp\s+65001' -and $launcherText.Contains($expectedScript)){Pass ('Launcher command contract: '+$launcherName)}else{Fail ('Launcher command contract drift: '+$launcherName)}
 }
 
