@@ -183,10 +183,10 @@ if all(x in verify_payload for x in ['Assert-PeX64','LegacyAdapterHashes','Capab
 else: fail('published payload verifier incomplete')
 if all(x in build_installer for x in ['Verify-PublishPayload.ps1','Inno Setup 7','Inno Setup 6','.sha256.txt','Select-Object -First 1','SelfHealingCenter.exe','App\\WindowsGameRuntimeASUSSelfHealing.WinUI.exe']) and '$isccCandidates[0]' not in build_installer: ok('installer builder verifies payload and supports Inno 7/6')
 else: fail('installer builder contract incomplete')
-if all(x in build_release for x in ['Windows_Game_Runtime_ASUS_SelfHealing_Portable_v','Build-Installer.ps1','RELEASE_SHA256.txt','RELEASE_MANIFEST.json','SelfHealingCenter.exe','Join-Path $package App','Build-DesktopLauncher','$BuildProject','RuntimeEngine.ps1','PublishSingleFile=false']): ok('release builder emits portable + setup + manifests')
+if all(x in build_release for x in ['Windows_Game_Runtime_ASUS_SelfHealing_Portable_v','Build-Installer.ps1','RELEASE_SHA256.txt','RELEASE_MANIFEST.json','SelfHealingCenter.exe','Join-Path $package App','Build-DesktopLauncher','$BuildProject','RuntimeEngine.ps1','PublishSingleFile=false','$WhatIfPreference','Preflight-Ci.ps1']): ok('release builder emits portable + setup + manifests')
 else: fail('release builder contract incomplete')
 workflow=(ROOT/'.github'/'workflows'/'windows-ci.yml').read_text(encoding='utf-8')
-if all(x in workflow for x in ['Verify published payload trust chain','JRSoftware.InnoSetup.7','Build-Release.ps1','artifacts/release/*','-p:Platform=$env:PLATFORM','softprops/action-gh-release','Show-MsBuildErrors','contents: write','Materialize hash-locked Backend','PublishSingleFile=false','wpfgfx_cor3.dll','Verify release SHA256','Verify-ReleaseLayout.ps1']): ok('Windows CI emits verified installer + portable release artifacts')
+if all(x in workflow for x in ['Verify published payload trust chain','JRSoftware.InnoSetup.7','Build-Release.ps1','artifacts/release/*','-p:Platform=$env:PLATFORM','softprops/action-gh-release','Show-MsBuildErrors','contents: write','Materialize hash-locked Backend','PublishSingleFile=false','wpfgfx_cor3.dll','Verify release SHA256','Verify-ReleaseLayout.ps1','dotnet test','WGR.Tests']): ok('Windows CI emits verified installer + portable release artifacts')
 else: fail('Windows CI release artifact pipeline incomplete')
 if re.search(r'(?m)^\s*uses:\s+\S+@v\d', workflow): fail('GitHub Actions still use floating version tags')
 else: ok('GitHub Actions pinned to commit SHA')
@@ -345,7 +345,7 @@ else: fail('csproj missing ApplicationIcon')
 if not (PROJ/'Assets'/'app.ico').exists(): fail('app.ico missing')
 else: ok('app.ico present')
 launcher_cs=(ROOT/'Launcher'/'SelfHealingCenter.cs').read_text(encoding='utf-8') if (ROOT/'Launcher'/'SelfHealingCenter.cs').exists() else ''
-if 'InnerExeName' in launcher_cs and 'WorkingDirectory' in launcher_cs and 'App' in launcher_cs: ok('desktop launcher starts App inner EXE')
+if 'InnerExeName' in launcher_cs and 'WorkingDirectory' in launcher_cs and 'App' in launcher_cs and '--version' in launcher_cs: ok('desktop launcher starts App inner EXE')
 else: fail('desktop launcher source missing or incomplete')
 readme=(ROOT/'README.txt').read_text(encoding='utf-8') if (ROOT/'README.txt').exists() else ''
 if '双击' in readme and '开始菜单' in readme: ok('end-user readme explains double-click launch')
@@ -398,6 +398,8 @@ for token,msg in [
     ('ProtectedRegistryNames','registry cleaner skips ASUS/Microsoft/driver names'),
     ('WriteRegistryBackup','registry cleaner writes a .reg backup before delete'),
     ('RestoreLatestRegistryBackup','registry cleaner can restore the last backup'),
+    ('TryAppendRegistryKey','registry backup writer is testable'),
+    ('无法写入注册表备份','backup failure aborts delete'),
 ]:
     ok(msg) if token in maint else fail('maintenance missing '+token)
 if 'shader' in maint and 'd3dscache' in maint.lower(): ok('general cache still names shader paths so it can skip them')
@@ -405,11 +407,11 @@ else: fail('general cache lost shader exclusion tokens')
 if '系统缓存清理' in settings_xaml and '内存清理' in settings_xaml and '本软件检测缓存' in settings_xaml and '显卡着色器缓存' in settings_xaml and '注册表清理' in settings_xaml and '还原上次备份' in settings_xaml: ok('settings page is system tools not conflicting advanced diagnostics')
 else: fail('settings page missing cache/memory/shader/registry tools')
 crate=(BACK/'ArmouryCrateSafeRepair.ps1').read_text(encoding='utf-8')
-if 'function Invoke-WgrArmouryLaunchAttempt' in crate and 'LaunchAttempt' in crate and '$MaxRetries = 3' in crate:
+if 'function Invoke-WgrArmouryLaunchAttempt' in crate and 'ErrorHistory' in crate and '$MaxRetries = 3' in crate:
     ok('Armoury launch retry records attempts and error code')
 else:
     fail('Armoury launch retry helper missing')
-for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1','Update-HashLock.ps1','BuildStatus.ps1']:
+for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1','Update-HashLock.ps1','BuildStatus.ps1','Preflight-Ci.ps1']:
     if (ROOT/'tools'/tool).exists(): ok('tool '+tool)
     else: fail('missing tools/'+tool)
 if (ROOT/'Tests'/'Unit'/'ArmouryRepair.Tests.ps1').exists(): ok('Pester Armoury 501 tests')
@@ -418,8 +420,13 @@ if (ROOT/'Tests'/'Unit'/'AtomicPolicy.Tests.ps1').exists(): ok('Pester atomic po
 else: fail('Tests/Unit/AtomicPolicy.Tests.ps1 missing')
 if (ROOT/'Tests'/'Unit'/'RuntimeEngine.Tests.ps1').exists(): ok('Pester runtime engine tests')
 else: fail('Tests/Unit/RuntimeEngine.Tests.ps1 missing')
+if (ROOT/'Tests'/'WGR.Tests'/'RegistryBackupTests.cs').exists() and (ROOT/'Tests'/'WGR.Tests'/'ShaderCacheTests.cs').exists(): ok('.NET tests for registry backup and shader idempotency')
+else: fail('Tests/WGR.Tests missing registry/shader coverage')
 if (ROOT/'Tests'/'E2E'/'Verify-ReleaseLayout.ps1').exists(): ok('E2E release layout script')
 else: fail('Tests/E2E/Verify-ReleaseLayout.ps1 missing')
+e2e=(ROOT/'Tests'/'E2E'/'Verify-ReleaseLayout.ps1').read_text(encoding='utf-8-sig')
+if '--version' in e2e and 'Expand-Archive' in e2e: ok('E2E extracts portable zip and checks --version')
+else: fail('E2E missing portable --version check')
 if (ROOT/'docs'/'ARCHITECTURE.md').exists() and (ROOT/'docs'/'CHANGELOG.md').exists() and (ROOT/'docs'/'README_CN.md').exists() and (ROOT/'docs'/'TESTING.md').exists(): ok('docs live under docs/')
 else: fail('root docs were not moved into docs/')
 if (ROOT/'ARCHITECTURE.md').exists() or (ROOT/'CHANGELOG.md').exists() or (ROOT/'README_CN.md').exists(): fail('root still has docs that belong in docs/')
@@ -507,6 +514,8 @@ if 'source reset' not in one: ok('OneClick does not auto-reset WinGet sources')
 else: fail('OneClick auto-reset of WinGet sources is forbidden')
 if 'Build-Release.ps1' in one and '-BuildProject' in one and '$DesktopExe' not in one: ok('OneClick delegates packaging to Build-Release')
 else: fail('OneClick is not delegated to Build-Release')
+if 'Preflight-Ci.ps1' in one: ok('OneClick runs local CI preflight')
+else: fail('OneClick missing Preflight-Ci')
 if 'BuildInfo.json' in one and '.Version' in one: ok('OneClick version is read from BuildInfo')
 else: fail('OneClick version mismatch')
 rt=(BACK/'RuntimeEngine.ps1').read_text(encoding='utf-8')

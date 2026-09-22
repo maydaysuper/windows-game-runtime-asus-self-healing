@@ -92,6 +92,9 @@ public sealed class SystemMaintenanceService
     public Task<string> RestoreLatestRegistryBackupAsync(CancellationToken cancellationToken = default)
         => Task.Run(() => RestoreLatestRegistryBackup(cancellationToken), cancellationToken);
 
+    internal static Func<string> BackupDirectoryResolver { get; set; } = RegistryBackupDirectory;
+    internal string? ShaderLocalAppDataOverride { get; set; }
+
     public static string RegistryBackupDirectory()
         => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -221,7 +224,8 @@ public sealed class SystemMaintenanceService
 
     private List<CacheBucket> CollectShaderBuckets(bool delete, CancellationToken cancellationToken)
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var local = ShaderLocalAppDataOverride
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var targets = new (string name, string path)[]
         {
             ("DirectX 着色器缓存", Path.Combine(local, "D3DSCache")),
@@ -236,7 +240,7 @@ public sealed class SystemMaintenanceService
         foreach (var (name, path) in targets)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsAllowedShaderPath(path))
+            if (!IsAllowedShaderPath(path, local))
             {
                 list.Add(new CacheBucket { Name = name, Note = "当前没有或已跳过" });
                 continue;
@@ -259,11 +263,30 @@ public sealed class SystemMaintenanceService
 
     private RegistryCleanResult CleanRegistry(CancellationToken cancellationToken)
     {
-        var dir = RegistryBackupDirectory();
-        Directory.CreateDirectory(dir);
+        var dir = BackupDirectoryResolver();
+        try
+        {
+            Directory.CreateDirectory(dir);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("无法创建注册表备份目录，已取消删除。", ex);
+        }
+
         var backupPath = Path.Combine(dir, $"WGR_RegistryBackup_{DateTime.Now:yyyyMMdd_HHmmss}.reg");
-        using var writer = new StreamWriter(backupPath, false, Encoding.Unicode);
-        writer.WriteLine("Windows Registry Editor Version 5.00");
+        StreamWriter writer;
+        try
+        {
+            var fs = new FileStream(backupPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            writer = new StreamWriter(fs, Encoding.Unicode);
+            writer.WriteLine("Windows Registry Editor Version 5.00");
+            writer.Flush();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("无法写入注册表备份，已取消删除。", ex);
+        }
+
         _registryBackup = writer;
         List<CacheBucket> buckets;
         try
@@ -272,7 +295,8 @@ public sealed class SystemMaintenanceService
         }
         finally
         {
-            writer.Flush();
+            try { writer.Flush(); } catch { }
+            writer.Dispose();
             _registryBackup = null;
         }
 
@@ -312,37 +336,42 @@ public sealed class SystemMaintenanceService
         return "已从备份还原：" + latest;
     }
 
-    private void WriteRegistryBackup(RegistryKey key)
+    internal static bool TryAppendRegistryKey(TextWriter writer, string keyName, IEnumerable<(string Name, object? Value, RegistryValueKind Kind)> values)
     {
-        if (_registryBackup is null) return;
+        if (writer is null || string.IsNullOrWhiteSpace(keyName)) return false;
         try
         {
-            _registryBackup.WriteLine();
-            _registryBackup.WriteLine("[" + key.Name + "]");
-            foreach (var name in key.GetValueNames())
+            writer.WriteLine();
+            writer.WriteLine("[" + keyName + "]");
+            foreach (var (name, value, kind) in values)
             {
-                try
-                {
-                    _registryBackup.WriteLine(FormatRegLine(name, key.GetValue(name), key.GetValueKind(name)));
-                }
-                catch { }
+                writer.WriteLine(FormatRegLine(name, value, kind));
             }
-            _registryBackup.Flush();
+            writer.Flush();
+            return true;
         }
-        catch { }
+        catch
+        {
+            return false;
+        }
     }
 
-    private void WriteRegistryValueBackup(string keyName, string valueName, object? value, RegistryValueKind kind)
+    private bool WriteRegistryBackup(RegistryKey key)
     {
-        if (_registryBackup is null) return;
-        try
+        if (_registryBackup is null || key is null) return false;
+        var values = new List<(string Name, object? Value, RegistryValueKind Kind)>();
+        foreach (var name in key.GetValueNames())
         {
-            _registryBackup.WriteLine();
-            _registryBackup.WriteLine("[" + keyName + "]");
-            _registryBackup.WriteLine(FormatRegLine(valueName, value, kind));
-            _registryBackup.Flush();
+            try { values.Add((name, key.GetValue(name), key.GetValueKind(name))); }
+            catch { }
         }
-        catch { }
+        return TryAppendRegistryKey(_registryBackup, key.Name, values);
+    }
+
+    private bool WriteRegistryValueBackup(string keyName, string valueName, object? value, RegistryValueKind kind)
+    {
+        if (_registryBackup is null) return false;
+        return TryAppendRegistryKey(_registryBackup, keyName, new[] { (valueName, value, kind) });
     }
 
     private static string FormatRegLine(string name, object? value, RegistryValueKind kind)
@@ -427,12 +456,15 @@ public sealed class SystemMaintenanceService
         return false;
     }
 
-    private static bool IsAllowedShaderPath(string path)
+    internal static bool IsAllowedShaderPath(string path, string? localAppData = null)
     {
         if (string.IsNullOrWhiteSpace(path)) return false;
         try
         {
-            var local = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)).TrimEnd('\\') + "\\";
+            var localRoot = string.IsNullOrWhiteSpace(localAppData)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                : localAppData;
+            var local = Path.GetFullPath(localRoot).TrimEnd('\\') + "\\";
             var full = Path.GetFullPath(path).TrimEnd('\\') + "\\";
             if (!full.StartsWith(local, StringComparison.OrdinalIgnoreCase)) return false;
             var n = full.ToLowerInvariant();
@@ -519,7 +551,7 @@ public sealed class SystemMaintenanceService
                         if (string.IsNullOrWhiteSpace(uninstallString) || !LooksMissing(uninstallString)) { skipped++; continue; }
                         if (delete)
                         {
-                            WriteRegistryBackup(sub);
+                            if (!WriteRegistryBackup(sub)) { skipped++; continue; }
                             uninstall.DeleteSubKeyTree(name, throwOnMissingSubKey: false);
                         }
                         files++;
@@ -557,7 +589,7 @@ public sealed class SystemMaintenanceService
                         if (!LooksMissing(target)) { skipped++; continue; }
                         if (delete)
                         {
-                            WriteRegistryBackup(sub);
+                            if (!WriteRegistryBackup(sub)) { skipped++; continue; }
                             appPaths.DeleteSubKeyTree(name, throwOnMissingSubKey: false);
                         }
                         files++;
@@ -599,7 +631,7 @@ public sealed class SystemMaintenanceService
                         if (!LooksMissing(value)) { skipped++; continue; }
                         if (delete)
                         {
-                            WriteRegistryValueBackup(run.Name, name, value, run.GetValueKind(name));
+                            if (!WriteRegistryValueBackup(run.Name, name, value, run.GetValueKind(name))) { skipped++; continue; }
                             run.DeleteValue(name, throwOnMissingValue: false);
                         }
                         files++;
@@ -633,7 +665,7 @@ public sealed class SystemMaintenanceService
                 {
                     if (delete)
                     {
-                        WriteRegistryValueBackup(key.Name, name, key.GetValue(name), key.GetValueKind(name));
+                        if (!WriteRegistryValueBackup(key.Name, name, key.GetValue(name), key.GetValueKind(name))) { skipped++; continue; }
                         key.DeleteValue(name, throwOnMissingValue: false);
                     }
                     files++;

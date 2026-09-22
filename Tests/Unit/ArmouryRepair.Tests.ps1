@@ -20,21 +20,36 @@ Describe 'Test-WgrArmouryTempPath' {
 
 Describe 'Invoke-WgrArmouryLaunchAttempt' {
     It 'retries until MaxRetries when Start-Process always fails' {
-        Mock Start-Process { throw 'AppX activation failed' }
+        Mock Start-Process { throw ([System.ComponentModel.Win32Exception]::new(1150)) }
         $result = Invoke-WgrArmouryLaunchAttempt -MaxRetries 3 -DelaySeconds 0 -Executables @('C:\fake\ArmouryCrate.exe') -SkipProcessCheck
         $result.Attempts | Should -Be 3
         $result.Success | Should -Be $false
-        $result.ErrorCode | Should -Not -Be $null
+        $result.AlreadyRunning | Should -Be $false
+        $result.Path | Should -Be 'C:\fake\ArmouryCrate.exe'
+        $result.ErrorCode | Should -Be 1150
+        $result.Error | Should -Not -BeNullOrEmpty
+        @($result.ErrorHistory).Count | Should -Be 3
+        $result.ErrorHistory[2].ErrorCode | Should -Be 1150
+        $result.ErrorHistory[2].Attempt | Should -Be 3
     }
     It 'stops after the second attempt succeeds' {
         $script:count = 0
         Mock Start-Process {
             $script:count++
-            if ($script:count -lt 2) { throw 'fail' }
+            if ($script:count -lt 2) { throw ([System.ComponentModel.Win32Exception]::new(5)) }
         }
         $result = Invoke-WgrArmouryLaunchAttempt -MaxRetries 3 -DelaySeconds 0 -Executables @('C:\fake\ArmouryCrate.exe') -SkipProcessCheck
         $result.Attempts | Should -Be 2
         $result.Success | Should -Be $true
+        @($result.ErrorHistory).Count | Should -Be 1
+        $result.ErrorHistory[0].ErrorCode | Should -Be 5
+    }
+    It 'records missing executable without retrying' {
+        $result = Invoke-WgrArmouryLaunchAttempt -MaxRetries 3 -DelaySeconds 0 -Executables @() -SkipProcessCheck
+        $result.Success | Should -Be $false
+        $result.Attempts | Should -Be 0
+        $result.Error | Should -Match '没有找到'
+        @($result.ErrorHistory).Count | Should -Be 0
     }
 }
 

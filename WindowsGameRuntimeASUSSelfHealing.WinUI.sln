@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsGameRuntimeASUSSelfHealing.WinUI", "WindowsGameRuntimeASUSSelfHealing.WinUI\WindowsGameRuntimeASUSSelfHealing.WinUI.csproj", "{E7160A4F-5BF2-4ED0-B8D9-4D9E17B24335}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WGR.Tests", "Tests\WGR.Tests\WGR.Tests.csproj", "{B8C1A4E2-7F31-4A9C-9D10-2E6F4A8C1B77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -14,5 +16,9 @@ Global
 		{E7160A4F-5BF2-4ED0-B8D9-4D9E17B24335}.Debug|x64.Build.0 = Debug|x64
 		{E7160A4F-5BF2-4ED0-B8D9-4D9E17B24335}.Release|x64.ActiveCfg = Release|x64
 		{E7160A4F-5BF2-4ED0-B8D9-4D9E17B24335}.Release|x64.Build.0 = Release|x64
+		{B8C1A4E2-7F31-4A9C-9D10-2E6F4A8C1B77}.Debug|x64.ActiveCfg = Debug|x64
+		{B8C1A4E2-7F31-4A9C-9D10-2E6F4A8C1B77}.Debug|x64.Build.0 = Debug|x64
+		{B8C1A4E2-7F31-4A9C-9D10-2E6F4A8C1B77}.Release|x64.ActiveCfg = Release|x64
+		{B8C1A4E2-7F31-4A9C-9D10-2E6F4A8C1B77}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

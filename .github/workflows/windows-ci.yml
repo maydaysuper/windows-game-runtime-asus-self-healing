@@ -69,6 +69,7 @@ jobs:
           dotnet restore $env:PROJECT -r $env:RUNTIME --nologo -p:Platform=$env:PLATFORM `
             "-flp:logfile=BuildLogs/Restore_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Restore_${{ github.run_id }}.binlog
+          dotnet restore Tests/WGR.Tests/WGR.Tests.csproj -r $env:RUNTIME --nologo -p:Platform=$env:PLATFORM
 
       - name: Build WPF
         shell: powershell
@@ -79,6 +80,13 @@ jobs:
             -p:Platform=$env:PLATFORM -p:ContinuousIntegrationBuild=true `
             "-flp:logfile=BuildLogs/Build_${{ github.run_id }}.log;verbosity=normal" `
             -bl:BuildLogs/Build_${{ github.run_id }}.binlog
+
+      - name: .NET unit tests (registry backup / shader idempotency)
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          dotnet test Tests/WGR.Tests/WGR.Tests.csproj -c $env:CONFIGURATION --nologo `
+            -p:Platform=$env:PLATFORM --runtime $env:RUNTIME
 
       - name: Publish self-contained WPF
         shell: powershell

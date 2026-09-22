@@ -33,4 +33,28 @@ try {
         Write-Host "[PASS] zip $need"
     }
 } finally { $archive.Dispose() }
+
+$buildJson = Join-Path $PSScriptRoot '..\..\WindowsGameRuntimeASUSSelfHealing.WinUI\Backend\BuildInfo.json'
+$expected = $null
+if(Test-Path -LiteralPath $buildJson){
+    $utf8 = New-Object System.Text.UTF8Encoding($false,$true)
+    $expected = ([IO.File]::ReadAllText((Resolve-Path $buildJson), $utf8) | ConvertFrom-Json).Version
+}
+$extract = Join-Path ([IO.Path]::GetTempPath()) ('wgr-e2e-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $extract -Force | Out-Null
+try {
+    Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
+    $launcher = Join-Path $extract 'SelfHealingCenter.exe'
+    if(-not (Test-Path -LiteralPath $launcher)) { throw 'extracted launcher missing' }
+    $inner = Join-Path $extract 'App\WindowsGameRuntimeASUSSelfHealing.WinUI.exe'
+    $innerVer = [Diagnostics.FileVersionInfo]::GetVersionInfo($inner).FileVersion
+    if($expected -and $innerVer -notlike "$expected*") { throw "inner FileVersion=$innerVer expected $expected" }
+    Write-Host ("[PASS] inner FileVersion=$innerVer")
+    $output = & $launcher --version 2>&1 | Out-String
+    if($LASTEXITCODE -ne 0) { throw ("launcher --version exit {0}: {1}" -f $LASTEXITCODE,$output) }
+    if($expected -and $output -notmatch [regex]::Escape([string]$expected)) { throw "launcher --version missing $expected : $output" }
+    Write-Host ("[PASS] launcher --version {0}" -f $output.Trim())
+} finally {
+    try { Remove-Item -LiteralPath $extract -Recurse -Force } catch {}
+}
 Write-Host '[PASS] release layout'
