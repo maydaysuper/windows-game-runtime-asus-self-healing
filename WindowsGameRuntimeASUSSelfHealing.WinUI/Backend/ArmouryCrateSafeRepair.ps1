@@ -210,30 +210,34 @@ function Invoke-WgrArmouryLaunchAttempt {
     $lastCode=$null
     $path=$list[0]
     $exeIndex=0
-    $history=New-Object System.Collections.Generic.List[object]
+    $history=@()
     while($attempts -lt $MaxRetries){
         $attempts++
         if($exeIndex -ge $list.Count){ $exeIndex = 0 }
         $path=$list[$exeIndex]
         try {
             Start-Process -FilePath $path -ErrorAction Stop | Out-Null
-            return [PSCustomObject]@{Success=$true;Attempts=$attempts;ErrorCode=$null;Error=$null;Path=$path;AlreadyRunning=$false;ErrorHistory=@($history)}
+            return [PSCustomObject]@{Success=$true;Attempts=$attempts;ErrorCode=$null;Error=$null;Path=$path;AlreadyRunning=$false;ErrorHistory=$history}
         } catch {
             $lastError=[string]$_.Exception.Message
             $lastCode=$null
-            if($_.Exception -is [ComponentModel.Win32Exception]){
-                $lastCode = [int]$_.Exception.NativeErrorCode
-            } elseif($_.Exception.InnerException -is [ComponentModel.Win32Exception]){
-                $lastCode = [int]$_.Exception.InnerException.NativeErrorCode
-            } else {
+            $cur=$_.Exception
+            while($cur){
+                if($cur.GetType().FullName -eq 'System.ComponentModel.Win32Exception'){
+                    $lastCode=[int]$cur.NativeErrorCode
+                    break
+                }
+                $cur=$cur.InnerException
+            }
+            if($null -eq $lastCode){
                 try { $lastCode = [int]$_.Exception.HResult } catch { $lastCode = $null }
             }
-            [void]$history.Add([PSCustomObject]@{Attempt=$attempts;Path=$path;ErrorCode=$lastCode;Error=$lastError})
+            $history += [PSCustomObject]@{Attempt=$attempts;Path=$path;ErrorCode=$lastCode;Error=$lastError}
             $exeIndex++
             if($attempts -lt $MaxRetries -and $DelaySeconds -gt 0){ Start-Sleep -Seconds $DelaySeconds }
         }
     }
-    return [PSCustomObject]@{Success=$false;Attempts=$attempts;ErrorCode=$lastCode;Error=$lastError;Path=$path;AlreadyRunning=$false;ErrorHistory=@($history)}
+    return [PSCustomObject]@{Success=$false;Attempts=$attempts;ErrorCode=$lastCode;Error=$lastError;Path=$path;AlreadyRunning=$false;ErrorHistory=$history}
 }
 
 function Invoke-WgrArmouryCrateSafeRepair {

@@ -18,7 +18,7 @@
   "GpuSafeRepairSHA256": "a2873909dec75e0abcfff0467693d79ab24e84ac2ae4976e4b9226e747ed0092",
   "AtomicPolicyExecutorSHA256": "158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995",
   "RecipeCatalogSHA256": "a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6",
-  "BuildInfoSHA256": "00b7150f3c40141c4cda570ef505c43c1353650952e9eac93d46390552388c6c",
+  "BuildInfoSHA256": "d0ca57baea61b9d3338591df7518c1ff1cafaad1f583360e79e02c43c7c6c69f",
   "LegacyAdapterPolicy": "IMMUTABLE_HASH_LOCK",
   "LegacyAdapterHashes": {
     "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",
@@ -32,7 +32,7 @@
   "GpuDiagnostics": "ReBAR + PDH Dedicated/Shared GPU Memory + TDR + vendor driver events + WHEA + Kernel-Power + LiveKernelReports + Dump correlation",
   "GpuSafeRepairPolicy": "CACHE_ROLLBACK_AND_PNP_RESCAN_ONLY",
   "Installer": "Inno Setup 7.x preferred / 6.x fallback; per-user Setup EXE (desktop shortcut, no Start Menu) + Portable ZIP (SelfHealingCenter.exe + App folder)",
-  "ArmouryCrateSafeRepairSHA256": "cda33e9c4d71a2b9d0c5795787a22cfd34eb0918090caf2e57203fc5f6036abe",
+  "ArmouryCrateSafeRepairSHA256": "6dbb7105e919be5b80ca2b97d2d04638fa8c9af2fd1d3d69525d0501bb2c2350",
   "RuntimeEngineSHA256": "cb2135bf67e2b64410ee355d75cf5bf26d1d4ba2d1c65be4264a755f82232f4c",
   "SnapshotEngineSHA256": "122f6bce84c5a1114fcbeb5ff34d01aef7d8faed7097122f7a72ce771b3439d8"
 }

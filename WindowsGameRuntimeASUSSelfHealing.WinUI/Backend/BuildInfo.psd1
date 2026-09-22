@@ -21,7 +21,7 @@
     EventReaderSHA256 = 'a464ca3e67195e7ec1b2bf80b5cf28bdf306e46f3df129411c764af305a67ca1'
     GpuDiagnosticsReaderSHA256 = '4a39b9a4a24ee4dda66d67e79bec93a1eb17f8fa551d4a5f7e5d3cba46ba3af2'
     GpuSafeRepairSHA256 = 'a2873909dec75e0abcfff0467693d79ab24e84ac2ae4976e4b9226e747ed0092'
-    ArmouryCrateSafeRepairSHA256 = 'cda33e9c4d71a2b9d0c5795787a22cfd34eb0918090caf2e57203fc5f6036abe'
+    ArmouryCrateSafeRepairSHA256 = '6dbb7105e919be5b80ca2b97d2d04638fa8c9af2fd1d3d69525d0501bb2c2350'
     AtomicPolicyExecutorSHA256 = '158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995'
     RecipeCatalogSHA256 = 'a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6'
     RuntimeEngineSHA256 = 'cb2135bf67e2b64410ee355d75cf5bf26d1d4ba2d1c65be4264a755f82232f4c'
