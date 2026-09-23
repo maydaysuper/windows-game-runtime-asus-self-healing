@@ -24,8 +24,8 @@
 Windows 10 / 11 的发布验证还需要一台全新、可丢弃的 x64 客户端虚拟机（没有 .NET SDK），分别运行：
 
 ```powershell
-./Tests/E2E/Verify-CleanClient.ps1 -SetupPath <Setup_v4.6.4_x64.exe> -ExpectedOS Win10 -DisposableClient
-./Tests/E2E/Verify-CleanClient.ps1 -SetupPath <Setup_v4.6.4_x64.exe> -ExpectedOS Win11 -DisposableClient
+./Tests/E2E/Verify-CleanClient.ps1 -SetupPath '.\Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.4_x64.exe' -ExpectedOS Win10 -DisposableClient
+./Tests/E2E/Verify-CleanClient.ps1 -SetupPath '.\Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.4_x64.exe' -ExpectedOS Win11 -DisposableClient
 ```
 
 每台虚拟机只执行对应的一行。脚本拒绝 Windows Server，核对实际系统 Build、安装后的启动器与内层 WPF 版本、真实路径、启动存活，以及 State 哨兵文件。测试会安装软件并保留安装目录用于排错，因此只在可丢弃的虚拟机上运行。Windows 10 最低 Build 19044（21H2 / Enterprise LTSC 2021）。普通 Windows 10 22H2 已结束微软常规支持；兼容性测试不延长操作系统本身的支持期。
