@@ -17,7 +17,7 @@ $root = Join-Path $env:RUNNER_TEMP 'WGR upgrade 中文 path'
 $state = Join-Path $env:LOCALAPPDATA 'WindowsGameRuntimeASUSSelfHealing\State'
 $logs = Join-Path $repo 'BuildLogs\legacy-upgrade'
 New-Item -ItemType Directory -Path $logs,$state,$root -Force | Out-Null
-$shell = New-Object -ComObject WScript.Shell
+Add-Type -Path (Join-Path $repo 'Installer\ShortcutInterop.cs')
 function Put([string]$Path, [string]$Value = 'legacy fixture') {
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
     [IO.File]::WriteAllText($Path, $Value)
@@ -25,10 +25,7 @@ function Put([string]$Path, [string]$Value = 'legacy fixture') {
 function Link([string]$Path, [string]$Target) {
     Write-Host "Creating shortcut fixture: $Path -> $Target"
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
-    $s = $shell.CreateShortcut($Path)
-    $s.TargetPath = $Target
-    $s.WorkingDirectory = Split-Path -Parent $Target
-    $s.Save()
+    [WgrShortcut]::Retarget($Path, $Target)
 }
 function Install([string]$Name, [bool]$Success = $true, [string]$Directory = $root) {
     $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER',
@@ -103,7 +100,7 @@ foreach($pass in @('legacy-upgrade','idempotent-upgrade')) {
         Remove-Item -LiteralPath $collision
     } else { $checkLinks += $collision }
     foreach($p in $checkLinks) {
-        $s = $shell.CreateShortcut($p)
+        $s = [WgrShortcut]::Read($p)
         if($s.TargetPath -ne $launcher -or $s.WorkingDirectory.TrimEnd('\') -ne $root -or $s.Arguments) {
             throw "Incorrect shortcut: $p"
         }

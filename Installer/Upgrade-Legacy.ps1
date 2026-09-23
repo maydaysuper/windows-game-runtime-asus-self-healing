@@ -4,7 +4,9 @@ param(
     [Parameter(Mandatory=$true)][string]$InstallRoot,
     [ValidateSet('Clean','Verify')][string]$Mode = 'Clean',
     [string]$ExpectedVersion = '4.6.3',
-    [string]$LogPath
+    [string]$LogPath,
+    [string]$DesktopShortcut,
+    [string]$DesktopDecisionPath
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
@@ -110,7 +112,7 @@ try {
 
     # Match shortcut TARGETS, never shortcut names. Do not touch other profiles or
     # taskbar registry/CloudStore state. Retarget existing pins to keep their identity.
-    $shell = New-Object -ComObject WScript.Shell
+    Add-Type -Path (Join-Path $PSScriptRoot 'ShortcutInterop.cs')
     $targets = @()
     foreach($base in @($root, $app)) {
         $targets += Join-Path $base 'desktop_entry.exe'
@@ -141,7 +143,7 @@ try {
         Assert-NoReparseAncestors $surface
         foreach($link in Find-Links $surface) {
             try {
-                $shortcut = $shell.CreateShortcut($link.FullName)
+                $shortcut = [WgrShortcut]::Read($link.FullName)
                 if(-not $shortcut.TargetPath) { continue }
                 $target = FullPath $shortcut.TargetPath
                 $owned = $target -in $targets
@@ -156,13 +158,18 @@ try {
             }
             if(-not $owned) { continue }
             # Preserve link name/location (including user pins); replace only the obsolete launch target.
-            $shortcut.TargetPath = $launcher
-            $shortcut.Arguments = ''
-            $shortcut.WorkingDirectory = $root
-            $shortcut.IconLocation = "$launcher,0"
-            $shortcut.Save()
+            [WgrShortcut]::Retarget($link.FullName, $launcher)
             Note "Retargeted legacy shortcut: $($link.FullName)"
         }
+    }
+    if($DesktopDecisionPath -and $DesktopShortcut) {
+        Remove-Item -LiteralPath $DesktopDecisionPath -Force -ErrorAction SilentlyContinue
+        $createDesktop = -not (Test-Path -LiteralPath $DesktopShortcut)
+        if(-not $createDesktop) {
+            try { $createDesktop = (FullPath ([WgrShortcut]::Read($DesktopShortcut).TargetPath)) -eq $launcher }
+            catch { Note "Preserved unreadable desktop shortcut: $DesktopShortcut" }
+        }
+        if($createDesktop) { [IO.File]::WriteAllText($DesktopDecisionPath, '1') }
     }
     Note '[PASS] Legacy upgrade cleanup complete; user data preserved.'
     exit 0

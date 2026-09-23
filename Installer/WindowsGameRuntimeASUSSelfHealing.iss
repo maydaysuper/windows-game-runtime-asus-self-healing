@@ -44,6 +44,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Files]
 Source: "Upgrade-Legacy.ps1"; Flags: dontcopy
+Source: "ShortcutInterop.cs"; Flags: dontcopy
 Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -60,23 +61,8 @@ Type: filesandordirs; Name: "{app}\BuildLogs"
 
 [Code]
 function CanCreateDesktopShortcut: Boolean;
-var
-  Path: String;
-  Shell, Link: Variant;
 begin
-  Path := ExpandConstant('{autodesktop}\奥创修复中心.lnk');
-  Result := not FileExists(Path);
-  if not Result then
-  begin
-    try
-      Shell := CreateOleObject('WScript.Shell');
-      Link := Shell.CreateShortcut(Path);
-      Result := CompareText(Link.TargetPath, ExpandConstant('{app}\SelfHealingCenter.exe')) = 0;
-    except
-      Log('Preserving unreadable desktop shortcut: ' + Path);
-      Result := False;
-    end;
-  end;
+  Result := FileExists(ExpandConstant('{tmp}\create-desktop-shortcut.flag'));
 end;
 
 function RunUpgradeHelper(const Mode: String): Boolean;
@@ -86,10 +72,13 @@ var
   Lines: TArrayOfString;
 begin
   ExtractTemporaryFile('Upgrade-Legacy.ps1');
+  ExtractTemporaryFile('ShortcutInterop.cs');
   Params := '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{tmp}\Upgrade-Legacy.ps1') + '" -Mode ' + Mode +
     ' -InstallRoot "' + ExpandConstant('{app}') + '" -ExpectedVersion "{#MyAppVersion}"' +
-    ' -LogPath "' + ExpandConstant('{tmp}\legacy-upgrade.log') + '"';
+    ' -LogPath "' + ExpandConstant('{tmp}\legacy-upgrade.log') + '"' +
+    ' -DesktopShortcut "' + ExpandConstant('{autodesktop}\奥创修复中心.lnk') + '"' +
+    ' -DesktopDecisionPath "' + ExpandConstant('{tmp}\create-desktop-shortcut.flag') + '"';
   Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     Params, '', SW_HIDE, ewWaitUntilTerminated, Code);
   Result := Result and (Code = 0);
