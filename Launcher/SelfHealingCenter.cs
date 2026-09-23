@@ -81,6 +81,12 @@ internal static class Program
         var launcherVer = FileVersionInfo.GetVersionInfo(launcherPath);
         var inner = Path.Combine(root, "App", InnerExeName);
         var innerVer = File.Exists(inner) ? FileVersionInfo.GetVersionInfo(inner).FileVersion : "";
+        if (string.IsNullOrWhiteSpace(innerVer) ||
+            !string.Equals(innerVer, launcherVer.FileVersion, StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine("Installed App executable is missing or has a different version.");
+            return 1;
+        }
         var line = "奥创修复中心 " + (launcherVer.ProductVersion ?? launcherVer.FileVersion);
         if (!string.IsNullOrWhiteSpace(innerVer))
             line += " (App " + innerVer + ")";

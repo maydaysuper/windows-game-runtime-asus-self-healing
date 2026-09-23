@@ -40,6 +40,11 @@ function Assert-Hash([string]$Path,[string]$Expected,[string]$Label) {
 }
 
 $root=(Resolve-Path -LiteralPath $PublishRoot).Path
+$legacy = @(Get-ChildItem -LiteralPath $root -Recurse -Force | Where-Object {
+    $_.Name -in @('_internal','PySide6','shiboken6','desktop_entry.exe','desktop_entry.py','desktop_entry.pyc') -or
+    $_.Name -like 'Qt6*.dll' -or $_.Name -like 'python*.dll'
+})
+if($legacy.Count) { throw "Legacy Python/Qt files in WPF publish payload: $($legacy.FullName -join ', ')" }
 $backend=Join-Path $root 'Backend'
 $exe=Join-Path $root 'WindowsGameRuntimeASUSSelfHealing.WinUI.exe'
 $buildInfoPath=Join-Path $backend 'BuildInfo.json'
@@ -98,7 +103,7 @@ foreach($name in ($legacy.Keys | Sort-Object)) {
 }
 
 $versionInfo=(Get-Item -LiteralPath $exe).VersionInfo
-if($versionInfo.FileVersion -and -not $versionInfo.FileVersion.StartsWith([string]$build.Version)) { throw ("EXE FileVersion mismatch. BuildInfo={0} FileVersion={1}" -f $build.Version,$versionInfo.FileVersion) }
+if($versionInfo.FileVersion -ne "$($build.Version).0") { throw ("EXE FileVersion mismatch. BuildInfo={0} FileVersion={1}" -f $build.Version,$versionInfo.FileVersion) }
 Write-Host ("[PASS] EXE {0} ProductVersion={1} FileVersion={2}" -f $exe,$versionInfo.ProductVersion,$versionInfo.FileVersion)
 
 if(-not $ManifestPath) { $ManifestPath=Join-Path $root 'PAYLOAD_SHA256.txt' }

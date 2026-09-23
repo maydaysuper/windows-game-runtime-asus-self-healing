@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = '奥创修复中心'
-    Version = '4.6.2'
-    BuildId = '20260923.wpf.20'
+    Version = '4.6.3'
+    BuildId = '20260923.wpf.21'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4

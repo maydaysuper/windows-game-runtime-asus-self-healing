@@ -13,9 +13,9 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>false</UseWindowsForms>
     <StartupObject>WindowsGameRuntimeASUSSelfHealing.WinUI.Program</StartupObject>
-    <Version>4.6.2</Version>
-    <AssemblyVersion>4.6.2.0</AssemblyVersion>
-    <FileVersion>4.6.2.0</FileVersion>
+    <Version>4.6.3</Version>
+    <AssemblyVersion>4.6.3.0</AssemblyVersion>
+    <FileVersion>4.6.3.0</FileVersion>
     <Product>奥创修复中心</Product>
     <Description>奥创修复中心：游戏运行库诊断、ASUS Armoury 修复、缓存/着色器/注册表/内存清理、GPU/ReBAR 崩溃诊断。</Description>
     <SelfContained>true</SelfContained>

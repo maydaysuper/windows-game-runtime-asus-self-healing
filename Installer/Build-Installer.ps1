@@ -26,6 +26,8 @@ $inner=Join-Path $SourceRoot 'App\WindowsGameRuntimeASUSSelfHealing.WinUI.exe'
 if(-not (Test-Path -LiteralPath $launcher)){ throw "Desktop launcher missing from installer source: $launcher" }
 if(-not (Test-Path -LiteralPath $inner)){ throw "Inner WPF EXE missing from installer source: $inner" }
 
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Upgrade-Legacy.ps1') -Mode Verify -InstallRoot (Resolve-Path $SourceRoot).Path -ExpectedVersion $build.Version
+if($LASTEXITCODE -ne 0) { throw 'Installer source version/layout validation failed.' }
 $iscc = @(
     (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
@@ -47,7 +49,8 @@ $isccArgs=@(
 )
 & $iscc @isccArgs
 if($LASTEXITCODE -ne 0){ throw "Inno Setup failed, ExitCode=$LASTEXITCODE" }
-$setup=Get-ChildItem -LiteralPath $OutputDir -Filter '*.exe' -File | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+$setup=Get-Item -LiteralPath (Join-Path $OutputDir ("Windows_Game_Runtime_ASUS_SelfHealing_Setup_v{0}_x64.exe" -f $build.Version))
+if($setup.VersionInfo.FileVersion -ne "$($build.Version).0") { throw 'Setup FileVersion mismatch.' }
 if(-not $setup){ throw 'Setup EXE was not created.' }
 $hash=(Get-FileHash -Algorithm SHA256 -LiteralPath $setup.FullName).Hash.ToLowerInvariant()
 $hashPath=$setup.FullName+'.sha256.txt'
