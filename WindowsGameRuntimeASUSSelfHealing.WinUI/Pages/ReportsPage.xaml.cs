@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
@@ -180,6 +182,33 @@ public sealed partial class ReportsPage : Page
 
     private void OpenFolder_Click(object sender, RoutedEventArgs e) => App.Services.Reports.OpenReportFolder();
     private void OpenSettings_Click(object sender, RoutedEventArgs e) => NavigationService?.Navigate(new SettingsPage());
+
+    private void CopyInstallInfo_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var appPath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory,
+                "WindowsGameRuntimeASUSSelfHealing.WinUI.exe");
+            var root = Directory.GetParent(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))?.FullName;
+            var launcher = root is null ? "未找到" : Path.Combine(root, "SelfHealingCenter.exe");
+            var version = FileVersionInfo.GetVersionInfo(appPath).FileVersion ?? "未知";
+            var details = $"奥创修复中心 {version}{Environment.NewLine}" +
+                $"Windows: {Environment.OSVersion.Version}{Environment.NewLine}" +
+                $"运行中的程序: {appPath}{Environment.NewLine}" +
+                $"启动器: {launcher} (存在: {File.Exists(launcher)}){Environment.NewLine}" +
+                $"State: {Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WindowsGameRuntimeASUSSelfHealing", "State")}";
+            Clipboard.SetText(details);
+            Info.Title = "安装信息已复制";
+            Info.Message = $"当前运行路径：{appPath}";
+            Info.Severity = InfoBarSeverity.Success;
+        }
+        catch (Exception ex)
+        {
+            Info.Title = "复制安装信息失败";
+            Info.Message = CustomerCopy.Plain(ex.Message);
+            Info.Severity = InfoBarSeverity.Error;
+        }
+    }
 
     private async void ContinueButton_Click(object sender, RoutedEventArgs e)
     {

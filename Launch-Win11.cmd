@@ -15,7 +15,7 @@ if not exist "%PS%" set "PS=powershell.exe"
 echo.
 echo ================================================================
 echo   Windows Game Runtime / ASUS Self-Healing Center - WinUI 3
-echo   Windows 11 x64 One-Click Build and Launch
+echo   Windows 10 / 11 x64 One-Click Build and Launch
 echo ================================================================
 echo.
 "%PS%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0OneClick-Win11.ps1"

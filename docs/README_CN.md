@@ -1,13 +1,15 @@
-# 奥创修复中心 v4.6.2
+# 奥创修复中心 v4.6.4
+
+支持 Windows 10 Build 19044+ / Windows 11 x64。Windows 10 普通版本已结束微软常规支持，请优先使用仍受支持的企业 LTSC 或加入 ESU 的系统。
 
 检测会先检查本机 C++ 文件，再联网对比微软官方版本。文件不完整或和官方不一样就修复，修完立刻再验一次。软件显示名是「奥创修复中心」。
 
 请到 [Releases](https://github.com/maydaysuper/windows-game-runtime-asus-self-healing/releases/latest) 下载安装包，不要自己编译。
 
-- 安装包：`Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.2_x64.exe`（推荐）
+- 安装包：`Windows_Game_Runtime_ASUS_SelfHealing_Setup_v4.6.4_x64.exe`（推荐）
 - 便携版：同一页的 ZIP，解压后双击 `SelfHealingCenter.exe`
 
-请卸载全部 3.4.x 后安装 4.6.2。已装 4.1.x / 4.2.x / 4.3.x / 4.4.x / 4.5.x / 4.6.1 可直接覆盖。桌面会生成图标，不往开始菜单塞快捷方式。
+请卸载全部 3.4.x 后安装 4.6.4。已装 4.1.x / 4.2.x / 4.3.x / 4.4.x / 4.5.x / 4.6.1 / 4.6.2 / 4.6.3 可直接覆盖。桌面会生成图标，不往开始菜单塞快捷方式。
 
 ## 主界面
 

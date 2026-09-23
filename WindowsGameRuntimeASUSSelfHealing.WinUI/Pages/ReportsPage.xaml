@@ -21,6 +21,7 @@
                 <Button x:Name="RepairReportButton" Content="生成修复报告" Click="RepairReport_Click"/>
                 <Button x:Name="VerifyButton" Content="再检查一遍" Click="VerifyButton_Click"/>
                 <Button x:Name="DiagnosticZipButton" Content="导出诊断包" Click="DiagnosticZip_Click"/>
+                <Button Content="复制安装信息" Click="CopyInstallInfo_Click"/>
                 <Button Content="打开报告文件夹" Click="OpenFolder_Click"/>
                 <Button x:Name="RefreshButton" Content="刷新" Click="RefreshButton_Click"/>
             </StackPanel>

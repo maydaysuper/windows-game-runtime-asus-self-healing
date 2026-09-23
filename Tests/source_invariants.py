@@ -169,7 +169,7 @@ else: fail('WPF-invalid Padding on Grid/StackPanel/Page: '+','.join(invalid_pane
 installer=ROOT/'Installer'/'WindowsGameRuntimeASUSSelfHealing.iss'
 if installer.exists():
     raw=installer.read_text(encoding='utf-8')
-    if all(x in raw for x in ['PrivilegesRequired=lowest','MinVersion=10.0.22000','ArchitecturesAllowed=x64compatible','recursesubdirs','WindowsGameRuntimeASUSSelfHealing.WinUI.exe','WorkingDir: "{app}"','SelfHealingCenter.exe','autodesktop']): ok('Setup installer packages complete Win11 x64 runtime per-user')
+    if all(x in raw for x in ['PrivilegesRequired=lowest','MinVersion=10.0.19044','ArchitecturesAllowed=x64compatible','recursesubdirs','WindowsGameRuntimeASUSSelfHealing.WinUI.exe','WorkingDir: "{app}"','SelfHealingCenter.exe','autodesktop']): ok('Setup installer packages complete Win10/11 x64 runtime per-user')
     else: fail('installer contract drift')
     if 'autoprograms' in raw: fail('Setup must not create a Start Menu shortcut')
     else: ok('Setup does not create a Start Menu shortcut')

@@ -1,7 +1,7 @@
 #define MyAppName "奥创修复中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.6.3"
+  #define MyAppVersion "4.6.4"
 #endif
 #ifndef SourceRoot
   #define SourceRoot "..\artifacts\package"
@@ -26,7 +26,8 @@ DefaultDirName={localappdata}\Programs\WindowsGameRuntimeASUSSelfHealing
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog commandline
-MinVersion=10.0.22000
+; Windows 10 21H2 / Enterprise LTSC 2021 (build 19044) and newer, x64 only.
+MinVersion=10.0.19044
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}

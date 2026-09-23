@@ -207,26 +207,26 @@ try {
     Write-Host ''
     Write-Host '================================================================' -ForegroundColor DarkCyan
     Write-Host " $Product - WPF v$Version" -ForegroundColor White
-    Write-Host ' Windows 11 x64 一键构建 / 发布 / 启动' -ForegroundColor White
+    Write-Host ' Windows 10 / 11 x64 一键构建 / 发布 / 启动' -ForegroundColor White
     Write-Host '================================================================' -ForegroundColor DarkCyan
 
-    Write-Step '检查 Windows 11 与 CPU 架构'
+    Write-Step '检查 Windows 10 / 11 与 CPU 架构'
     if($env:OS -ne 'Windows_NT') { Fail 'This WPF app can only be built on Windows.' }
 
     $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
     $buildNumber = 0
     [void][int]::TryParse([string]$cv.CurrentBuildNumber,[ref]$buildNumber)
-    if($buildNumber -lt 22000) {
-        Fail ("当前 Windows Build={0}，这套一键包面向 Windows 11 Build 22000+。" -f $buildNumber)
+    if($buildNumber -lt 19044) {
+        Fail ("当前 Windows Build={0}，最低支持 Windows 10 Build 19044。" -f $buildNumber)
     }
     if(-not [Environment]::Is64BitOperatingSystem) {
         Fail '当前不是 64 位 Windows，win-x64 构建不支持此系统。'
     }
     $arch = [string]$env:PROCESSOR_ARCHITECTURE
     if($arch -ne 'AMD64') {
-        Fail ("当前 CPU 架构={0}。本构建包当前发布 win-x64，请使用 x64 Windows 11。" -f $arch)
+        Fail ("当前 CPU 架构={0}。本构建包当前发布 win-x64，请使用 x64 Windows 10 / 11。" -f $arch)
     }
-    Write-Ok ("Windows 11 {0} / Build {1} / x64" -f $cv.DisplayVersion,$buildNumber)
+    Write-Ok ("Windows {0} / Build {1} / x64" -f $cv.DisplayVersion,$buildNumber)
 
     Write-Step '检查 WinUI 3 项目文件'
     if(-not (Test-Path -LiteralPath $Project)) { Fail ("项目文件不存在：{0}" -f $Project) }
