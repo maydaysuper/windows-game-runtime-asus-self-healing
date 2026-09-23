@@ -81,8 +81,9 @@ end;
 
 function RunUpgradeHelper(const Mode: String): Boolean;
 var
-  Code: Integer;
+  Code, I: Integer;
   Params: String;
+  Lines: TArrayOfString;
 begin
   ExtractTemporaryFile('Upgrade-Legacy.ps1');
   Params := '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
@@ -93,6 +94,9 @@ begin
     Params, '', SW_HIDE, ewWaitUntilTerminated, Code);
   Result := Result and (Code = 0);
   Log('Legacy upgrade helper ' + Mode + ': exit ' + IntToStr(Code));
+  if LoadStringsFromFile(ExpandConstant('{tmp}\legacy-upgrade.log'), Lines) then
+    for I := 0 to GetArrayLength(Lines) - 1 do
+      Log('Legacy upgrade: ' + Lines[I]);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
