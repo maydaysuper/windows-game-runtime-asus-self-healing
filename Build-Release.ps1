@@ -46,17 +46,10 @@ function Build-DesktopLauncher([string]$OutDir) {
     New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
     $proj=Join-Path $PSScriptRoot 'Launcher\SelfHealingCenter.csproj'
     $published=Join-Path $OutDir 'SelfHealingCenter.exe'
-    if(Get-Command dotnet -ErrorAction SilentlyContinue) {
-        & dotnet publish $proj -c Release -o $OutDir --nologo
-        if($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $published)) { return }
+    & dotnet publish $proj -c Release -o $OutDir --nologo
+    if($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $published)) {
+        Fail 'Versioned desktop launcher build failed.'
     }
-    $csc=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-    if(-not (Test-Path -LiteralPath $csc)) { Fail 'Cannot compile desktop launcher: dotnet net48 / csc.exe missing.' }
-    $icon=Join-Path $PSScriptRoot 'WindowsGameRuntimeASUSSelfHealing.WinUI\Assets\app.ico'
-    $src=Join-Path $PSScriptRoot 'Launcher\SelfHealingCenter.cs'
-    $cscArgs=@('/nologo','/t:winexe','/platform:x64',"/win32icon:$icon","/out:$published",'/utf8output',$src)
-    & $csc @cscArgs
-    if($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $published)) { Fail 'csc launcher compile failed.' }
 }
 
 function Publish-WpfProject {
@@ -129,10 +122,20 @@ if(-not (Test-Path -LiteralPath (Join-Path $package 'App\WindowsGameRuntimeASUSS
 if(-not (Test-Path -LiteralPath (Join-Path $package 'App\Backend\RepairCenter.ps1'))){ Fail 'User package missing App\Backend' }
 if(-not (Test-Path -LiteralPath (Join-Path $package 'App\Backend\RuntimeEngine.ps1'))){ Fail 'User package missing RuntimeEngine.ps1' }
 if(-not (Test-Path -LiteralPath (Join-Path $package 'App\Backend\SnapshotEngine.ps1'))){ Fail 'User package missing SnapshotEngine.ps1' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Installer\Upgrade-Legacy.ps1') -Mode Verify -InstallRoot $package -ExpectedVersion $build.Version
+if($LASTEXITCODE -ne 0) { Fail 'Package launcher/inner version validation failed.' }
 Write-Ok 'User package is launcher + App folder'
 
 New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
 $release=(Resolve-Path -LiteralPath $ReleaseDir).Path
+# Refuse stale artifacts instead of hashing/uploading another version as this release.
+$allowed = @("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v$($build.Version)_win-x64.zip",
+    "Windows_Game_Runtime_ASUS_SelfHealing_Setup_v$($build.Version)_x64.exe",
+    "Windows_Game_Runtime_ASUS_SelfHealing_Setup_v$($build.Version)_x64.exe.sha256.txt",
+    'RELEASE_MANIFEST.json', 'RELEASE_SHA256.txt')
+foreach($file in Get-ChildItem -LiteralPath $release -File) {
+    if($file.Name -notin $allowed) { Fail "Unexpected/stale release artifact: $($file.Name). Use an empty release directory." }
+}
 $portable=Join-Path $release ("Windows_Game_Runtime_ASUS_SelfHealing_Portable_v{0}_win-x64.zip" -f $build.Version)
 Remove-Item -LiteralPath $portable -Force -ErrorAction SilentlyContinue
 Compress-Archive -Path (Join-Path $package '*') -DestinationPath $portable -Force
@@ -143,7 +146,10 @@ if(-not $SkipInstaller) {
     if($LASTEXITCODE -ne 0){ Fail ("Installer build failed: ExitCode={0}" -f $LASTEXITCODE) }
 }
 
-$setup=Get-ChildItem -LiteralPath $release -Filter 'Windows_Game_Runtime_ASUS_SelfHealing_Setup_*.exe' -File | Select-Object -First 1
+$setup=$null
+if(-not $SkipInstaller) {
+    $setup=Get-Item -LiteralPath (Join-Path $release ("Windows_Game_Runtime_ASUS_SelfHealing_Setup_v{0}_x64.exe" -f $build.Version))
+}
 $setupName=$null
 if($setup){ $setupName=$setup.Name }
 $manifest=[ordered]@{

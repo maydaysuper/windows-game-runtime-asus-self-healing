@@ -1,13 +1,13 @@
 #define MyAppName "奥创修复中心"
 #define MyAppPublisher "maydaysuper"
 #ifndef MyAppVersion
-  #define MyAppVersion "4.6.2"
+  #define MyAppVersion "4.6.3"
 #endif
 #ifndef SourceRoot
-  #define SourceRoot "..\\artifacts\\package"
+  #define SourceRoot "..\artifacts\package"
 #endif
 #ifndef OutputDir
-  #define OutputDir "..\\artifacts\\installer"
+  #define OutputDir "..\artifacts\installer"
 #endif
 #define MyAppExeName "SelfHealingCenter.exe"
 ; Inner WPF host (do not shortcut this; launcher sets WorkingDir to App\):
@@ -18,10 +18,11 @@ AppId={{8E7A18D4-0B8B-4F8C-A094-9B2026A57A41}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}.0
+VersionInfoTextVersion={#MyAppVersion}.0
 AppPublisher={#MyAppPublisher}
 AppVerName={#MyAppName} {#MyAppVersion}
 UninstallDisplayName={#MyAppName}
-DefaultDirName={localappdata}\\Programs\\WindowsGameRuntimeASUSSelfHealing
+DefaultDirName={localappdata}\Programs\WindowsGameRuntimeASUSSelfHealing
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog commandline
@@ -38,23 +39,66 @@ RestartApplications=no
 SetupLogging=yes
 Uninstallable=yes
 UsePreviousAppDir=yes
-SetupIconFile=..\\WindowsGameRuntimeASUSSelfHealing.WinUI\\Assets\\app.ico
-UninstallDisplayIcon={app}\\{#MyAppExeName}
+SetupIconFile=..\WindowsGameRuntimeASUSSelfHealing.WinUI\Assets\app.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Files]
-Source: "{#SourceRoot}\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "Upgrade-Legacy.ps1"; Flags: dontcopy
+Source: "ShortcutInterop.cs"; Flags: dontcopy
+Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Check: CanCreateDesktopShortcut
 
 [Run]
-Filename: "{app}\\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent; WorkingDir: "{app}"
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent; WorkingDir: "{app}"
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}\\BuildLogs"
+Type: filesandordirs; Name: "{app}\BuildLogs"
 ; User SQLite state is outside {app}:
 ;   %LOCALAPPDATA%\WindowsGameRuntimeASUSSelfHealing\State\state-v1.db
 ; Uninstall must not delete Transaction / Incident / Workflow / dump analysis history.
 
-[InstallDelete]
-Type: files; Name: "{autodesktop}\\自愈中心.lnk"
+[Code]
+function CanCreateDesktopShortcut: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{tmp}\create-desktop-shortcut.flag'));
+end;
+
+function RunUpgradeHelper(const Mode: String): Boolean;
+var
+  Code, I: Integer;
+  Params: String;
+  Lines: TArrayOfString;
+begin
+  ExtractTemporaryFile('Upgrade-Legacy.ps1');
+  ExtractTemporaryFile('ShortcutInterop.cs');
+  Params := '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+    ExpandConstant('{tmp}\Upgrade-Legacy.ps1') + '" -Mode ' + Mode +
+    ' -InstallRoot "' + ExpandConstant('{app}') + '" -ExpectedVersion "{#MyAppVersion}"' +
+    ' -LogPath "' + ExpandConstant('{tmp}\legacy-upgrade.log') + '"' +
+    ' -DesktopShortcut "' + ExpandConstant('{autodesktop}\奥创修复中心.lnk') + '"' +
+    ' -DesktopDecisionPath "' + ExpandConstant('{tmp}\create-desktop-shortcut.flag') + '"';
+  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Params, '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Result := Result and (Code = 0);
+  Log('Legacy upgrade helper ' + Mode + ': exit ' + IntToStr(Code));
+  if LoadStringsFromFile(ExpandConstant('{tmp}\legacy-upgrade.log'), Lines) then
+    for I := 0 to GetArrayLength(Lines) - 1 do
+      Log('Legacy upgrade: ' + Lines[I]);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if not RunUpgradeHelper('Clean') then
+    Result := '无法安全清理旧版运行环境。请关闭旧版程序后重试。升级日志：' +
+      ExpandConstant('{tmp}\legacy-upgrade.log');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    if not RunUpgradeHelper('Verify') then
+      RaiseException('安装验证失败：启动器或 App 主程序缺失、版本不匹配。请重新运行安装程序。');
+end;
