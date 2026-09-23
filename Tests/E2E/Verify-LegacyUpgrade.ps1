@@ -2,6 +2,11 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$ReleaseDir)
 $ErrorActionPreference = 'Stop'
+trap {
+    Write-Host $_.ScriptStackTrace
+    Write-Host $_.Exception.ToString()
+    exit 1
+}
 # This test changes the current user's installed product. Run only on disposable CI workers.
 if($env:GITHUB_ACTIONS -ne 'true') { throw 'Legacy installer E2E requires a disposable GitHub Actions worker.' }
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -18,6 +23,7 @@ function Put([string]$Path, [string]$Value = 'legacy fixture') {
     [IO.File]::WriteAllText($Path, $Value)
 }
 function Link([string]$Path, [string]$Target) {
+    Write-Host "Creating shortcut fixture: $Path -> $Target"
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
     $s = $shell.CreateShortcut($Path)
     $s.TargetPath = $Target
@@ -68,6 +74,7 @@ $collisionHash = (Get-FileHash $collision).Hash
 $outside = Join-Path $env:RUNNER_TEMP 'wgr-external-data'
 Put (Join-Path $outside 'keep.txt') 'outside data'
 $junction = Join-Path $root '_internal\outside'
+Write-Host "Creating junction fixture: $junction -> $outside"
 New-Item -ItemType Junction -Path $junction -Target $outside | Out-Null
 try { Install 'reject-junction' $false } finally { [IO.Directory]::Delete($junction) }
 if(-not (Test-Path (Join-Path $outside 'keep.txt')) -or -not (Test-Path $legacy[0])) { throw 'Junction preflight deleted files.' }
@@ -111,12 +118,25 @@ foreach($pass in @('legacy-upgrade','idempotent-upgrade')) {
 # The database sentinels are deliberately arbitrary bytes, so remove only those test
 # files now to allow WPF to initialize a real SQLite database on this disposable worker.
 foreach($p in $preserve | Where-Object { $_ -like "$state\state-v1.db*" }) { Remove-Item -LiteralPath $p }
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class WgrWindowProbe {
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetClassName(IntPtr window, StringBuilder name, int length);
+    public static bool IsWpf(IntPtr window) {
+        var name = new StringBuilder(512);
+        return GetClassName(window, name, name.Capacity) > 0 && name.ToString().StartsWith("HwndWrapper[");
+    }
+}
+'@
 Start-Process -FilePath (Join-Path $desktop '奥创修复中心.lnk')
 $hostProcess = $null
 $deadline = [DateTime]::UtcNow.AddSeconds(45)
 while([DateTime]::UtcNow -lt $deadline) {
     $hostProcess = Get-Process -Name 'WindowsGameRuntimeASUSSelfHealing.WinUI' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Path -eq (Join-Path $root 'App\WindowsGameRuntimeASUSSelfHealing.WinUI.exe') -and $_.MainWindowHandle -ne 0 } |
+        Where-Object { $_.Path -eq (Join-Path $root 'App\WindowsGameRuntimeASUSSelfHealing.WinUI.exe') -and $_.MainWindowHandle -ne 0 -and [WgrWindowProbe]::IsWpf($_.MainWindowHandle) } |
         Select-Object -First 1
     if($hostProcess) { break }
     Start-Sleep -Milliseconds 500
