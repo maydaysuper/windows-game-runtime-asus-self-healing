@@ -54,6 +54,13 @@ try {
     if($LASTEXITCODE -ne 0) { throw ("launcher --version exit {0}: {1}" -f $LASTEXITCODE,$output) }
     if($expected -and $output -notmatch [regex]::Escape([string]$expected)) { throw "launcher --version missing $expected : $output" }
     Write-Host ("[PASS] launcher --version {0}" -f $output.Trim())
+    $diagnostics = & $launcher --diagnose-install 2>&1 | Out-String
+    if($LASTEXITCODE -ne 0) { throw "launcher --diagnose-install failed: $diagnostics" }
+    if($diagnostics -notmatch [regex]::Escape($launcher) -or
+       $diagnostics -notmatch [regex]::Escape($inner) -or
+       $diagnostics -notmatch 'OS version:' -or
+       $diagnostics -notmatch 'State:') { throw "Install diagnostics incomplete: $diagnostics" }
+    Write-Host '[PASS] launcher reports actual install paths and OS version'
 } finally {
     try { Remove-Item -LiteralPath $extract -Recurse -Force } catch {}
 }

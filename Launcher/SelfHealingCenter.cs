@@ -38,6 +38,8 @@ internal static class Program
 
             if (IsVersionRequest(args))
                 return PrintVersion(processPath, root);
+            if (IsDiagnosticsRequest(args))
+                return PrintDiagnostics(processPath, root);
 
             var appDir = Path.Combine(root, "App");
             var exe = Path.Combine(appDir, InnerExeName);
@@ -92,6 +94,28 @@ internal static class Program
             line += " (App " + innerVer + ")";
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine(line);
+        return 0;
+    }
+
+    private static bool IsDiagnosticsRequest(string[] args)
+    {
+        foreach (var arg in args)
+            if (string.Equals(arg, "--diagnose-install", StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
+
+    private static int PrintDiagnostics(string launcherPath, string root)
+    {
+        var status = PrintVersion(launcherPath, root);
+        if (status != 0) return status;
+        var inner = Path.Combine(root, "App", InnerExeName);
+        Console.WriteLine("OS version: " + Environment.OSVersion.Version);
+        Console.WriteLine("Launcher: " + launcherPath);
+        Console.WriteLine("App: " + inner);
+        Console.WriteLine("State: " + Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WindowsGameRuntimeASUSSelfHealing", "State"));
         return 0;
     }
 

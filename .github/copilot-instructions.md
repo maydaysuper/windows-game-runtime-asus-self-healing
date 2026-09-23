@@ -1,6 +1,6 @@
 # Copilot review instructions
 
-This repository is a Windows 11 x64 WPF tool. User-facing name: **奥创修复中心**. Review PRs against these contracts.
+This repository is a Windows 10 (build 19044+) / Windows 11 x64 WPF tool. User-facing name: **奥创修复中心**. Review PRs against these contracts.
 
 ## Do not break
 

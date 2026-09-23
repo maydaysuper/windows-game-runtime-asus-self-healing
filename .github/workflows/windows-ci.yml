@@ -224,18 +224,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish GitHub Release
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          target_commitish: ${{ github.sha }}
-          tag_name: v${{ steps.package.outputs.version }}
-          name: Windows Game Runtime / ASUS Self-Healing v${{ steps.package.outputs.version }}
-          files: artifacts/release/*
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-          make_latest: true
-
       - name: Upload publish diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -246,3 +234,64 @@ jobs:
             **/BuildLogs/**
           if-no-files-found: ignore
           retention-days: 7
+
+  older-windows-kernel-smoke:
+    needs: winui-x64
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Read package version
+        id: version
+        shell: powershell
+        run: |
+          $build = Get-Content 'WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/BuildInfo.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          "value=$($build.Version)" >> $env:GITHUB_OUTPUT
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: WGR-ASUS-SelfHealing-v${{ steps.version.outputs.value }}-win-x64
+          path: artifacts/release
+
+      - name: Smoke test portable and installer on Windows Server 2022
+        shell: powershell
+        run: |
+          ./Tests/E2E/Verify-ReleaseLayout.ps1 -ReleaseDir artifacts/release
+          ./Tests/E2E/Verify-LegacyUpgrade.ps1 -ReleaseDir artifacts/release
+
+  publish-release:
+    needs: [winui-x64, older-windows-kernel-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Read package version
+        id: version
+        shell: powershell
+        run: |
+          $build = Get-Content 'WindowsGameRuntimeASUSSelfHealing.WinUI/Backend/BuildInfo.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          "value=$($build.Version)" >> $env:GITHUB_OUTPUT
+
+      - name: Download verified release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: WGR-ASUS-SelfHealing-v${{ steps.version.outputs.value }}-win-x64
+          path: artifacts/release
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          target_commitish: ${{ github.sha }}
+          tag_name: v${{ steps.version.outputs.value }}
+          name: Windows Game Runtime / ASUS Self-Healing v${{ steps.version.outputs.value }}
+          files: artifacts/release/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          make_latest: true

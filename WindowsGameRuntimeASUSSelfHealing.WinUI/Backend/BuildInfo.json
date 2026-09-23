@@ -1,8 +1,8 @@
 {
   "SchemaVersion": 8,
   "Product": "奥创修复中心",
-  "Version": "4.6.3",
-  "BuildId": "20260923.wpf.21",
+  "Version": "4.6.4",
+  "BuildId": "20260923.wpf.22",
   "Channel": "Stable",
   "Frontend": "WPF / .NET 10",
   "WindowsAppSDK": "WPF",
@@ -18,7 +18,7 @@
   "GpuSafeRepairSHA256": "a2873909dec75e0abcfff0467693d79ab24e84ac2ae4976e4b9226e747ed0092",
   "AtomicPolicyExecutorSHA256": "158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995",
   "RecipeCatalogSHA256": "a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6",
-  "BuildInfoSHA256": "e207a3eb4fb2965d8b7038f06850449d281af4271cc318b684c211ff8cddd0ed",
+  "BuildInfoSHA256": "676be5b66beb8bd43e321f7d043b3f1761f17f6d3a2aefb25c345d79af9489d0",
   "LegacyAdapterPolicy": "IMMUTABLE_HASH_LOCK",
   "LegacyAdapterHashes": {
     "PV": "bff8e7ded470438834f00eeb5efb4cae3312c8e6b919052a9a6161bb8a5f6a04",
