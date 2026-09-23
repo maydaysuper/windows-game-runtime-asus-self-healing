@@ -50,7 +50,10 @@ $isccArgs=@(
 & $iscc @isccArgs
 if($LASTEXITCODE -ne 0){ throw "Inno Setup failed, ExitCode=$LASTEXITCODE" }
 $setup=Get-Item -LiteralPath (Join-Path $OutputDir ("Windows_Game_Runtime_ASUS_SelfHealing_Setup_v{0}_x64.exe" -f $build.Version))
-if($setup.VersionInfo.FileVersion -ne "$($build.Version).0") { throw 'Setup FileVersion mismatch.' }
+$setupVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup.FullName)
+$numericVersion = '{0}.{1}.{2}.{3}' -f $setupVersion.FileMajorPart, $setupVersion.FileMinorPart, $setupVersion.FileBuildPart, $setupVersion.FilePrivatePart
+Write-Host "Setup version: numeric=$numericVersion text=$($setupVersion.FileVersion) expected=$($build.Version).0"
+if($numericVersion -ne "$($build.Version).0") { throw "Setup FileVersion mismatch: $numericVersion" }
 if(-not $setup){ throw 'Setup EXE was not created.' }
 $hash=(Get-FileHash -Algorithm SHA256 -LiteralPath $setup.FullName).Hash.ToLowerInvariant()
 $hashPath=$setup.FullName+'.sha256.txt'

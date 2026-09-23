@@ -203,7 +203,8 @@ jobs:
           }
           $setup = Get-Item 'artifacts/release/*Setup*_x64.exe' | Select-Object -First 1
           if(-not $setup) { throw 'Setup EXE missing' }
-          $ver = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup.FullName).FileVersion
+          $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup.FullName)
+          $ver = '{0}.{1}.{2}.{3}' -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart
           if($ver -ne '${{ steps.package.outputs.version }}.0') { throw "Unexpected FileVersion: $ver" }
           Write-Host "[PASS] Setup FileVersion=$ver"
 
