@@ -56,7 +56,7 @@ try {
     Start-Sleep -Seconds 3
     $window = Get-Process -Id $launched.ProcessId -ErrorAction SilentlyContinue
     if(-not $window -or $window.MainWindowHandle -eq 0) { throw 'WPF window did not remain open.' }
-    Write-Host "[PASS] $ExpectedOS build $build: clean install, launcher v$version, WPF started, State preserved"
+    Write-Host "[PASS] $ExpectedOS build ${build}: clean install, launcher v$version, WPF started, State preserved"
 } finally {
     if($launched) { Stop-Process -Id $launched.ProcessId -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $sentinel -Force -ErrorAction SilentlyContinue
