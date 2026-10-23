@@ -454,6 +454,15 @@ if 'Non-splittable boundary: RepairCenter embedded HAL payloads' in arch and 'ç¦
     ok('architecture records HAL payload non-split boundary')
 else:
     fail('ARCHITECTURE.md missing RepairCenter embedded-payload non-split boundary')
+if 'DisableStylusAndTouchSupport' in (PROJ/'StartupGuard.cs').read_text(encoding='utf-8') and 'TryBecomePrimary' in (PROJ/'Program.cs').read_text(encoding='utf-8') and 'MarkWindowReady' in (PROJ/'MainWindow.xaml.cs').read_text(encoding='utf-8'):
+    ok('startup shows a window before heavy work and avoids a second instance')
+else:
+    fail('startup responsiveness guard missing')
+online=runtime_text.split('function Update-RuntimeOnlineInfo',1)[1].split('function Get-OfficialVC14Target',1)[0]
+if 'diskEarly' in online and online.find('Read-RuntimeOfficialCache') < online.find('Update-WingetVCRedistVersions'):
+    ok('cold dashboard uses disk official-version cache before winget')
+else:
+    fail('official version cache is not consulted before winget')
 if (ROOT/'ARCHITECTURE.md').exists() or (ROOT/'CHANGELOG.md').exists() or (ROOT/'README_CN.md').exists(): fail('root still has docs that belong in docs/')
 else: ok('repository root no longer duplicates architecture/changelog/cn readme')
 backend_cs=(PROJ/'Services'/'BackendService.cs').read_text(encoding='utf-8')

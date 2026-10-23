@@ -1,17 +1,24 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Media;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
 
 internal static class StartupGuard
 {
+    private static Mutex? _instanceMutex;
+
     public static string HostDirectory { get; private set; } = AppContext.BaseDirectory;
+    public static bool WindowReady { get; private set; }
+    public static bool ForceSoftwareRender { get; private set; }
 
     public static string LogDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "WindowsGameRuntimeASUSSelfHealing",
         "Logs");
+
+    private static string PendingPath => Path.Combine(LogDirectory, "startup.pending");
 
     private static readonly string[] RequiredRuntimeFiles =
     [
@@ -39,6 +46,38 @@ internal static class StartupGuard
         Environment.SetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR", HostDirectory);
     }
 
+    public static bool TryBecomePrimary()
+    {
+        _instanceMutex = new Mutex(true, @"Local\WGR.ASUS.SelfHealing.SingleInstance", out var created);
+        if (created) return true;
+        TryActivateExisting();
+        return false;
+    }
+
+    public static void PrepareLaunch()
+    {
+        ApplyHostDirectory();
+        try
+        {
+            Directory.CreateDirectory(LogDirectory);
+            ForceSoftwareRender = File.Exists(PendingPath);
+            File.WriteAllText(PendingPath, DateTimeOffset.UtcNow.ToString("o"), Encoding.UTF8);
+        }
+        catch { }
+
+        // Win11 touch/pen service can stall or hang WPF before the first frame.
+        AppContext.SetSwitch("Switch.System.Windows.Input.Stylus.DisableStylusAndTouchSupport", true);
+        if (ForceSoftwareRender)
+            RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+    }
+
+    public static void MarkWindowReady()
+    {
+        WindowReady = true;
+        try { if (File.Exists(PendingPath)) File.Delete(PendingPath); }
+        catch { }
+    }
+
     public static void Install()
     {
         ApplyHostDirectory();
@@ -46,7 +85,7 @@ internal static class StartupGuard
         {
             var ex = args.ExceptionObject as Exception ?? new InvalidOperationException(Convert.ToString(args.ExceptionObject));
             Write("UnhandledException", ex);
-            Notify(ex);
+            if (!WindowReady) Notify(ex);
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
@@ -77,7 +116,7 @@ internal static class StartupGuard
     public static string RuntimeSnapshot()
     {
         var ver = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "?";
-        return $"version={ver}\nhost={HostDirectory}\nbase={AppContext.BaseDirectory}\nprocess={Environment.ProcessPath}";
+        return $"version={ver}\nhost={HostDirectory}\nbase={AppContext.BaseDirectory}\nprocess={Environment.ProcessPath}\nsoftwareRender={ForceSoftwareRender}";
     }
 
     public static void Write(string source, Exception ex)
@@ -121,6 +160,35 @@ internal static class StartupGuard
         catch { }
     }
 
+    private static void TryActivateExisting()
+    {
+        for (var i = 0; i < 40; i++)
+        {
+            var hwnd = FindWindowW(null, "奥创修复中心");
+            if (hwnd != IntPtr.Zero)
+            {
+                if (IsIconic(hwnd)) ShowWindow(hwnd, 9);
+                else ShowWindow(hwnd, 5);
+                SetForegroundWindow(hwnd);
+                return;
+            }
+            Thread.Sleep(150);
+        }
+        Notify(new InvalidOperationException("奥创修复中心已经在运行，但窗口没有出来。请打开任务管理器，结束「奥创修复中心」后再打开一次。"));
+    }
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int MessageBoxW(IntPtr hWnd, string? text, string? caption, uint type);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern IntPtr FindWindowW(string? lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern bool IsIconic(IntPtr hWnd);
 }

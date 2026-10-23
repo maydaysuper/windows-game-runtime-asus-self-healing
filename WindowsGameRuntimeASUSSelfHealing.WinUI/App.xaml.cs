@@ -13,7 +13,7 @@ public partial class App : Application
     public App()
     {
         StartupGuard.Install();
-        EventManager.RegisterClassHandler(typeof(ListView), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(BubbleNestedWheel));
+        EventManager.RegisterClassHandler(typeof(ListView), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(BubbleNestedWheel), true);
         DispatcherUnhandledException += OnDispatcherUnhandled;
     }
 
@@ -45,12 +45,31 @@ public partial class App : Application
     private static void BubbleNestedWheel(object sender, MouseWheelEventArgs e)
     {
         if (e.Handled || sender is not DependencyObject origin) return;
-        e.Handled = true;
-        var args = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        var inner = FindScrollViewer(origin);
+        if (inner != null && inner.ScrollableHeight > 0)
         {
-            RoutedEvent = UIElement.MouseWheelEvent
-        };
-        (VisualTreeHelper.GetParent(origin) as UIElement)?.RaiseEvent(args);
+            var scrollingUp = e.Delta > 0 && inner.VerticalOffset > 0;
+            var scrollingDown = e.Delta < 0 && inner.VerticalOffset < inner.ScrollableHeight;
+            if (scrollingUp || scrollingDown) return;
+        }
+
+        DependencyObject? node = VisualTreeHelper.GetParent(origin);
+        while (node != null && node is not ScrollViewer)
+            node = VisualTreeHelper.GetParent(node);
+        if (node is not ScrollViewer page) return;
+        e.Handled = true;
+        page.ScrollToVerticalOffset(page.VerticalOffset - e.Delta);
+    }
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject origin)
+    {
+        if (origin is ScrollViewer self) return self;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(origin); i++)
+        {
+            var found = FindScrollViewer(VisualTreeHelper.GetChild(origin, i));
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private static void OnDispatcherUnhandled(object sender, DispatcherUnhandledExceptionEventArgs args)
@@ -58,7 +77,8 @@ public partial class App : Application
         StartupGuard.Write("DispatcherUnhandled", args.Exception);
         try { Services.SessionLog.Bug("DispatcherUnhandled", args.Exception); } catch { }
         args.Handled = true;
-        StartupGuard.Notify(args.Exception);
+        if (!StartupGuard.WindowReady)
+            StartupGuard.Notify(args.Exception);
     }
 
     private static AppServices CreateServices()
