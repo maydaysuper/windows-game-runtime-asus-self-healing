@@ -39,8 +39,9 @@ public sealed class DumpAnalysisService
         {
             handle.DangerousAddRef(ref added);
             var basePointer = Add(handle.DangerousGetHandle(), view.PointerOffset);
-            if (ReadUInt32(basePointer, 0) != 0x504D444D)
-                throw new InvalidDataException("文件不是有效的 Windows Minidump（MDMP signature 不匹配）。");
+            var verification = ReadVerification(basePointer, info.Length);
+            if (verification.Status == "INVALID")
+                throw new InvalidDataException(verification.Detail);
 
             if (!MiniDumpReadDumpStream(basePointer, ExceptionStream, out _, out var exceptionPtr, out var exceptionSize) ||
                 exceptionPtr == IntPtr.Zero || exceptionSize < 40)
@@ -54,6 +55,8 @@ public sealed class DumpAnalysisService
                     Confidence = "LOW",
                     CoreReason = "Dump 中没有异常流。它可能是手工抓取、挂起状态 Dump，或采集时未包含异常上下文。",
                     Evidence = "MINIDUMP_EXCEPTION_STREAM not present",
+                    VerifyStatus = verification.Status,
+                    VerifyDetail = verification.Detail,
                     AnalyzedUtc = DateTimeOffset.UtcNow
                 };
             }
@@ -84,6 +87,8 @@ public sealed class DumpAnalysisService
                 Confidence = diagnosis.Confidence,
                 CoreReason = diagnosis.Reason,
                 Evidence = evidence.ToString(),
+                VerifyStatus = verification.Status,
+                VerifyDetail = verification.Detail,
                 AnalyzedUtc = DateTimeOffset.UtcNow
             };
         }
@@ -91,6 +96,23 @@ public sealed class DumpAnalysisService
         {
             if (added) handle.DangerousRelease();
         }
+    }
+
+    private static DumpHeaderVerifier.Verification ReadVerification(IntPtr basePointer, long fileLength)
+    {
+        if (fileLength < 32) return DumpHeaderVerifier.Verify([], [], fileLength);
+        var header = new byte[32];
+        Marshal.Copy(basePointer, header, 0, 32);
+        var count = BitConverter.ToUInt32(header, 8);
+        var dirRva = BitConverter.ToUInt32(header, 12);
+        var dirBytes = (long)count * 12;
+        var directory = Array.Empty<byte>();
+        if (count is > 0 and <= 4096 && dirRva >= 32 && dirBytes <= fileLength - dirRva && dirBytes <= 48 * 1024)
+        {
+            directory = new byte[(int)dirBytes];
+            Marshal.Copy(Add(basePointer, dirRva), directory, 0, directory.Length);
+        }
+        return DumpHeaderVerifier.Verify(header, directory, fileLength);
     }
 
     private static List<DumpModule> ReadModules(IntPtr basePointer, long fileLength)

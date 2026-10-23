@@ -27,14 +27,16 @@ public sealed class MemoryCleanResult
     public required MemorySnapshot After { get; init; }
     public int ProcessesTrimmed { get; init; }
     public int ProcessesSkipped { get; init; }
+    public bool KeptForeground { get; init; }
     public long AvailDeltaBytes => (long)After.AvailBytes - (long)Before.AvailBytes;
     public string ResultLine
     {
         get
         {
+            var kept = KeptForeground ? "当前前台程序没有动。" : "";
             if (AvailDeltaBytes >= 1024 * 1024)
-                return $"已把约 {MemorySnapshot.FormatBytes((ulong)AvailDeltaBytes)} 闲置内存还给系统。没有结束任何程序。";
-            return "已整理工作集。正在运行的程序都还在，可用内存变化不大。";
+                return $"已把约 {MemorySnapshot.FormatBytes((ulong)AvailDeltaBytes)} 闲置内存还给系统。没有结束任何程序。{kept}";
+            return "已整理较大的闲置工作集。正在运行的程序都还在，可用内存变化不大。" + kept;
         }
     }
 }

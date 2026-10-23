@@ -173,7 +173,7 @@ public sealed class StateStoreService : IStateStore, IDisposable
                 CREATE INDEX IF NOT EXISTS ix_workflow_history_observed ON workflow_history(observed_utc DESC);
                 """;
             command.ExecuteNonQuery();
-
+            EnsureDumpColumns(connection);
             SetMetadata(connection, "schema_version", SchemaVersion.ToString(CultureInfo.InvariantCulture));
             return 0;
         }, cancellationToken).ConfigureAwait(false);
@@ -351,14 +351,17 @@ public sealed class StateStoreService : IStateStore, IDisposable
             command.CommandText = """
                 INSERT INTO dump_analyses(
                     analysis_id, file_name, file_path, file_size_bytes, exception_code, exception_name,
-                    exception_address, faulting_module, category, confidence, core_reason, evidence, analyzed_utc, report_path)
-                VALUES($id, $name, $path, $size, $code, $exception, $address, $module, $category, $confidence, $reason, $evidence, $time, $report)
+                    exception_address, faulting_module, category, confidence, core_reason, evidence, analyzed_utc, report_path,
+                    verify_status, ai_summary)
+                VALUES($id, $name, $path, $size, $code, $exception, $address, $module, $category, $confidence, $reason, $evidence, $time, $report,
+                    $verify, $ai)
                 ON CONFLICT(analysis_id) DO UPDATE SET
                     file_name=excluded.file_name, file_path=excluded.file_path, file_size_bytes=excluded.file_size_bytes,
                     exception_code=excluded.exception_code, exception_name=excluded.exception_name,
                     exception_address=excluded.exception_address, faulting_module=excluded.faulting_module,
                     category=excluded.category, confidence=excluded.confidence, core_reason=excluded.core_reason,
-                    evidence=excluded.evidence, analyzed_utc=excluded.analyzed_utc, report_path=excluded.report_path;
+                    evidence=excluded.evidence, analyzed_utc=excluded.analyzed_utc, report_path=excluded.report_path,
+                    verify_status=excluded.verify_status, ai_summary=excluded.ai_summary;
                 """;
             command.Parameters.AddWithValue("$id", result.Id);
             command.Parameters.AddWithValue("$name", result.FileName);
@@ -374,6 +377,8 @@ public sealed class StateStoreService : IStateStore, IDisposable
             command.Parameters.AddWithValue("$evidence", result.Evidence);
             command.Parameters.AddWithValue("$time", result.AnalyzedUtc.ToUniversalTime().ToString("O"));
             command.Parameters.AddWithValue("$report", result.ReportPath);
+            command.Parameters.AddWithValue("$verify", result.VerifyStatus ?? "");
+            command.Parameters.AddWithValue("$ai", result.AiSummary ?? "");
             command.ExecuteNonQuery();
             return 0;
         }, cancellationToken).ConfigureAwait(false);
@@ -388,7 +393,8 @@ public sealed class StateStoreService : IStateStore, IDisposable
             using var command = connection.CreateCommand();
             command.CommandText = """
                 SELECT analysis_id, file_name, file_path, file_size_bytes, exception_code, exception_name,
-                       exception_address, faulting_module, category, confidence, core_reason, evidence, analyzed_utc, report_path
+                       exception_address, faulting_module, category, confidence, core_reason, evidence, analyzed_utc, report_path,
+                       verify_status, ai_summary
                 FROM dump_analyses
                 ORDER BY analyzed_utc DESC
                 LIMIT $max;
@@ -412,7 +418,9 @@ public sealed class StateStoreService : IStateStore, IDisposable
                     CoreReason = reader.GetString(10),
                     Evidence = reader.GetString(11),
                     AnalyzedUtc = ParseDateTimeOffset(reader.GetString(12)) ?? DateTimeOffset.UtcNow,
-                    ReportPath = reader.GetString(13)
+                    ReportPath = reader.GetString(13),
+                    VerifyStatus = reader.IsDBNull(14) ? "" : reader.GetString(14),
+                    AiSummary = reader.IsDBNull(15) ? "" : reader.GetString(15)
                 });
             }
             return rows;
@@ -772,6 +780,34 @@ public sealed class StateStoreService : IStateStore, IDisposable
         command.Parameters.AddWithValue("$state", snapshot.State);
         command.Parameters.AddWithValue("$detail", snapshot.Detail);
         command.Parameters.AddWithValue("$updated", snapshot.UpdatedUtc.ToUniversalTime().ToString("O"));
+    }
+
+    private static void EnsureDumpColumns(SqliteConnection connection)
+    {
+        if (!HasColumn(connection, "dump_analyses", "verify_status"))
+            Execute(connection, "ALTER TABLE dump_analyses ADD COLUMN verify_status TEXT NOT NULL DEFAULT ''");
+        if (!HasColumn(connection, "dump_analyses", "ai_summary"))
+            Execute(connection, "ALTER TABLE dump_analyses ADD COLUMN ai_summary TEXT NOT NULL DEFAULT ''");
+    }
+
+    private static bool HasColumn(SqliteConnection connection, string table, string column)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info(" + table + ");";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static void Execute(SqliteConnection connection, string sql)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
     }
 
     private static void SetMetadata(SqliteConnection connection, string key, string value)

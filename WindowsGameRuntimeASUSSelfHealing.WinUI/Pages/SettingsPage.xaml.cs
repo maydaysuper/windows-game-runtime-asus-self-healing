@@ -142,7 +142,7 @@ public sealed partial class SettingsPage : Page
 
     private async void CleanMemory_Click(object sender, RoutedEventArgs e)
     {
-        if (!await PageHelpers.ConfirmAsync(this, "清理内存", "会把闲置内存还给系统。正在运行的游戏和软件都不会被关闭。", "立即清理"))
+        if (!await PageHelpers.ConfirmAsync(this, "清理内存", "会整理占用较大的闲置工作集。当前前台程序不会被动，也不会关闭任何程序。", "立即清理"))
             return;
         CleanMemoryButton.IsEnabled = false;
         try

@@ -390,6 +390,9 @@ maint=(PROJ/'Services'/'SystemMaintenanceService.cs').read_text(encoding='utf-8'
 settings_xaml=(PROJ/'Pages'/'SettingsPage.xaml').read_text(encoding='utf-8')
 for token,msg in [
     ('EmptyWorkingSet','memory cleaner uses EmptyWorkingSet'),
+    ('GetForegroundWindow','memory cleaner skips the foreground process'),
+    ('ProcessQueryInformation','memory cleaner opens processes with PROCESS_QUERY_INFORMATION'),
+    ('TryPruneEmptyDirectories','cache cleaner removes empty directories after delete'),
     ('SHEmptyRecycleBin','cache cleaner can empty recycle bin'),
     ('ForbiddenPathParts','general cache still has a forbidden-path list'),
     ('IsAllowedShaderPath','shader cleaner is allow-listed under LocalAppData'),
@@ -411,6 +414,16 @@ if 'function Invoke-WgrArmouryLaunchAttempt' in crate and 'ErrorHistory' in crat
     ok('Armoury launch retry records attempts and error code')
 else:
     fail('Armoury launch retry helper missing')
+if '-Depth 3' in crate and 'ASUS|Armoury|ROG' in crate and 'WaitForStatus' in crate and 'Get-SystemSnapshot -Force' not in crate:
+    ok('Armoury repair limits directory walk and does not force a full snapshot')
+else:
+    fail('Armoury repair still scans too widely or waits on a full snapshot')
+deep=(PROJ/'Services'/'DeepSeekDumpClient.cs').read_text(encoding='utf-8')
+header=(PROJ/'Services'/'DumpHeaderVerifier.cs').read_text(encoding='utf-8')
+if 'api.deepseek.com' in deep and 'BuildUserPrompt' in deep and 'FilePath' not in deep.split('BuildUserPrompt',1)[1].split('private static string OneLine',1)[0] and 'MDMP' in header and '0x504D444D' in header:
+    ok('dump verification is local and DeepSeek prompt excludes the file path')
+else:
+    fail('dump AI path is missing verification or still sends the dump path')
 for tool in ['Check-FileReferences.ps1','Ensure-BOM.ps1','Update-HashLock.ps1','BuildStatus.ps1','Preflight-Ci.ps1']:
     if (ROOT/'tools'/tool).exists(): ok('tool '+tool)
     else: fail('missing tools/'+tool)

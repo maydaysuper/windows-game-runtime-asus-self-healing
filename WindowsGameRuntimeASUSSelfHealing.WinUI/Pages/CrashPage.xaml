@@ -19,7 +19,21 @@
                 </StackPanel>
             </Grid>
 
-            <ctrl:StatusBanner x:Name="CrashInfo" IsOpen="True" Title="本机分析" Message="崩溃和显卡问题都在这台电脑上分析，不会上传。"/>
+            <ctrl:StatusBanner x:Name="CrashInfo" IsOpen="True" Title="本机分析" Message="先在本机校验 Dump。勾选 DeepSeek 时只发送异常码、模块名和校验结果，不上传 Dump 文件。"/>
+
+            <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="DeepSeek 解读" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="密钥只保存在这台电脑。分析时不上传 Dump，也不上传文件路径。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="清除" Click="ClearDeepSeekKey_Click" Margin="8,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="保存密钥" Click="SaveDeepSeekKey_Click"/>
+                        <PasswordBox x:Name="DeepSeekKeyBox" MinHeight="32"/>
+                    </DockPanel>
+                    <TextBlock x:Name="DeepSeekKeyHint" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    <CheckBox x:Name="UseDeepSeekBox" Content="分析崩溃文件后，用 DeepSeek 再解读一次" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
 
             <Border CornerRadius="14" Padding="18" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}">
                 <StackPanel>
@@ -56,7 +70,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
                 <Border CornerRadius="14" Padding="16" BorderThickness="1" BorderBrush="{StaticResource CardStrokeBrush}" Background="White">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="崩溃文件结论" FontSize="17" FontWeight="SemiBold"/>
                             <Button x:Name="OpenDumpReportButton" Grid.Column="1" Content="打开分析报告" IsEnabled="False" Click="OpenDumpReport_Click"/>
@@ -66,6 +80,8 @@
                         <TextBlock x:Name="DumpExceptionText" Grid.Row="3" Margin="0,6,0,0" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DumpModuleText" Grid.Row="4" Margin="0,6,0,0" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DumpEvidenceText" Grid.Row="5" Margin="0,10,0,0" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="DumpVerifyText" Grid.Row="6" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="DumpAiText" Grid.Row="7" Margin="0,8,0,0" TextWrapping="Wrap"/>
                     </Grid>
                 </Border>
 

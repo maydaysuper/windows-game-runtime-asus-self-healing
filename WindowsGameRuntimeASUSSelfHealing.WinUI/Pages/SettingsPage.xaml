@@ -82,7 +82,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="内存清理" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="把闲置内存还给系统，效果和常见内存清理软件一样。不会关闭游戏、浏览器或任何正在运行的程序。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock Text="只整理占用较大的闲置工作集，最多 48 个进程。当前前台程序和系统进程不动。不会关闭游戏、浏览器或任何正在运行的程序。" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         <TextBlock x:Name="MemoryText" Text="正在读取内存…" TextWrapping="Wrap" Margin="0,10,0,0"/>
                     </StackPanel>
                     <Button x:Name="CleanMemoryButton" Grid.Column="1" Content="立即清理" Click="CleanMemory_Click" Background="#0F172A" Foreground="White" VerticalAlignment="Top"/>
