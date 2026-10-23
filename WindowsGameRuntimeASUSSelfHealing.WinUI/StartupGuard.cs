@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
