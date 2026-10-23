@@ -1,5 +1,6 @@
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
+using Xunit;
 
 namespace WGR.Tests;
 
