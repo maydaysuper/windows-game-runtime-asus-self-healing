@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Models;
 using WindowsGameRuntimeASUSSelfHealing.WinUI.Services;
 
@@ -20,7 +21,7 @@ public sealed partial class OverviewPage : Page
     {
         if (_loaded) return;
         _loaded = true;
-        await RefreshAsync(false);
+        await Dispatcher.InvokeAsync(() => RefreshAsync(false), DispatcherPriority.Background);
     }
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await RefreshAsync(true);

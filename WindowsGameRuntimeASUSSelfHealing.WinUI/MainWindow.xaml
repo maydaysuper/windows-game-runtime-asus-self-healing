@@ -9,7 +9,7 @@
         FontFamily="{StaticResource AppFontFamily}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Ideal">
+        TextOptions.TextFormattingMode="Display">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -23,7 +23,7 @@
                        Width="28" Height="28"
                        Margin="0,0,10,0"
                        VerticalAlignment="Center"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                       RenderOptions.BitmapScalingMode="Fant"/>
                 <TextBlock DockPanel.Dock="Left"
                            Text="奥创修复中心"
                            Foreground="White" FontSize="15" FontWeight="SemiBold"

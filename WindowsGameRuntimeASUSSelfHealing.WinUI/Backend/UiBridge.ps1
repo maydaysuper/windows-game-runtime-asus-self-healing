@@ -35,7 +35,12 @@ function Sync-BrokerFiles {
         if(-not(Test-Path -LiteralPath $src)){throw "Missing backend file: $src"}
         $copy=$true
         if(Test-Path -LiteralPath $dst){
-            try{$copy=((Get-FileHash -Algorithm SHA256 -LiteralPath $src).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $dst).Hash)}catch{}
+            try {
+                $ss=Get-Item -LiteralPath $src
+                $ds=Get-Item -LiteralPath $dst
+                if($ss.Length -eq $ds.Length -and $ss.LastWriteTimeUtc -eq $ds.LastWriteTimeUtc){ $copy=$false }
+                else { $copy=((Get-FileHash -Algorithm SHA256 -LiteralPath $src).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $dst).Hash) }
+            } catch {}
         }
         if($copy){Copy-Item -LiteralPath $src -Destination $dst -Force}
     }

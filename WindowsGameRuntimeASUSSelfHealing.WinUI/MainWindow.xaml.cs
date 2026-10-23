@@ -41,6 +41,13 @@ public partial class MainWindow : Window
             if (VersionText != null) VersionText.Text = "WPF";
         }
 
+        ContentRendered += OnFirstFrame;
+    }
+
+    private void OnFirstFrame(object? sender, EventArgs e)
+    {
+        ContentRendered -= OnFirstFrame;
+        StartupGuard.MarkWindowReady();
         NavigateTag("overview");
     }
 

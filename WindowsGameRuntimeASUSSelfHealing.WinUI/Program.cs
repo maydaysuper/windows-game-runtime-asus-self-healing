@@ -1,12 +1,16 @@
 using System.Runtime.CompilerServices;
-using System.Windows;
 
 namespace WindowsGameRuntimeASUSSelfHealing.WinUI;
 
 internal static class EarlyRuntime
 {
     [ModuleInitializer]
-    internal static void Initialize() => StartupGuard.ApplyHostDirectory();
+    internal static void Initialize()
+    {
+        // Before any WPF window. Win11 touch/pen init can hang the first frame.
+        AppContext.SetSwitch("Switch.System.Windows.Input.Stylus.DisableStylusAndTouchSupport", true);
+        StartupGuard.ApplyHostDirectory();
+    }
 }
 
 public static class Program
@@ -15,6 +19,9 @@ public static class Program
     public static void Main()
     {
         StartupGuard.Install();
+        if (!StartupGuard.TryBecomePrimary())
+            return;
+        StartupGuard.PrepareLaunch();
         try
         {
             StartupGuard.ProbeNativeRuntime();

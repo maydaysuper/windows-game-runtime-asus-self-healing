@@ -559,6 +559,26 @@ function Update-RuntimeOnlineInfo([switch]$Force) {
     if ((Test-RuntimeOnlineInfoFresh $freshMinutes) -and $script:RuntimeOfficialVC14) {
         return [PSCustomObject]@{Success=$true;Info=$script:RuntimeOnlineInfo;Errors=@();Cached=$true}
     }
+    if (-not $Force) {
+        $diskEarly = Read-RuntimeOfficialCache
+        $bestEarly = Normalize-VersionText ([string]$(if ($diskEarly) { $diskEarly.OfficialVC14 } else { '' }))
+        if ($bestEarly) {
+            $infoEarly = [ordered]@{}
+            try {
+                foreach ($prop in @($diskEarly.Info.PSObject.Properties)) {
+                    $pv = Normalize-VersionText ([string]$prop.Value.Version)
+                    if ($pv) {
+                        $infoEarly[$prop.Name] = [PSCustomObject]@{Success=$true;Arch=[string]$prop.Value.Arch;Version=$pv;Source='DiskCache';TrustComplete=$true}
+                    }
+                }
+            } catch {}
+            $script:RuntimeOnlineInfo = $infoEarly
+            $script:RuntimeOnlineCheckedAt = Get-Date
+            $script:RuntimeOfficialVC14 = $bestEarly
+            $script:RuntimeStatusMessage = '已对比官方 C++ 运行库'
+            return [PSCustomObject]@{Success=$true;Info=$infoEarly;Errors=@();Cached=$true}
+        }
+    }
     $info = [ordered]@{}; $errors = @(); $best = ''
     $archs = @(Get-RequiredVCRedistArchitectures)
     [void](Update-WingetVCRedistVersions $archs)

@@ -119,7 +119,8 @@ public sealed class BackendService : IBackendClient, IDisposable
                 if (force) AddArg(psi, "-Force");
 
                 using var process = Process.Start(psi) ?? throw new InvalidOperationException("无法启动 PowerShell backend worker。");
-                _resources.TuneChildProcess(process, telemetryOnly);
+                var quiet = telemetryOnly || action is "DASHBOARD" or "PREFLIGHT" or "IDENTITY" or "ARCH" or "TRANSACTIONS" or "CRASH" or "DEEP" or "RUNTIME_ONLINE";
+                _resources.TuneChildProcess(process, quiet);
                 var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
                 var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

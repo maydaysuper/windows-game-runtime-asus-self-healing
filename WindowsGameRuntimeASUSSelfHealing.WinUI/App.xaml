@@ -19,7 +19,7 @@
         <Style TargetType="Window">
             <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
             <Setter Property="UseLayoutRounding" Value="True" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -28,12 +28,12 @@
         <Style TargetType="Page">
             <Setter Property="TextElement.FontFamily" Value="{StaticResource AppFontFamily}" />
             <Setter Property="TextElement.FontSize" Value="13" />
-            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
         </Style>
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
-            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
         </Style>
 
