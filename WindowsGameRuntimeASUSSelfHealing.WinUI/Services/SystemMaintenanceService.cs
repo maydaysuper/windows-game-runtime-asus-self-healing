@@ -36,8 +36,9 @@ public sealed class SystemMaintenanceService
         "奥创", "Windows Game Runtime"
     };
 
-    private const int ProcessQueryLimitedInformation = 0x1000;
+    private const int ProcessQueryInformation = 0x0400;
     private const int ProcessSetQuota = 0x0100;
+    private const long MinTrimBytes = 48L * 1024 * 1024;
     private const uint SherbNoConfirmation = 0x00000001;
     private const uint SherbNoProgressUi = 0x00000002;
     private const uint SherbNoSound = 0x00000004;
@@ -124,18 +125,47 @@ public sealed class SystemMaintenanceService
         var before = ReadMemory();
         var trimmed = 0;
         var skipped = 0;
+        var keptForeground = false;
         var self = Process.GetCurrentProcess().Id;
-        foreach (var process in Process.GetProcesses())
+        var foreground = ForegroundProcessId();
+        var owned = new List<Process>();
+        var ranked = new List<(Process Process, long WorkingSet)>();
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
+            foreach (var process in Process.GetProcesses())
             {
-                if (process.Id <= 4 || process.Id == self || ProtectedProcessNames.Contains(process.ProcessName))
+                cancellationToken.ThrowIfCancellationRequested();
+                owned.Add(process);
+                try
                 {
-                    skipped++;
-                    continue;
+                    if (process.Id <= 4 || process.Id == self || ProtectedProcessNames.Contains(process.ProcessName))
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    if (foreground != 0 && process.Id == foreground)
+                    {
+                        keptForeground = true;
+                        skipped++;
+                        continue;
+                    }
+                    long workingSet;
+                    try { workingSet = process.WorkingSet64; }
+                    catch { skipped++; continue; }
+                    if (workingSet < MinTrimBytes)
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    ranked.Add((process, workingSet));
                 }
-                var handle = OpenProcess(ProcessQueryLimitedInformation | ProcessSetQuota, false, process.Id);
+                catch { skipped++; }
+            }
+
+            foreach (var item in ranked.OrderByDescending(x => x.WorkingSet).Take(48))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var handle = OpenProcess(ProcessQueryInformation | ProcessSetQuota, false, item.Process.Id);
                 if (handle == IntPtr.Zero)
                 {
                     skipped++;
@@ -148,19 +178,12 @@ public sealed class SystemMaintenanceService
                 }
                 finally { CloseHandle(handle); }
             }
-            catch
-            {
-                skipped++;
-            }
-            finally { process.Dispose(); }
+            skipped += Math.Max(0, ranked.Count - 48);
         }
-
-        try
+        finally
         {
-            var selfHandle = Process.GetCurrentProcess().Handle;
-            EmptyWorkingSet(selfHandle);
+            foreach (var process in owned) process.Dispose();
         }
-        catch { }
 
         Thread.Sleep(200);
         var after = ReadMemory();
@@ -169,7 +192,8 @@ public sealed class SystemMaintenanceService
             Before = before,
             After = after,
             ProcessesTrimmed = trimmed,
-            ProcessesSkipped = skipped
+            ProcessesSkipped = skipped,
+            KeptForeground = keptForeground
         };
     }
 
@@ -215,7 +239,7 @@ public sealed class SystemMaintenanceService
         var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Explorer");
         list.Add(Walk("缩略图缓存", explorer, delete, cancellationToken, filePredicate: name =>
             name.StartsWith("thumbcache_", StringComparison.OrdinalIgnoreCase) ||
-            name.StartsWith("iconcache_", StringComparison.OrdinalIgnoreCase)));
+            name.StartsWith("iconcache_", StringComparison.OrdinalIgnoreCase), maxDepth: 0));
 
         var wer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "WER", "ReportQueue");
         list.Add(Walk("错误报告队列", wer, delete, cancellationToken, optional: true));
@@ -399,7 +423,7 @@ public sealed class SystemMaintenanceService
 
     private static string EscapeReg(string text) => text.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-    private CacheBucket Walk(string name, string root, bool delete, CancellationToken cancellationToken, bool optional = false, Func<string, bool>? filePredicate = null, bool enforceForbidden = true, bool skipRecent = true)
+    private CacheBucket Walk(string name, string root, bool delete, CancellationToken cancellationToken, bool optional = false, Func<string, bool>? filePredicate = null, bool enforceForbidden = true, bool skipRecent = true, int maxDepth = 8)
     {
         if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             return new CacheBucket { Name = name, Note = optional ? "当前没有或无权访问" : "目录不存在" };
@@ -417,7 +441,7 @@ public sealed class SystemMaintenanceService
                 IgnoreInaccessible = true,
                 ReturnSpecialDirectories = false,
                 AttributesToSkip = FileAttributes.ReparsePoint,
-                MaxRecursionDepth = 8
+                MaxRecursionDepth = maxDepth
             };
         }
         catch
@@ -444,7 +468,8 @@ public sealed class SystemMaintenanceService
                 var size = info.Length;
                 if (delete)
                 {
-                    info.IsReadOnly = false;
+                    if ((info.Attributes & FileAttributes.ReadOnly) != 0)
+                        info.IsReadOnly = false;
                     info.Delete();
                 }
                 bytes += size;
@@ -456,7 +481,40 @@ public sealed class SystemMaintenanceService
             }
         }
 
+        if (delete && files > 0)
+            TryPruneEmptyDirectories(root, cancellationToken);
+
         return new CacheBucket { Name = name, Bytes = bytes, Files = files, Skipped = skipped };
+    }
+
+    private static void TryPruneEmptyDirectories(string root, CancellationToken cancellationToken)
+    {
+        IEnumerable<string> dirs;
+        try
+        {
+            dirs = Directory.EnumerateDirectories(root, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+                MaxRecursionDepth = 8
+            });
+        }
+        catch { return; }
+
+        var seen = 0;
+        foreach (var dir in dirs.OrderByDescending(path => path.Length))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++seen > 4000) break;
+            if (IsForbidden(dir)) continue;
+            try
+            {
+                if (!Directory.EnumerateFileSystemEntries(dir).Any())
+                    Directory.Delete(dir, recursive: false);
+            }
+            catch { }
+        }
     }
 
     private static bool IsForbidden(string path)
@@ -759,6 +817,20 @@ public sealed class SystemMaintenanceService
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(int access, [MarshalAs(UnmanagedType.Bool)] bool inherit, int processId);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    private static int ForegroundProcessId()
+    {
+        var hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) return 0;
+        GetWindowThreadProcessId(hwnd, out var pid);
+        return (int)pid;
+    }
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

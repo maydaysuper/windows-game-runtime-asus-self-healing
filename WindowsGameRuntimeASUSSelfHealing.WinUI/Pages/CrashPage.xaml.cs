@@ -28,6 +28,11 @@ public sealed partial class CrashPage : Page
             if (_loaded) return;
             _loaded = true;
             await LoadDumpHistoryAsync();
+            var savedKey = App.Services.DeepSeek.LoadKey();
+            UseDeepSeekBox.IsChecked = !string.IsNullOrEmpty(savedKey);
+            DeepSeekKeyHint.Text = string.IsNullOrEmpty(savedKey)
+                ? "还没保存密钥。到 DeepSeek 开放平台复制密钥后点保存。"
+                : "本机已有密钥。输入新密钥再保存会覆盖；留空不会清空。";
             await Task.WhenAll(RefreshAsync(), RunGpuDiagnosisAsync());
         };
     }
@@ -150,10 +155,23 @@ public sealed partial class CrashPage : Page
 
             AnalyzeButton.IsEnabled = false;
             CrashInfo.Title = "正在分析 Dump";
-            CrashInfo.Message = "使用 Windows DbgHelp 直接读取 Minidump 异常流和模块表，不会把文件上传到网络。";
+            CrashInfo.Message = "正在本机校验 Minidump 并读取异常流，不会上传文件。";
             CrashInfo.Severity = InfoBarSeverity.Informational;
 
             var analysis = await App.Services.Performance.MeasureAsync("Crash.DumpAnalyze", () => App.Services.DumpAnalysis.AnalyzeAsync(dumpPath));
+            if (UseDeepSeekBox.IsChecked == true)
+            {
+                CrashInfo.Message = "本机校验完成。只把异常码、模块名和校验结果发给 DeepSeek。";
+                try
+                {
+                    var ai = await App.Services.DeepSeek.ExplainAsync(analysis);
+                    analysis = analysis with { AiSummary = ai };
+                }
+                catch (Exception aiEx)
+                {
+                    analysis = analysis with { AiSummary = "DeepSeek 没有返回：" + aiEx.Message };
+                }
+            }
             var reportPath = await App.Services.Reports.CreateDumpAnalysisReportAsync(analysis);
             analysis = analysis with { ReportPath = reportPath };
             await App.Services.StateStore.SaveDumpAnalysisAsync(analysis);
@@ -162,8 +180,8 @@ public sealed partial class CrashPage : Page
             await LoadDumpHistoryAsync();
             await RunGpuDiagnosisAsync();
 
-            CrashInfo.Title = "Dump 分析完成";
-            CrashInfo.Message = $"{analysis.ExceptionCode} · {analysis.FaultingModule} · 置信度 {analysis.Confidence}";
+            CrashInfo.Title = string.IsNullOrWhiteSpace(analysis.AiSummary) ? "Dump 分析完成" : "Dump 分析完成";
+            CrashInfo.Message = $"{analysis.VerifyStatus} · {analysis.ExceptionCode} · {analysis.FaultingModule}";
             CrashInfo.Severity = analysis.Confidence == "HIGH" ? InfoBarSeverity.Warning : InfoBarSeverity.Informational;
         }
         catch (Exception ex)
@@ -182,6 +200,8 @@ public sealed partial class CrashPage : Page
         DumpExceptionText.Text = $"异常：{result.ExceptionCode} {result.ExceptionName} · 地址 {result.ExceptionAddress}";
         DumpModuleText.Text = $"故障模块：{result.FaultingModule} · 分类 {result.Category} · 置信度 {result.Confidence}";
         DumpEvidenceText.Text = result.Evidence;
+        DumpVerifyText.Text = string.IsNullOrWhiteSpace(result.VerifyDetail) ? "" : "校验：" + result.VerifyDetail;
+        DumpAiText.Text = string.IsNullOrWhiteSpace(result.AiSummary) ? "" : "DeepSeek：" + result.AiSummary;
         OpenDumpReportButton.IsEnabled = !string.IsNullOrWhiteSpace(result.ReportPath);
     }
 
@@ -195,6 +215,29 @@ public sealed partial class CrashPage : Page
     private void OpenDumpReport_Click(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_currentDumpReport)) App.Services.Reports.OpenReport(_currentDumpReport);
+    }
+
+    private void SaveDeepSeekKey_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            App.Services.DeepSeek.SaveKey(DeepSeekKeyBox.Password);
+            DeepSeekKeyBox.Password = "";
+            UseDeepSeekBox.IsChecked = true;
+            DeepSeekKeyHint.Text = "密钥已保存在本机。";
+        }
+        catch (Exception ex)
+        {
+            DeepSeekKeyHint.Text = ex.Message;
+        }
+    }
+
+    private void ClearDeepSeekKey_Click(object sender, RoutedEventArgs e)
+    {
+        App.Services.DeepSeek.ClearKey();
+        DeepSeekKeyBox.Password = "";
+        UseDeepSeekBox.IsChecked = false;
+        DeepSeekKeyHint.Text = "密钥已从本机删除。";
     }
 
     private async void EnableDump_Click(object sender, RoutedEventArgs e) => await SetDumpAsync(true);

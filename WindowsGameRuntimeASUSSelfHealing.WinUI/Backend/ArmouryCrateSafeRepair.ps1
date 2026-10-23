@@ -76,29 +76,50 @@ function Get-WgrArmouryAppxPackages {
 
 function Get-WgrArmouryExecutables {
     $names=@('ArmouryCrate.exe','ArmouryCrate.UserSessionHelper.exe','Armoury Crate.exe','AacApp.exe')
-    $roots=@(
-        ${env:ProgramFiles},
-        ${env:ProgramFiles(x86)},
-        (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'),
+    $found=New-Object System.Collections.Generic.List[string]
+    $seen=@{}
+    $roots=@()
+    foreach($raw in @(
+        (Join-Path ${env:ProgramFiles} 'ASUS'),
+        (Join-Path ${env:ProgramFiles(x86)} 'ASUS'),
         (Join-Path $env:LOCALAPPDATA 'ASUS'),
         (Join-Path $env:ProgramData 'ASUS')
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
-    $found=@()
-    $seen=@{}
-    foreach($root in $roots){
+    )) { if($raw -and (Test-Path -LiteralPath $raw)){ $roots += $raw } }
+    foreach($base in @(${env:ProgramFiles}, ${env:ProgramFiles(x86)})){
+        if(-not $base -or -not (Test-Path -LiteralPath $base)){continue}
         try {
-            $hits=@(Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
-                Where-Object { $names -contains $_.Name } |
-                Select-Object -First 12)
-            foreach($h in $hits){
-                $p=[string]$h.FullName
-                if($seen.ContainsKey($p.ToLowerInvariant())){continue}
-                $seen[$p.ToLowerInvariant()]=$true
-                $found += $p
+            foreach($dir in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'ASUS|Armoury|ROG' })){
+                $roots += $dir.FullName
             }
         } catch {}
     }
-    return $found
+    foreach($root in @($roots | Select-Object -Unique)){
+        if($found.Count -ge 8){break}
+        try {
+            foreach($hit in @(Get-ChildItem -LiteralPath $root -Recurse -File -Depth 3 -ErrorAction SilentlyContinue | Where-Object { $names -contains $_.Name } | Select-Object -First 8)){
+                $p=[string]$hit.FullName
+                if(-not $p){continue}
+                $key=$p.ToLowerInvariant()
+                if($seen.ContainsKey($key)){continue}
+                $seen[$key]=$true
+                [void]$found.Add($p)
+            }
+        } catch {}
+    }
+    $apps=Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
+    if($found.Count -lt 8 -and (Test-Path -LiteralPath $apps)){
+        try {
+            foreach($hit in @(Get-ChildItem -LiteralPath $apps -File -ErrorAction SilentlyContinue | Where-Object { $names -contains $_.Name })){
+                $p=[string]$hit.FullName
+                if(-not $p){continue}
+                $key=$p.ToLowerInvariant()
+                if($seen.ContainsKey($key)){continue}
+                $seen[$key]=$true
+                [void]$found.Add($p)
+            }
+        } catch {}
+    }
+    return @($found)
 }
 
 function Test-WgrArmouryError501 {
@@ -106,7 +127,7 @@ function Test-WgrArmouryError501 {
     $roots=@("$env:ProgramData\ASUS","$env:LOCALAPPDATA\ASUS") | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
     foreach($root in $roots){
         try {
-            $files=@(Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
+            $files=@(Get-ChildItem -LiteralPath $root -Recurse -File -Depth 3 -ErrorAction SilentlyContinue |
                 Where-Object { $_.LastWriteTime -ge $since -and $_.Length -lt 8MB -and $_.Extension -match '^\.(log|txt)$' } |
                 Sort-Object LastWriteTime -Descending |
                 Select-Object -First 80)
@@ -250,16 +271,19 @@ function Invoke-WgrArmouryCrateSafeRepair {
     if(Get-Command Invoke-RuntimeAutoRepair -ErrorAction SilentlyContinue){
         try {
             if(Get-Command Update-RuntimeOnlineInfo -ErrorAction SilentlyContinue){try{[void](Update-RuntimeOnlineInfo)}catch{}}
-            $snap=$null
-            if(Get-Command Get-SystemSnapshot -ErrorAction SilentlyContinue){$snap=Get-SystemSnapshot -Force}
-            $elig=$null
-            if($snap -and (Get-Command Get-RuntimeRepairEligibility -ErrorAction SilentlyContinue)){$elig=Get-RuntimeRepairEligibility $snap}
-            if($elig -and [bool]$elig.Eligible){
-                $vr=Invoke-RuntimeAutoRepair
-                if($vr.Success){[void]$messages.Add('C++ 运行库已检查并修好。')}
-                else{[void]$messages.Add('C++ 运行库已尝试修复。')}
+            $blocked=$false
+            if(Get-Command Get-EnvironmentPreflight -ErrorAction SilentlyContinue){
+                try {
+                    $pre=Get-EnvironmentPreflight 'Runtime' ''
+                    $blocked=@($pre.Rows | Where-Object { $_.Blocking }).Count -gt 0
+                } catch {}
+            }
+            if($blocked){
+                [void]$messages.Add('C++ 运行库这次被环境预检拦住，先不自动修。')
             } else {
-                [void]$messages.Add('C++ 运行库本机可用。')
+                $vr=Invoke-RuntimeAutoRepair
+                if($vr.Success){[void]$messages.Add('C++ 运行库已检查。')}
+                else{[void]$messages.Add('C++ 运行库已尝试修复。')}
             }
         } catch {
             [void]$messages.Add('C++ 运行库检查已跳过。')
@@ -290,8 +314,11 @@ function Invoke-WgrArmouryCrateSafeRepair {
                 try { Set-Service -Name $n -StartupType Automatic -ErrorAction Stop } catch {}
             }
             if([string]$s.Status -ne 'Running'){
-                Start-Service -Name $n -ErrorAction Stop
-                $started++
+                try { $s.Start() } catch {}
+                try {
+                    $s.WaitForStatus([ServiceProcess.ServiceControllerStatus]::Running, [TimeSpan]::FromSeconds(8))
+                    $started++
+                } catch {}
             }
         } catch {}
     }
@@ -299,7 +326,9 @@ function Invoke-WgrArmouryCrateSafeRepair {
 
     try {
         $pkgs=@(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { [string]$_.Name -match '(?i)ArmouryCrate' })
-        try { $pkgs += @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { [string]$_.Name -match '(?i)ArmouryCrate' }) } catch {}
+        if($pkgs.Count -eq 0){
+            try { $pkgs = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { [string]$_.Name -match '(?i)ArmouryCrate' }) } catch {}
+        }
         $seen=@{}
         foreach($p in $pkgs){
             $key=[string]$p.PackageFullName
@@ -310,7 +339,10 @@ function Invoke-WgrArmouryCrateSafeRepair {
                 try { Add-AppxPackage -DisableDevelopmentMode -Register $manifest -ErrorAction Stop; $registered++ } catch {}
             }
             if(Get-Command Reset-AppxPackage -ErrorAction SilentlyContinue){
-                try { Reset-AppxPackage -Package $p -ErrorAction SilentlyContinue | Out-Null } catch {}
+                $st=[string]$p.Status
+                if($st -and $st -ne 'Ok'){
+                    try { Reset-AppxPackage -Package $p -ErrorAction SilentlyContinue | Out-Null } catch {}
+                }
             }
         }
     } catch {}
@@ -322,7 +354,15 @@ function Invoke-WgrArmouryCrateSafeRepair {
     elseif($launch.ErrorCode){[void]$messages.Add("打开奥创失败，错误码 $($launch.ErrorCode)。")}
     elseif($launch.Error){[void]$messages.Add('打开奥创失败。')}
 
-    Start-Sleep -Seconds 2
+    if($launch.Success -and -not $launch.AlreadyRunning){
+        $deadline=(Get-Date).AddSeconds(2)
+        while((Get-Date) -lt $deadline){
+            $running=@()
+            try { $running=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '(?i)ArmouryCrate' }) } catch {}
+            if($running.Count -gt 0){ break }
+            Start-Sleep -Milliseconds 200
+        }
+    }
     $after=Get-WgrArmouryCrateLaunchHealth
     $ok=(-not [bool]$after.NeedsRepair)
     if($ok){[void]$messages.Add('奥创现在可以打开。')}

@@ -3,7 +3,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$InstallRoot,
     [ValidateSet('Clean','Verify')][string]$Mode = 'Clean',
-    [string]$ExpectedVersion = '4.6.4',
+    [string]$ExpectedVersion = '4.6.5',
     [string]$LogPath,
     [string]$DesktopShortcut,
     [string]$DesktopDecisionPath

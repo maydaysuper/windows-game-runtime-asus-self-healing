@@ -16,6 +16,9 @@ public sealed record DumpAnalysisResult
     public string Confidence { get; init; } = "LOW";
     public string CoreReason { get; init; } = "";
     public string Evidence { get; init; } = "";
+    public string VerifyStatus { get; init; } = "";
+    public string VerifyDetail { get; init; } = "";
+    public string AiSummary { get; init; } = "";
     public DateTimeOffset AnalyzedUtc { get; init; } = DateTimeOffset.UtcNow;
     public string ReportPath { get; init; } = "";
 

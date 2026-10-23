@@ -1,8 +1,8 @@
 ﻿@{
     SchemaVersion = 8
     Product = '奥创修复中心'
-    Version = '4.6.4'
-    BuildId = '20261023.wpf.22'
+    Version = '4.6.5'
+    BuildId = '20261023.wpf.23'
     Channel = 'Stable'
     Frontend = 'WPF / .NET 10'
     ReportSchemaVersion = 4
@@ -21,7 +21,7 @@
     EventReaderSHA256 = 'a464ca3e67195e7ec1b2bf80b5cf28bdf306e46f3df129411c764af305a67ca1'
     GpuDiagnosticsReaderSHA256 = '4a39b9a4a24ee4dda66d67e79bec93a1eb17f8fa551d4a5f7e5d3cba46ba3af2'
     GpuSafeRepairSHA256 = 'a2873909dec75e0abcfff0467693d79ab24e84ac2ae4976e4b9226e747ed0092'
-    ArmouryCrateSafeRepairSHA256 = '6dbb7105e919be5b80ca2b97d2d04638fa8c9af2fd1d3d69525d0501bb2c2350'
+    ArmouryCrateSafeRepairSHA256 = '5898df7356b427b66ca0e8791b2fcf6f0dedae12a016798925aeb8a9025368b8'
     AtomicPolicyExecutorSHA256 = '158a191ff85843aa8991583ae51af1f8ae9941c81df00a5e59c5cdbae527b995'
     RecipeCatalogSHA256 = 'a0166307ae062c7c06e46c52c7194261f2b6b8bb6cd32074a5d35a7cac7e3db6'
     RuntimeEngineSHA256 = '881cb836a412b25b4cb37e2873cd1b1517f592e84b0c7aed69dcdebede838137'

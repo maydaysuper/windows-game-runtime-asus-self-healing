@@ -100,7 +100,13 @@ public sealed class ReportService
         text.AppendLine("## 证据");
         text.AppendLine(result.Evidence);
         text.AppendLine();
-        text.AppendLine("> 当前内置分析器直接读取 Windows Minidump 异常流与模块表，不需要上传 Dump。未加载厂商符号时，结论表示核心报错点/最可能方向，不冒充完整符号化调用栈的最终根因。");
+        text.AppendLine("## 文件校验");
+        text.AppendLine(string.IsNullOrWhiteSpace(result.VerifyDetail) ? result.VerifyStatus : result.VerifyStatus + " · " + result.VerifyDetail);
+        text.AppendLine();
+        text.AppendLine("## DeepSeek 解读");
+        text.AppendLine(string.IsNullOrWhiteSpace(result.AiSummary) ? "未调用。只完成本机校验。" : result.AiSummary);
+        text.AppendLine();
+        text.AppendLine("> 本机校验直接读取 Minidump 头、流目录、异常流和模块表，不上传 Dump。DeepSeek 只接收异常码、模块名和校验摘要，不接收内存页和文件路径。未加载厂商符号时，结论不是完整符号化调用栈。");
         return await WriteReportAsync("DUMP", Path.GetFileNameWithoutExtension(result.FileName), text.ToString(), cancellationToken).ConfigureAwait(false);
     }
 
